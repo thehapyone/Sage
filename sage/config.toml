@@ -2,3 +2,5 @@
 url = "https://getinge-dts.atlassian.net/"
 username = "jira-user.act@getinge.com"
 polling_interval = 300
+project = "ANTHEA"
+status_todo = "To Do"

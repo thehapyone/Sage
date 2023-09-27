@@ -19,3 +19,5 @@ if not jira_password:
     raise ConfigException(f"The JIRA password is missing. Please add it via an env variable - 'JIRA_PASSWORD'")
 
 jira_config["password"] = jira_password
+
+JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
