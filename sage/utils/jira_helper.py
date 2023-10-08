@@ -9,11 +9,13 @@ from constants import jira_config, JIRA_QUERY
 issue_fields = [
     "summary",
     "status",
+    "parent",
     "description",
     "attachment",
     "comment",
     "issuelinks",
     "reporter",
+    "issuetype",
 ]
 
 
@@ -58,11 +60,22 @@ class Jira:
 
     def get_issue(self, issue_key: str) -> Issue:
         """Returns a issue"""
-        return self._jira.issue(id=issue_key, fields=issue_fields)
+        return self._jira.issue(id=issue_key)
+
+    def add_comment(self, issue_key: str, body: str) -> None:
+        # Add a comment to the Issue
+        response = self._jira.add_comment(issue=issue_key, body=body)
+
+        if response:
+            return
+
+        raise Exception(
+            f"Error adding comment. key: {issue_key} and body: {body}")
 
     def search_issues(self):
-        # Search Issues matching the given query
-
+        """
+        Search issues matching the configured query and adds them to the queue.
+        """
         issues = self._jira.search_issues(self.query,
                                           startAt=self._tracked_ids[-1],
                                           fields=issue_fields)
