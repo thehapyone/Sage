@@ -1,5 +1,7 @@
 import os
 import toml
+from langchain.chat_models import AzureChatOpenAI, ChatOllama
+
 from utils.exceptions import ConfigException
 
 # Load the configuration file only once
@@ -21,3 +23,11 @@ if not jira_password:
 jira_config["password"] = jira_password
 
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
+
+# Load the model
+DEPLOYMENT_NAME = "gpt4-8k"
+LLM_MODEL = AzureChatOpenAI(
+    deployment_name=DEPLOYMENT_NAME)
+
+# llm = ChatOllama(model="llama2:13b",
+#                  callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]))

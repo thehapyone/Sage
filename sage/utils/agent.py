@@ -3,11 +3,13 @@ from typing import Any
 from jira import Issue, JIRAError
 
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
-from langchain.chat_models import AzureChatOpenAI, ChatOllama
 from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain_experimental.plan_and_execute.planners.base import LLMPlanner
+from langchain_experimental.plan_and_execute.planners.chat_planner import PlanningOutputParser
+from langchain.schema.messages import SystemMessage
 
 from utils.jira_helper import Jira
+from constants import LLM_MODEL
 
 issue_template = """
 **Title**: {title}
@@ -73,24 +75,40 @@ PARENT_SUMMARY_TEMPLATE = SUMMARY_TEMPLATE + """
 Please note, as this is a parent issue, your summary should be short, concise and contain max of three paragraphs. Exclude any summary headers, as they'll be added to the child summary field. Don't forget to include the issue key in the summary.
 """
 
+PLANNER_SYSTEM_PROMPT = (
+    "Let's first understand the problem and devise a plan to solve the problem."
+    "Please output the plan starting with the header 'Plan:' "
+    "and then followed by a numbered list of steps. "
+    "Please make the plan the minimum number of steps required "
+    "to accurately complete the task. If the task is a question, "
+    "the final step should almost always be 'Given the above steps taken, "
+    "please respond to the users original question'. "
+    "At the end of your plan, say '<END_OF_PLAN>'"
+)
+
+
+class PlannerChain(LLMPlanner):
+
+    def __init__(self) -> None:
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", PLANNER_SYSTEM_PROMPT),
+            ("human", "{input}"),
+        ])
+        llm_chain = LLMChain(llm=LLM_MODEL, prompt=prompt_template)
+        stop = ["<END_OF_PLAN>"]
+        super().__init__(llm_chain=llm_chain, output_parser=PlanningOutputParser(), stop=stop)
+
 
 class SummaryChain:
 
     def __init__(self, system_template: str = SUMMARY_TEMPLATE) -> None:
-
-        DEPLOYMENT_NAME = "gpt4-8k"
-        llm = AzureChatOpenAI(
-            deployment_name=DEPLOYMENT_NAME)
-
-        # llm = ChatOllama(model="llama2:13b",
-        #                  callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]))
 
         chat_prompt = ChatPromptTemplate.from_messages([
             ("system", system_template),
             ("human", "{issue}"),
         ])
 
-        self.chain = LLMChain(llm=llm, prompt=chat_prompt)
+        self.chain = LLMChain(llm=LLM_MODEL, prompt=chat_prompt)
 
     def summarize(self, issue: str) -> Any:
         # Summarize the given issue
@@ -183,6 +201,8 @@ class IssueAgent:
 
         chain = SummaryChain()
         summary_text = chain.summarize(issue_formatted)
+        
+        return summary_text
 
     def publish_summary(self, summary: str, issue_key: str) -> None:
         """
@@ -193,3 +213,25 @@ class IssueAgent:
             issue_key (str): The issue key
         """
         Jira().add_comment(issue_key=issue_key, body=summary)
+
+    def planner(self, issue: Issue) -> None:
+        """
+        Helps to generate an execution plan for the given issue
+        """
+        planner = PlannerChain()
+        
+        issue_formatted = self.generate_issue_template(issue)
+
+        task_summary = self.summarize(issue)
+        print(task_summary)
+        
+        print("------------------------------------")
+
+        query = f"Provide an execution plan for this Jira issue: {issue_formatted}"
+        query2 = f"Provide an execution plan for this Jira issue: {task_summary}"
+
+        response = planner.plan({"input": query})
+        print(response)
+        print("######################################################################")
+        response = planner.plan({"input": query2})
+        print(response)
