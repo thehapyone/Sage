@@ -50,13 +50,12 @@ Linked Issues:
     <linked_issues>
 """
 
-
 linked_issue_template = """
 {issue_key}: {issue_summary}
 """
 
 SUMMARY_TEMPLATE = """
-"As an AI assistant, your task is to concisely summarize Jira issues, incorporating all vital details, comments, and contexts. Your analysis will assist the assignee in effectively resolving the issue.
+As an AI assistant, your task is to concisely summarize Jira issues, incorporating all vital details, comments, and contexts. Your analysis will assist the assignee in effectively resolving the issue.
 
 Your summary should:
  - Highlight key task-related information and issues.
@@ -71,19 +70,20 @@ Additional guidelines:
  - Write in the second person and use appropriate prepositions, as your summary will be added to the issue's comments.
 """
 
-PARENT_SUMMARY_TEMPLATE = SUMMARY_TEMPLATE + """
-Please note, as this is a parent issue, your summary should be short, concise and contain max of three paragraphs. Exclude any summary headers, as they'll be added to the child summary field. Don't forget to include the issue key in the summary.
-"""
+PARENT_SUMMARY_TEMPLATE = SUMMARY_TEMPLATE + (
+    "Please note, as this is a parent issue, your summary should be short, concise and contain max of three paragraphs. "
+    "Exclude any summary headers, as they'll be added to the child summary field. Don't forget to include the issue key in the summary."
+)
 
 PLANNER_SYSTEM_PROMPT = (
-    "Let's first understand the problem and devise a plan to solve the problem."
-    "Please output the plan starting with the header 'Plan:' "
-    "and then followed by a numbered list of steps. "
-    "Please make the plan the minimum number of steps required "
-    "to accurately complete the task. If the task is a question, "
-    "the final step should almost always be 'Given the above steps taken, "
-    "please respond to the users original question'. "
-    "At the end of your plan, say '<END_OF_PLAN>'"
+    "Your role is to create an execution plan for assigned Jira tasks. "
+    "Upon receiving a task, dissect its requirements and construct an actionable plan under 'Plan'. "
+    "The plan should contain a numbered list of steps necessary for task completion. "
+    "These steps should focus on actions to be taken. "
+    "If the task involves changes to a GitLab project, ensure you include a step for creating a merge request. "
+    "Regardless of the task, always include a final step to update the Jira ticket to 'Done' once the task is complete. "
+    "Conclude the plan with '<END_OF_PLAN>' to indicate its completion. "
+    "Ensure your plan is precise and efficient to aid seamless task execution by another AI assistant."
 )
 
 
@@ -201,7 +201,7 @@ class IssueAgent:
 
         chain = SummaryChain()
         summary_text = chain.summarize(issue_formatted)
-        
+
         return summary_text
 
     def publish_summary(self, summary: str, issue_key: str) -> None:
@@ -219,16 +219,16 @@ class IssueAgent:
         Helps to generate an execution plan for the given issue
         """
         planner = PlannerChain()
-        
+
         issue_formatted = self.generate_issue_template(issue)
 
         task_summary = self.summarize(issue)
         print(task_summary)
-        
+
         print("------------------------------------")
 
-        query = f"Provide an execution plan for this Jira issue: {issue_formatted}"
-        query2 = f"Provide an execution plan for this Jira issue: {task_summary}"
+        query = issue_formatted
+        query2 = task_summary
 
         response = planner.plan({"input": query})
         print(response)

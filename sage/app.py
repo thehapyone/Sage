@@ -8,4 +8,6 @@ issue = myjira.get_issue(key)
 
 agent = IssueAgent()
 
+print(agent.generate_issue_template(issue))
+
 agent.planner(issue)
