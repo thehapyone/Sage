@@ -1,6 +1,22 @@
-[JIRA]
+[jira]
 url = "https://getinge-dts.atlassian.net/"
 username = "jira-user.act@getinge.com"
 polling_interval = 300
 project = "ANTHEA"
 status_todo = "To Do"
+
+[source]
+
+[source.confluence]
+username = "jira-user.act@getinge.com"
+server = "https://getinge-dts.atlassian.net"
+spaces = ["space1", "space2", "space3"]
+
+[source.gitlab]
+username = "jira-user.act@getinge.com"
+server = "https://gitlab.its.getingecloud.net"
+spaces = ["dts/anthea", "dts/spaulding", "dts/enola"]
+
+[source.web]
+links = ["https://docs.gitlab.com/ee/"]
+nested = true
