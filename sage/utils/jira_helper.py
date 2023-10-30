@@ -31,12 +31,12 @@ class Jira:
 
     def __init__(self) -> None:
         self._jira = JIRA(
-            server=jira_config["url"],
-            basic_auth=(jira_config["username"], jira_config["password"])
+            server=jira_config.url,
+            basic_auth=(jira_config.username, jira_config.password)
         )
         self._tracked_issues = list()  # type: List[Issue]
 
-        self._polling_interval = jira_config["polling_interval"]
+        self._polling_interval = jira_config.polling_interval
 
         self._queue = Queue()
 
@@ -53,9 +53,9 @@ class Jira:
     @cached_property
     def query(self) -> str:
         return JIRA_QUERY.format(
-            project=jira_config["project"],
-            status=jira_config["status_todo"],
-            assignee=jira_config["username"]
+            project=jira_config.project,
+            status=jira_config.status_todo,
+            assignee=jira_config.username
         )
 
     def get_issue(self, issue_key: str) -> Issue:
