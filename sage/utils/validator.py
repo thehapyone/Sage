@@ -46,10 +46,16 @@ class Jira_Config(Password):
     project: str
     status_todo: str
 
+class Core(BaseModel):
+    """
+    Core Model.
+    """
+    data_dir: str
 
 class Config(BaseModel):
     """  
     Config Model.  
     """
+    core: Core
     jira: Jira_Config
     source: Source

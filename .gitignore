@@ -3,3 +3,6 @@ sandbox
 .vscode
 __pycache__
 .env
+
+## Sage data dir
+data

@@ -1,3 +1,6 @@
+[core]
+data_dir = "/home/ayo/Desktop/codes/codesage-ai/data"
+
 [jira]
 url = "https://getinge-dts.atlassian.net/"
 username = "jira-user.act@getinge.com"
