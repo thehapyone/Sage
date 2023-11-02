@@ -2,6 +2,7 @@ import os
 import toml
 from langchain.chat_models import AzureChatOpenAI, ChatOllama
 from pydantic import ValidationError
+from pathlib import Path
 from utils.exceptions import ConfigException
 from utils.validator import Config
 
@@ -11,6 +12,7 @@ config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
 try:
     config = toml.load(config_path)
     validated_config = Config(**config)
+    core_config = validated_config.core
     jira_config = validated_config.jira
     sources_config = validated_config.source
 except ValidationError as error:
@@ -21,14 +23,8 @@ except (FileNotFoundError, KeyError) as error:
     raise ConfigException(
         f"The required configuration key or file is not found - {str(error)}")
 
-if jira_config.password is None:
-    jira_password = os.getenv("JIRA_PASSWORD")
-    if not jira_password:
-        raise ConfigException(
-            f"The JIRA password is missing. Please add it via an env variable or to the config - 'JIRA_PASSWORD'")
-
-    jira_config.password = jira_password
-
+# Create the main data directory
+Path(core_config.data_dir).mkdir(exist_ok=True)
 
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
