@@ -1,6 +1,7 @@
 import os
 import toml
 from langchain.chat_models import AzureChatOpenAI, ChatOllama
+from langchain.embeddings import OpenAIEmbeddings
 from pydantic import ValidationError
 from pathlib import Path
 from utils.exceptions import ConfigException
@@ -32,6 +33,11 @@ JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{ass
 DEPLOYMENT_NAME = "gpt4-8k"
 LLM_MODEL = AzureChatOpenAI(
     deployment_name=DEPLOYMENT_NAME)
+
+# Document Embeddings
+EMBEDDING_MODEL = OpenAIEmbeddings(
+    deployment="ada-embeddings",
+)
 
 # llm = ChatOllama(model="llama2:13b",
 #                  callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]))

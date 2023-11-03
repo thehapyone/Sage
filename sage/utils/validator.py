@@ -23,7 +23,7 @@ class SourceData(Password):
     spaces: List[str]
 
 
-class Confluence(SourceData):
+class ConfluenceModel(SourceData):
     """  
     Confluence Data Model. Inherits SourceData.  
     """
@@ -38,7 +38,7 @@ class Confluence(SourceData):
         return password
 
 
-class Gitlab(SourceData):
+class GitlabModel(SourceData):
     """  
     Gitlab Data Model. Inherits SourceData.  
     """
@@ -64,8 +64,8 @@ class Source(BaseModel):
     """  
     Source Model.  
     """
-    confluence: Optional[Confluence] = None
-    gitlab: Optional[Gitlab] = None
+    confluence: Optional[ConfluenceModel] = None
+    gitlab: Optional[GitlabModel] = None
     web: Optional[Web] = None
 
 
@@ -94,8 +94,6 @@ class Core(BaseModel):
     Core Model.
     """
     data_dir: Optional[str | Path] = Path.home() / sage_base
-    sources_dir: Optional[str | Path] = Path(data_dir) / "sources"
-
 
 class Config(BaseModel):
     """  
