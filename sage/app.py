@@ -3,12 +3,12 @@ from utils.agent import IssueAgent, SummaryChain
 from utils.sources import Source
 from constants import sources_config
 
-myjira = Jira()
+# myjira = Jira()
 
-key = "ANTHEA-906"
-issue = myjira.get_issue(key)
+# key = "ANTHEA-906"
+# issue = myjira.get_issue(key)
 
-agent = IssueAgent()
+# agent = IssueAgent()
 
 # print(agent.generate_issue_template(issue))
 

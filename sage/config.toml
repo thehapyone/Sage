@@ -20,6 +20,9 @@ spaces = ["ANTHEA", "SF"]
 # server = "https://gitlab.its.getingecloud.net"
 # spaces = ["dts/anthea", "dts/spaulding", "dts/enola"]
 
-# [source.web]
-# links = ["https://docs.gitlab.com/ee/"]
-# nested = true
+[source.web]
+links = [
+    "https://docs.gitlab.com/ee/ci/examples",
+    "https://docs.gitlab.com/ee/ci/components/",
+]
+nested = true

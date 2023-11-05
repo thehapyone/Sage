@@ -6,9 +6,12 @@ from pydantic import ValidationError
 from pathlib import Path
 from utils.exceptions import ConfigException
 from utils.validator import Config
+from utils.logger import CustomLogger
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
+app_name = "codesage.ai"
+logger = CustomLogger(app_name)
 
 try:
     config = toml.load(config_path)
