@@ -15,10 +15,176 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.schema import Document
 from langchain.document_loaders import UnstructuredURLLoader
+from langchain.document_loaders.base import BaseLoader
+from gitlab import Gitlab
 
 from utils.validator import SourceData, ConfluenceModel, GitlabModel, Web
-from constants import sources_config, core_config, EMBEDDING_MODEL, logger
+from constants import sources_config, core_config, EMBEDDING_MODEL, logger, app_name
 from utils.exceptions import SourceException
+
+
+class GitLoader(BaseLoader):
+    """Load `Git` repository files.
+
+    The Repository can be local on disk available at `repo_path`,
+    or remote at `clone_url` that will be cloned to `repo_path`.
+    Currently, supports only text files.
+
+    Each document represents one file in the repository. The `path` points to
+    the local Git repository, and the `branch` specifies the branch to load
+    files from. By default, it loads from the `main` branch.
+    """
+
+    def __init__(
+        self,
+        repo_path: str,
+        clone_url: Optional[str] = None,
+        branch: Optional[str] = "main",
+        file_filter: Optional[Callable[[str], bool]] = None,
+    ):
+        """
+
+        Args:
+            repo_path: The path to the Git repository.
+            clone_url: Optional. The URL to clone the repository from.
+            branch: Optional. The branch to load files from. Defaults to `main`.
+            file_filter: Optional. A function that takes a file path and returns
+              a boolean indicating whether to load the file. Defaults to None.
+        """
+        self.repo_path = repo_path
+        self.clone_url = clone_url
+        self.branch = branch
+        self.file_filter = file_filter
+
+    def load(self) -> List[Document]:
+        try:
+            from git import Blob, Repo  # type: ignore
+        except ImportError as ex:
+            raise ImportError(
+                "Could not import git python package. "
+                "Please install it with `pip install GitPython`."
+            ) from ex
+
+        if not os.path.exists(self.repo_path) and self.clone_url is None:
+            raise ValueError(f"Path {self.repo_path} does not exist")
+        elif self.clone_url:
+            # If the repo_path already contains a git repository, verify that it's the
+            # same repository as the one we're trying to clone.
+            if os.path.isdir(os.path.join(self.repo_path, ".git")):
+                repo = Repo(self.repo_path)
+                # If the existing repository is not the same as the one we're trying to
+                # clone, raise an error.
+                if repo.remotes.origin.url != self.clone_url:
+                    raise ValueError(
+                        "A different repository is already cloned at this path."
+                    )
+            else:
+                repo = Repo.clone_from(self.clone_url, self.repo_path)
+            repo.git.checkout(self.branch)
+        else:
+            repo = Repo(self.repo_path)
+            repo.git.checkout(self.branch)
+
+        docs: List[Document] = []
+
+        for item in repo.tree().traverse():
+            if not isinstance(item, Blob):
+                continue
+
+            file_path = os.path.join(self.repo_path, item.path)
+
+            ignored_files = repo.ignored([file_path])  # type: ignore
+            if len(ignored_files):
+                continue
+
+            # uses filter to skip files
+            if self.file_filter and not self.file_filter(file_path):
+                continue
+
+            rel_file_path = os.path.relpath(file_path, self.repo_path)
+            try:
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                    file_type = os.path.splitext(item.name)[1]
+
+                    # loads only text files
+                    try:
+                        text_content = content.decode("utf-8")
+                    except UnicodeDecodeError:
+                        continue
+
+                    metadata = {
+                        "source": rel_file_path,
+                        "file_path": rel_file_path,
+                        "file_name": item.name,
+                        "file_type": file_type,
+                    }
+                    doc = Document(page_content=text_content,
+                                   metadata=metadata)
+                    docs.append(doc)
+            except Exception as e:
+                print(f"Error reading file {file_path}: {e}")
+
+        return docs
+
+
+"""
+Gitlab loader expectations
+ - Can take in either a group list or a project list
+ - If it's a group, it will find all projects in that group including subgroups
+ - For all projects, clone the repo with the attached private key to a temporary folder
+ - Use the Gitloader to load all the contents from the project
+"""
+
+
+class GitlabLoader(BaseLoader):
+    """
+
+    Load projects from a Gitlab source and then uses `git` to load
+    the repository files.
+
+    The Repository can be local on disk available at `repo_path`,
+    or remote at `clone_url` that will be cloned to `repo_path`.
+    Currently, supports only text files.
+
+    Each document represents one file in the repository. The `path` points to
+    the local Git repository, and the `branch` specifies the branch to load
+    files from. By default, it loads from the `main` branch.
+    """
+
+    def __init__(
+            self,
+            base_url: str,
+            loader_type: str,
+            groups: List[str],
+            projects: List[str],
+            private_token: str | None,
+            ssl_verify: bool = True
+    ) -> None:
+        self.base_url = base_url
+        self.private_token = private_token
+        self.ssl_verify = ssl_verify
+        self.gitlab = self._initialize_gitlab()
+        self.loader_type = self.validate_loader_type(loader_type)
+        self.groups = groups
+        self.projects = projects
+
+    def _initialize_gitlab(self):
+        gitlab = Gitlab(
+            url=self.base_url,
+            private_token=self.private_token,
+            user_agent=app_name
+        )
+        gitlab.auth()
+        return gitlab
+
+    @staticmethod
+    def validate_loader_type(loader_type: str):
+        allowed_types = ["project", "group"]
+        if loader_type not in allowed_types:
+            raise SourceException(
+                f"Loader type {loader_type} is not allowed. Allowed values are: {allowed_types}")
+        return loader_type
 
 
 class WebLoader(UnstructuredURLLoader):
