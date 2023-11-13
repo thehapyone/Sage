@@ -1,10 +1,12 @@
+import os
 from pathlib import Path
-from typing import List
-from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
+import tempfile
+from typing import Callable, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock, Thread
 from urllib.parse import urljoin, urldefrag
 from queue import Queue
+from pydantic import BaseModel, SecretStr
 import requests
 from time import sleep
 from hashlib import md5
@@ -16,125 +18,25 @@ from langchain.vectorstores import FAISS
 from langchain.schema import Document
 from langchain.document_loaders import UnstructuredURLLoader
 from langchain.document_loaders.base import BaseLoader
-from gitlab import Gitlab
+from gitlab import Gitlab, GitlabGetError
+from gitlab.v4.objects import Project
+from gitlab.v4.objects import Group
+from git import Blob, Repo
 
-from utils.validator import SourceData, ConfluenceModel, GitlabModel, Web
 from constants import sources_config, core_config, EMBEDDING_MODEL, logger, app_name
 from utils.exceptions import SourceException
+from utils.validator import ConfluenceModel, GitlabModel, Web
 
 
-class GitLoader(BaseLoader):
-    """Load `Git` repository files.
-
-    The Repository can be local on disk available at `repo_path`,
-    or remote at `clone_url` that will be cloned to `repo_path`.
-    Currently, supports only text files.
-
-    Each document represents one file in the repository. The `path` points to
-    the local Git repository, and the `branch` specifies the branch to load
-    files from. By default, it loads from the `main` branch.
+class RepoHandler(BaseModel):
     """
+    A custom repo object that contains the required repo information
+    """
+    class Config:
+        arbitrary_types_allowed = True
 
-    def __init__(
-        self,
-        repo_path: str,
-        clone_url: Optional[str] = None,
-        branch: Optional[str] = "main",
-        file_filter: Optional[Callable[[str], bool]] = None,
-    ):
-        """
-
-        Args:
-            repo_path: The path to the Git repository.
-            clone_url: Optional. The URL to clone the repository from.
-            branch: Optional. The branch to load files from. Defaults to `main`.
-            file_filter: Optional. A function that takes a file path and returns
-              a boolean indicating whether to load the file. Defaults to None.
-        """
-        self.repo_path = repo_path
-        self.clone_url = clone_url
-        self.branch = branch
-        self.file_filter = file_filter
-
-    def load(self) -> List[Document]:
-        try:
-            from git import Blob, Repo  # type: ignore
-        except ImportError as ex:
-            raise ImportError(
-                "Could not import git python package. "
-                "Please install it with `pip install GitPython`."
-            ) from ex
-
-        if not os.path.exists(self.repo_path) and self.clone_url is None:
-            raise ValueError(f"Path {self.repo_path} does not exist")
-        elif self.clone_url:
-            # If the repo_path already contains a git repository, verify that it's the
-            # same repository as the one we're trying to clone.
-            if os.path.isdir(os.path.join(self.repo_path, ".git")):
-                repo = Repo(self.repo_path)
-                # If the existing repository is not the same as the one we're trying to
-                # clone, raise an error.
-                if repo.remotes.origin.url != self.clone_url:
-                    raise ValueError(
-                        "A different repository is already cloned at this path."
-                    )
-            else:
-                repo = Repo.clone_from(self.clone_url, self.repo_path)
-            repo.git.checkout(self.branch)
-        else:
-            repo = Repo(self.repo_path)
-            repo.git.checkout(self.branch)
-
-        docs: List[Document] = []
-
-        for item in repo.tree().traverse():
-            if not isinstance(item, Blob):
-                continue
-
-            file_path = os.path.join(self.repo_path, item.path)
-
-            ignored_files = repo.ignored([file_path])  # type: ignore
-            if len(ignored_files):
-                continue
-
-            # uses filter to skip files
-            if self.file_filter and not self.file_filter(file_path):
-                continue
-
-            rel_file_path = os.path.relpath(file_path, self.repo_path)
-            try:
-                with open(file_path, "rb") as f:
-                    content = f.read()
-                    file_type = os.path.splitext(item.name)[1]
-
-                    # loads only text files
-                    try:
-                        text_content = content.decode("utf-8")
-                    except UnicodeDecodeError:
-                        continue
-
-                    metadata = {
-                        "source": rel_file_path,
-                        "file_path": rel_file_path,
-                        "file_name": item.name,
-                        "file_type": file_type,
-                    }
-                    doc = Document(page_content=text_content,
-                                   metadata=metadata)
-                    docs.append(doc)
-            except Exception as e:
-                print(f"Error reading file {file_path}: {e}")
-
-        return docs
-
-
-"""
-Gitlab loader expectations
- - Can take in either a group list or a project list
- - If it's a group, it will find all projects in that group including subgroups
- - For all projects, clone the repo with the attached private key to a temporary folder
- - Use the Gitloader to load all the contents from the project
-"""
+    git_url: str
+    repo: Repo
 
 
 class GitlabLoader(BaseLoader):
@@ -149,42 +51,209 @@ class GitlabLoader(BaseLoader):
 
     Each document represents one file in the repository. The `path` points to
     the local Git repository, and the `branch` specifies the branch to load
-    files from. By default, it loads from the `main` branch.
+    files from.
     """
 
     def __init__(
             self,
             base_url: str,
-            loader_type: str,
-            groups: List[str],
-            projects: List[str],
-            private_token: str | None,
+            private_token: SecretStr | None,
+            groups: List[str] = [],
+            projects: List[str] = [],
             ssl_verify: bool = True
     ) -> None:
         self.base_url = base_url
         self.private_token = private_token
         self.ssl_verify = ssl_verify
         self.gitlab = self._initialize_gitlab()
-        self.loader_type = self.validate_loader_type(loader_type)
-        self.groups = groups
-        self.projects = projects
+        self.groups = self.validate_groups(groups)
+        self.projects = self.validate_projects(projects)
 
     def _initialize_gitlab(self):
         gitlab = Gitlab(
             url=self.base_url,
-            private_token=self.private_token,
-            user_agent=app_name
+            private_token=self.private_token.get_secret_value(),
+            user_agent=app_name,
+            ssl_verify=self.ssl_verify
         )
         gitlab.auth()
         return gitlab
 
+    def validate_groups(self, groups: List[str]) -> List[Group]:
+        """
+        Validates the provided groups are valid and returns the list of groups
+        """
+        group_list = []
+        for group in groups:
+            try:
+                group_list.append(self.gitlab.groups.get(group))
+            except GitlabGetError:
+                raise SourceException(f"Group {group} does not exist")
+        return group_list
+
+    def validate_projects(self, projects: List[str]) -> List[Project]:
+        """
+        Function to validate the provided projects are valid
+
+        Args:
+            projects (List[str]): Project list
+
+        Raises:
+            SourceException: Project not found
+
+        Returns:
+            List[str]: A list of projects
+        """
+        project_list = []
+        for project in projects:
+            try:
+                project_list.append(self.gitlab.projects.get(project))
+            except GitlabGetError:
+                raise SourceException(f"Project {project} does not exist")
+        return project_list
+
+    def _get_all_projects(self, group):
+        """  
+        Return all projects in the group including the projects in the subgroups.  
+        """
+        projects = group.projects.list(get_all=True)
+        # iterate over each subgroup and get their projects
+        for subgroup in group.subgroups.list(get_all=True):
+            full_subgroup = self.gitlab.groups.get(subgroup.id)
+            projects += self._get_all_projects(full_subgroup)
+
+        return projects
+
+    def _clone_project(self, project: Project) -> RepoHandler:
+        """
+        Clone the project to a temporary directory.
+        Returns the RepoHandler object
+        """
+        git_url = project.http_url_to_repo.replace(
+            'https://', f'https://oauth2:{self.private_token.get_secret_value()}@')
+
+        try:
+            repo_path = tempfile.mkdtemp()
+            repo = Repo.clone_from(
+                git_url, repo_path, branch=project.default_branch)
+            handler = RepoHandler(
+                git_url=project.http_url_to_repo,
+                repo=repo
+            )
+            return handler
+        except Exception as e:
+            logger.error(f"Error cloning project {project.name}: {e}")
+            raise e
+
     @staticmethod
-    def validate_loader_type(loader_type: str):
-        allowed_types = ["project", "group"]
-        if loader_type not in allowed_types:
-            raise SourceException(
-                f"Loader type {loader_type} is not allowed. Allowed values are: {allowed_types}")
-        return loader_type
+    def _load(repo_data: RepoHandler):
+        """
+        Parse and load a repo as a document object and return a list of documents
+        """
+
+        docs: List[Document] = []
+
+        repo = repo_data.repo
+
+        for item in repo.tree().traverse():
+            if not isinstance(item, Blob):
+                continue
+
+            file_path = os.path.join(repo.working_dir, item.path)
+
+            ignored_files = repo.ignored([file_path])  # type: ignore
+            if len(ignored_files):
+                continue
+
+            rel_file_path = os.path.relpath(file_path, repo.working_dir)
+            try:
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                    file_type = os.path.splitext(item.name)[1]
+
+                    # loads only text files
+                    try:
+                        text_content = content.decode("utf-8")
+                    except UnicodeDecodeError:
+                        continue
+
+                    metadata = {
+                        "url": repo_data.git_url,
+                        "branch": repo.active_branch.name,
+                        "source": rel_file_path,
+                        "file_name": item.name,
+                        "file_type": file_type,
+                    }
+                    doc = Document(page_content=text_content,
+                                   metadata=metadata)
+                    docs.append(doc)
+            except Exception as e:
+                logger.warning(f"Error reading file {file_path}: {e}")
+        return docs
+
+    def _build_documents(self, repo_data_list: List[RepoHandler]) -> List[Document]:
+        """
+        Function that helps to process the git repos and generate the required documents
+        """
+        documents: List[Document] = self.execute_concurrently(
+            self._load, repo_data_list, result_type="extends", max_workers=10)
+        return documents
+
+    @staticmethod
+    def execute_concurrently(func: Callable, items: List, result_type: str = "append", max_workers: int = 10) -> List:
+        """  
+        Executes a function concurrently on a list of items.  
+
+        Args:  
+            func (Callable): The function to execute. This function should accept a single argument.  
+            items (List): The list of items to execute the function on.
+            result_type (str): The type of result to return. Can be "append" or "return". Defaults to "append".
+            max_workers (int, optional): The maximum number of workers to use. Defaults to 10.  
+
+        Returns:  
+            List: A list of the results of the function execution.  
+        """
+        results = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(func, item) for item in items]
+            for future in as_completed(futures):
+                if result_type == "append":
+                    results.append(future.result())
+                else:
+                    results.extend(future.result())
+        return results
+
+    def process_groups(self, group: Group) -> List[Document]:
+        # handler for processing groups and generating the documents
+        """
+        Helper to find all projects in a group and generate the corresponding documents
+        """
+        projects = self._get_all_projects(group)
+
+        repo_data_list = self.execute_concurrently(
+            self._clone_project, projects, max_workers=50)
+
+        return self._build_documents(repo_data_list)
+
+    def load(self) -> List[Document]:
+        """
+        Loads documents for groups or projects
+
+        Returns:
+            List[Document]: List of documents
+        """
+        documents: List[Document] = []
+        # process groups
+        if self.groups:
+            group_docs = self.execute_concurrently(
+                self.process_groups, self.groups, result_type="extends")
+            documents.extend(group_docs)
+        # process projects
+        if self.projects:
+            project_repos = self.execute_concurrently(
+                self._clone_project, self.projects)
+            documents.extend(self._build_documents(project_repos))
+        return documents
 
 
 class WebLoader(UnstructuredURLLoader):
@@ -406,27 +475,33 @@ class Source:
     def _get_hash(input: str) -> str:
         return md5(input.encode()).hexdigest()
 
-    def _get_source_metadata(self, source: SourceData | Web) -> str:
+    def _get_source_metadata(self, source: ConfluenceModel | GitlabModel | Web) -> str:
         """Generate a unique metadata for each source"""
         if isinstance(source, ConfluenceModel):
             spaces = "-".join(source.spaces)
             return f"confluence-{spaces}.source"
         elif isinstance(source, GitlabModel):
-            spaces = "-".join(source.spaces)
-            return f"gitlab-{spaces}.source"
+            if source.groups and source.projects:
+                hash_links = self._get_hash(
+                    "-".join(source.groups + source.projects))
+            elif source.groups:
+                hash_links = self._get_hash("-".join(source.groups))
+            else:
+                hash_links = self._get_hash("-".join(source.projects))
+            return f"gitlab-{hash_links}.source"
         else:
             hash_links = self._get_hash("-".join(source.links))
             return f"web-{hash_links}.source"
 
-    def _get_source_metadata_path(self, source: SourceData | Web) -> Path:
+    def _get_source_metadata_path(self, source: ConfluenceModel | GitlabModel | Web) -> Path:
         return self.source_dir / self._get_source_metadata(source)
 
-    def _save_source_metadata(self, source: SourceData | Web):
+    def _save_source_metadata(self, source: ConfluenceModel | GitlabModel | Web):
         """Save the source metadata to disk"""
         metadata = self._get_source_metadata_path(source)
         metadata.write_text("True")
 
-    def _source_exist_locally(self, source: SourceData | Web):
+    def _source_exist_locally(self, source: ConfluenceModel | GitlabModel | Web):
         """Returns whether the given source exist or not"""
         return self._get_source_metadata_path(source).exists()
 
@@ -494,6 +569,30 @@ class Source:
             documents=self.splitter().split_documents(confluence_documents)
         )
 
+    def _add_gitlab_source(self, source: GitlabModel):
+        """
+        Adds and saves a gitlab data source.
+        """
+        try:
+            loader = GitlabLoader(
+                base_url=source.server,
+                groups=source.groups,
+                projects=source.projects,
+                private_token=source.password,
+                ssl_verify=True
+            )
+
+            gitlab_documents = loader.load()
+
+        except Exception as error:
+            raise SourceException(
+                f"An error has occured while loading gitlab source: {str(error)}")
+
+        self._create_and_save_db(
+            source_name="gitlab",
+            documents=self.splitter().split_documents(gitlab_documents)
+        )
+
     def _add_web_source(self, source: Web):
         """
         Adds and saves a web data source
@@ -526,17 +625,35 @@ class Source:
             documents=self.splitter().split_documents(web_documents)
         )
 
-    def add_source(self, id: str, data: SourceData | Web) -> None:
+    def add_source(self, id: str, data: GitlabModel | ConfluenceModel | Web) -> None:
+        """
+        Adds and saves a data source
+
+        Args:
+            id (str): Source id
+            data (GitlabModel | ConfluenceModel | Web): Source data
+
+        Raises:
+            SourceException: Raised if the source type is unknown
+        """
         logger.info(f"Processing source {id}...")
         if isinstance(data, ConfluenceModel):
             self._add_confluence(data)
         elif isinstance(data, Web):
             self._add_web_source(data)
+        elif isinstance(data, GitlabModel):
+            self._add_gitlab_source(data)
+        else:
+            raise SourceException(
+                f"Unknown source type: {type(data)}")
 
         self._save_source_metadata(data)
         logger.info(f"Done with source {id}")
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Starts a new thread for processing each source in self.source_refresh_list.
+        """
         self.check_sources_exist()
 
         if len(self.source_refresh_list) == 0:

@@ -15,10 +15,9 @@ username = "jira-user.act@getinge.com"
 server = "https://getinge-dts.atlassian.net/wiki"
 spaces = ["ANTHEA", "SF"]
 
-# [source.gitlab]
-# username = "jira-user.act@getinge.com"
-# server = "https://gitlab.its.getingecloud.net"
-# spaces = ["dts/anthea", "dts/spaulding", "dts/enola"]
+[source.gitlab]
+server = "https://gitlab.its.getingecloud.net"
+groups = ["dts"]
 
 [source.web]
 links = [
