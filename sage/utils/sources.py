@@ -224,7 +224,6 @@ class GitlabLoader(BaseLoader):
         return results
 
     def process_groups(self, group: Group) -> List[Document]:
-        # handler for processing groups and generating the documents
         """
         Helper to find all projects in a group and generate the corresponding documents
         """
@@ -458,6 +457,8 @@ class WebLoader(UnstructuredURLLoader):
 
 
 class Source:
+    # TODO: Adds support for batching loading of the documents when generating the Faiss index. As it's easy to reach API throttle limits with OPENAI
+    # TODO: Improve a way to avoid reloading existing documents when the spaces, groups, and projects of a source changes
 
     _instance = None
     source_dir = Path(core_config.data_dir) / "sources"
