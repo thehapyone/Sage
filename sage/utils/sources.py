@@ -270,6 +270,8 @@ class WebLoader(UnstructuredURLLoader):
         from unstructured.partition.auto import partition
         from unstructured.partition.html import partition_html
 
+        docs: List[Document] = list()
+
         try:
             if self._UnstructuredURLLoader__is_non_html_available():
                 if self._UnstructuredURLLoader__is_headers_available_for_non_html():
@@ -286,24 +288,25 @@ class WebLoader(UnstructuredURLLoader):
                 else:
                     elements = partition_html(
                         url=url, **self.unstructured_kwargs)
+
+            if self.mode == "single":
+                text = "\n\n".join([str(el) for el in elements])
+                metadata = {"source": url}
+                return [Document(page_content=text, metadata=metadata)]
+
+            # self.mode == elements
+            for element in elements:
+                metadata = element.metadata.to_dict()
+                metadata["category"] = element.category
+                docs.append(Document(page_content=str(
+                    element), metadata=metadata))
+
         except Exception as e:
             if self.continue_on_failure:
                 logger.error(
                     f"Error fetching or processing {url}, exception: {e}")
             else:
                 raise e
-
-        if self.mode == "single":
-            text = "\n\n".join([str(el) for el in elements])
-            metadata = {"source": url}
-            return [Document(page_content=text, metadata=metadata)]
-
-        # self.mode == elements
-        docs: List[Document] = list()
-        for element in elements:
-            metadata = element.metadata.to_dict()
-            metadata["category"] = element.category
-            docs.append(Document(page_content=str(element), metadata=metadata))
 
         return docs
 
@@ -384,7 +387,7 @@ class WebLoader(UnstructuredURLLoader):
                 logger.warning(f"Max depth reached - {url}")
                 return
 
-            logger.info(f"Scraping {url}")
+            # logger.info(f"Scraping {url}")
 
             documents = self._load(url)
             with docs_lock:
@@ -459,6 +462,7 @@ class WebLoader(UnstructuredURLLoader):
 class Source:
     # TODO: Adds support for batching loading of the documents when generating the Faiss index. As it's easy to reach API throttle limits with OPENAI
     # TODO: Improve a way to avoid reloading existing documents when the spaces, groups, and projects of a source changes
+    # TODO: Old sources metadata are not removed when the source change causing issue if old sources are used again as the source will not loaded because the metadata still exists
 
     _instance = None
     source_dir = Path(core_config.data_dir) / "sources"
@@ -549,7 +553,7 @@ class Source:
             loader = ConfluenceLoader(
                 url=source.server,
                 username=source.username,
-                api_key=source.password
+                api_key=source.password.get_secret_value()
             )
 
             confluence_documents = []

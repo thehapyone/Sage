@@ -8,6 +8,17 @@ polling_interval = 300
 project = "ANTHEA"
 status_todo = "To Do"
 
+[embedding]
+type = "jina"
+
+[embedding.openai]
+name = "ada-embeddings"
+revision = "2023-07-01-preview"
+
+[embedding.jina]
+name = "jinaai/jina-embeddings-v2-base-en"
+revision = "7302ac470bed880590f9344bfeee32ff8722d0e5"
+
 [source]
 
 [source.confluence]
@@ -17,11 +28,10 @@ spaces = ["ANTHEA", "SF"]
 
 [source.gitlab]
 server = "https://gitlab.its.getingecloud.net"
-groups = ["dts"]
+groups = ["dts/anthea"]
 
 [source.web]
 links = [
-    "https://docs.gitlab.com/ee/ci/examples",
-    "https://docs.gitlab.com/ee/ci/components/",
+    "https://docs.gitlab.com/ee/ci/"
 ]
 nested = true

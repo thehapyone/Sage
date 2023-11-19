@@ -74,6 +74,7 @@ class GitlabModel(SourceData):
                 "The Gitlab password is missing. Please add it via an env variable or to the config - 'GITLAB_PASSWORD'")
         return password
 
+
 class Web(BaseModel):
     """  
     Web Model.  
@@ -118,6 +119,18 @@ class Core(BaseModel):
     data_dir: Optional[str | Path] = Path.home() / sage_base
 
 
+class EmbeddingCore(BaseModel):
+    """The Embedding Model schema"""
+    name: str
+    revision: str
+
+
+class EmbeddingsConfig(BaseModel):
+    openai: Optional[EmbeddingCore]
+    jina: Optional[EmbeddingCore]
+    type: str
+
+
 class Config(BaseModel):
     """  
     Config Model.  
@@ -125,3 +138,4 @@ class Config(BaseModel):
     core: Core
     jira: Jira_Config
     source: Source
+    embedding: EmbeddingsConfig
