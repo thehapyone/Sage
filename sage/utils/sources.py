@@ -1,7 +1,8 @@
 import os
+from anyio import Path as aPath
 from pathlib import Path
 import tempfile
-from typing import Callable, List
+from typing import Callable, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock, Thread
 from urllib.parse import urljoin, urldefrag
@@ -12,9 +13,10 @@ from time import sleep
 from hashlib import md5
 
 from bs4 import BeautifulSoup
+from langchain.vectorstores.faiss import FAISS
 from langchain.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.schema import Document
 from langchain.document_loaders import UnstructuredURLLoader
 from langchain.document_loaders.base import BaseLoader
@@ -663,6 +665,7 @@ class Source:
 
         if len(self.source_refresh_list) == 0:
             logger.info("No changes to sources")
+            return
 
         threads = []
         for source in self.source_refresh_list:
@@ -672,3 +675,46 @@ class Source:
 
         for thread in threads:
             thread.join()
+
+    async def _get_faiss_indexes(self) -> str | List[str]:
+        """Returns a list of all available faiss indexes"""
+        dir_path = aPath(self.source_dir / "faiss")
+
+        indexes: List[str] = []
+
+        async for file in dir_path.glob("*.faiss"):
+            indexes.append(file.stem)
+
+        return str(dir_path), indexes
+
+    async def load(self) -> Optional[VectorStoreRetriever]:
+        """
+        Returns a retriever model from the FAISS vector indexes
+        """
+
+        self.run()
+
+        db_path, indexes = await self._get_faiss_indexes()
+
+        if not indexes:
+            return None
+
+        dbs: List[FAISS] = []
+
+        for index in indexes:
+            db = FAISS.load_local(
+                folder_path=db_path,
+                index_name=index,
+                embeddings=EMBEDDING_MODEL)
+            dbs.append(db)
+
+        faiss_db = dbs[0]
+
+        for db in dbs[1:]:
+            faiss_db.merge_from(db)
+
+        retrievar = faiss_db.as_retriever(
+            search_kwargs={'k': 10, 'fetch_k': 50}
+        )
+
+        return retrievar

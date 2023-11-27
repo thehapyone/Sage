@@ -34,7 +34,7 @@ Path(core_config.data_dir).mkdir(exist_ok=True)
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
 # Load the model
-DEPLOYMENT_NAME = "gpt4-8k"
+DEPLOYMENT_NAME = "gpt4-32k"
 LLM_MODEL = AzureChatOpenAI(
     deployment_name=DEPLOYMENT_NAME)
 
