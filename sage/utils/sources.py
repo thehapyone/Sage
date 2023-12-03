@@ -714,7 +714,7 @@ class Source:
             faiss_db.merge_from(db)
 
         retrievar = faiss_db.as_retriever(
-            search_kwargs={'k': 10, 'fetch_k': 50}
+            search_kwargs={'k': 6, 'fetch_k': 50}
         )
 
         return retrievar

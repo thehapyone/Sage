@@ -1,14 +1,12 @@
-import asyncio
-from functools import lru_cache
 from operator import itemgetter
-from typing import List, Tuple
+from typing import List, Tuple, Sequence
 
+from langchain.schema.document import Document
 from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.schema.runnable import RunnablePassthrough, RunnableSequence, RunnableConfig, RunnableMap, RunnableLambda
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema import format_document
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferWindowMemory
 import chainlit as cl
 
 from utils.sources import Source
@@ -32,36 +30,83 @@ Standalone question::
 """
 
 qa_template = """
-As a knowledgeable AI assistant named Sage, your role involves providing responses to various inquiries.
-Your answers should be unbiased, adopting a journalistic style. It's essential to synthesize search results into a single, cohesive response, avoiding any repetition of information.
-If there is no contextually relevant information available to answer a specific question, simply respond with, "I apologize, but I am unable to provide an answer to this question."
-This response should only be used in the event of an unanswered question and not as a response to a general conversation starter.
+As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to a variety of questions. Your responses should be in line with a journalistic style, which is characterized by neutrality and reliance on factual, verifiable information.
 
-The "context" HTML blocks below contain information retrieved from a knowledge bank and are not part of the user's conversation.
+When formulating answers, you are to:
+
+- Integrate information from search results into a single, coherent response.
+- Avoid redundancy and repetition, ensuring that each piece of information adds substantive value.
+- Maintain an unbiased tone throughout, focusing on presenting facts without personal opinions or biases.
+- If the provided 'context' does not contain relevant information to answer a specific question, and the question pertains to general knowledge that Sage is capable of answering, then Sage should use its own database to provide an accurate response.  
+- If a question can be answered using Sage's internal knowledge, provide an answer accordingly and add a note that the response is based on Sage's own data.  
+
+The 'context' HTML blocks below contain information derived from a knowledge bank, which is separate from the user's direct conversation.
+This information serves as the basis for your answers. However, Sage should not rely solely on this context and is expected to use its built-in knowledge when appropriate.  
+
+In the event that no contextually relevant information is available to answer a specific question, your response should be:
+"I apologize, but I am unable to provide an answer to this question."
+This response is to be used exclusively when an answer cannot be constructed and should not be employed as a generic reply to open-ended conversation starters.
+
+- Citations must not be inserted anywhere in the answer only listed in a 'Footnotes' section at the end of the response, with each source numbered as it appears in the context blocks.
+- Select only the most pertinent search results for citation, directly relating to the answer provided.
+- When different results refer to different entities sharing the same name, present separate answers to clearly distinguish between these entities.
+- Keep the footnotes brief and the summaries MUST be lesss than 10 words always.
+
+In your responses, make use of bullet points to aid readability if helpful. 
+Each bullet point should present a piece of information WITHOUT in-line citations. Instead, compile the citations in the 'Footnotes' section at the end of the response.
 
 <context>
 {context}
-<context/>
+</context>
 
 Question: {question}
+
+REMEMBER: No in-line citations is allowed and no citations repetition
+If the answer is based on Sage's internal knowledge, state:  
+"This response is based on Sage's internal knowledge base."  
+
+Footnotes:
+[1] - Brief summary of the first source.
+[2] - Brief summary of the second source.
+...and so on for additional sources.
 """
 
-DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(
-    template="{page_content}")
+
+def format_docs(docs: Sequence[Document]) -> str:
+    formatted_docs = []
+    for i, doc in enumerate(docs):
+        doc_string = f"<doc id='{i}'>{doc.page_content}</doc>"
+        formatted_docs.append(doc_string)
+    return "\n".join(formatted_docs)
 
 
-def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
-    doc_strings = [format_document(doc, document_prompt) for doc in docs]
-    return document_separator.join(doc_strings)
+def generate_git_source(metadata: dict) -> str:
+    """Formate and extract out the git source"""
+    try:
+        url_without_git: str = metadata["url"].removesuffix(".git")
+        source = f"{url_without_git}/-/blob/{metadata['branch']}/{metadata['source']}"
+    except KeyError:
+        return metadata['source']
+    return source
 
 
-def _format_chat_history(chat_history: List[Tuple]) -> str:
-    buffer = ""
-    for dialogue_turn in chat_history:
-        human = "Human: " + dialogue_turn[0]
-        ai = "Assistant: " + dialogue_turn[1]
-        buffer += "\n" + "\n".join([human, ai])
-    return buffer
+def format_sources(docs: Sequence[Document]):
+    """Helper for formating sources"""
+    formatted_sources = []
+    for i, doc in enumerate(docs):
+        if "url" in doc.metadata.keys() and ".git" in doc.metadata["url"]:
+            source = generate_git_source(doc.metadata)
+        else:
+            source = doc.metadata["source"]
+        content = doc.metadata.get(
+            "title", None) or doc.page_content.strip().rsplit(".")[0] + " ..."
+        metadata = {
+            "id": i,
+            "source": source,
+            "content": content
+        }
+        formatted_sources.append(metadata)
+    return formatted_sources
 
 
 async def get_retriever():
@@ -78,7 +123,7 @@ async def setup_runnable():
         raise Exception("No retriever found")
 
     # Get the memory
-    memory: ConversationBufferMemory = cl.user_session.get("memory")
+    memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
 
     condense_question_prompt = PromptTemplate.from_template(
         condensed_template)
@@ -102,13 +147,13 @@ async def setup_runnable():
 
     # construct the inputs
     _context = {
-        "context": lambda x: _combine_documents(x["docs"]),
+        "context": lambda x: format_docs(x["docs"]),
         "question": lambda x: x["question"],
     }
 
     qa_answer = RunnableMap(
         answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
-        sources=itemgetter("docs")
+        sources=lambda x: format_sources(x["docs"])
     )
 
     _runnable = (
@@ -121,7 +166,7 @@ async def setup_runnable():
 @cl.on_chat_start
 async def on_chat_start():
     """Initialize a new chat environment"""
-    memory = ConversationBufferMemory()
+    memory = ConversationBufferWindowMemory()
     cl.user_session.set("memory", memory)
 
     await setup_runnable()
@@ -131,7 +176,7 @@ async def on_chat_start():
 async def on_message(message: cl.Message):
     """Function to react user's message request"""
     runnable: RunnableSequence = cl.user_session.get("runnable")
-    memory: ConversationBufferMemory = cl.user_session.get("memory")
+    memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
 
     msg = cl.Message(content="")
 
@@ -152,26 +197,20 @@ async def on_message(message: cl.Message):
         if chunk.get("sources"):
             _sources = chunk.get("sources")
 
-    await msg.send()
-
     # process sources
     if _sources:
-        answer = ""
-        for source_idx, source_doc in enumerate(_sources):
-            source_name = f"source_{source_idx}"
+        for source_doc in _sources:
+            source_name = f"[{source_doc['id']}]"
+            source_content = source_doc['content'] + \
+                "\n" + source_doc['source']
             text_elements.append(
-                cl.Text(content=source_doc.page_content, name=source_name)
+                cl.Text(content=source_content,
+                        url=source_doc['source'], name=source_name)
             )
-        source_names = [text_el.name for text_el in text_elements]
 
-        if source_names:
-            answer += f"\nSources: {', '.join(source_names)}"
-        else:
-            answer += "\nNo sources found"
-    
-        await cl.Message(content=answer, elements=text_elements).send()
+    msg.elements = text_elements
+    await msg.send()
 
     # Save memory
     memory.chat_memory.add_ai_message(msg.content)
     memory.chat_memory.add_user_message(message.content)
-    # cl.user_session.set("chat_history", chat_history)
