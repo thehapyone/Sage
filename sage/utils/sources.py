@@ -11,8 +11,10 @@ from pydantic import BaseModel, SecretStr
 import requests
 from time import sleep
 from hashlib import md5
+import re
 
 from bs4 import BeautifulSoup
+from langchain.document_loaders.confluence import ContentFormat, ConfluenceLoader
 from langchain.vectorstores.faiss import FAISS
 from langchain.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -30,7 +32,6 @@ from utils.exceptions import SourceException
 from utils.validator import ConfluenceModel, GitlabModel, Web
 from utils.supports import (
     markdown_to_text_using_html2text,
-    markdown_to_text_using_unmark,
 )
 
 
@@ -44,16 +45,10 @@ class CustomConfluenceLoader(ConfluenceLoader):
             return response
 
         # parse the markdown response
-        try:
-            return Document(
-                page_content=markdown_to_text_using_unmark(response.page_content),
-                metadata=response.metadata,
-            )
-        except Exception:
-            return Document(
-                page_content=markdown_to_text_using_html2text(response.page_content),
-                metadata=response.metadata,
-            )
+        return Document(
+            page_content=markdown_to_text_using_html2text(response.page_content),
+            metadata=response.metadata,
+        )
 
 
 class RepoHandler(BaseModel):
@@ -70,7 +65,6 @@ class RepoHandler(BaseModel):
 
 class GitlabLoader(BaseLoader):
     """
-
     Load projects from a Gitlab source and then uses `git` to load
     the repository files.
 
@@ -614,6 +608,7 @@ class Source:
                     include_attachments=False,
                     limit=200,
                     keep_markdown_format=True,
+                    content_format=ContentFormat.VIEW,
                 )
                 confluence_documents.extend(documents)
         except Exception as error:
