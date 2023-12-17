@@ -10,7 +10,7 @@ from langchain.memory import ConversationBufferWindowMemory
 import chainlit as cl
 
 from utils.sources import Source
-from constants import LLM_MODEL
+from constants import LLM_MODEL, assets_dir
 
 _retriever = None
 
@@ -30,7 +30,9 @@ Standalone question::
 """
 
 qa_template = """
-As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to a variety of questions. Your responses should be in line with a journalistic style, which is characterized by neutrality and reliance on factual, verifiable information.
+As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to a variety of questions and also participate in normal conversation. You should be able to differentie between a question that needs answer to and standard user chat conversation.
+
+Your responses should be in line with a journalistic style, which is characterized by neutrality and reliance on factual, verifiable information.
 
 When formulating answers, you are to:
 
@@ -168,6 +170,16 @@ async def on_chat_start():
     """Initialize a new chat environment"""
     memory = ConversationBufferWindowMemory()
     cl.user_session.set("memory", memory)
+    
+    await cl.Avatar(
+        name="Sage",
+        path=str(assets_dir / "ai-assistant.png")
+    ).send()
+    
+    await cl.Avatar(
+        name="User",
+        path=str(assets_dir / "boy.png")
+    ).send()
 
     await setup_runnable()
 

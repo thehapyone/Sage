@@ -1,0 +1,66 @@
+header .MuiStack-root img[alt="logo"] {
+    max-height: 60px !important;
+}
+
+/* Text color for the welcome message */
+#welcome-screen {
+    color: white;
+}
+
+/* Margin for the welcome message */
+.markdown-body :first-child {
+    margin-top: 10px !important;
+}
+
+/* Text color for the chat input field */
+.css-14pkh2q textarea {
+    color: #d3e2df !important;
+}
+
+/* Text color for the chat conversation field */
+
+.css-19mvntf {
+    color: #d3e2df !important;
+}
+
+/* Color for the AI assistant response row */
+.css-1s3oi5q {
+    color: #d3e2df !important;
+    background-color: #142130 !important;
+}
+
+/* Text color for the text in the sidebar */
+.css-1f46uet .MuiDrawer-paper {
+    color: #fefefe !important;
+}
+
+/* Change the backgroup for the steps UI */
+.css-5kjw2l {
+    background: #000000 !important;
+}
+
+/* Text color in the prompt platground */
+.css-blpe7b {
+    color: #fefefe !important;
+}
+
+/* Text color for the User name */
+.css-17z68sn {
+    color: #54b58f !important;
+}
+
+/* Header text color for new chat */
+.css-1rglye3 {
+    color: #54b58f !important;
+}
+
+/* text color for new chat section */
+.css-1v84xce {
+    color: #fefefe !important;
+}
+
+/* Text color in the show history */
+
+.css-lzolpx {
+    color: #d3e2df !important;
+  }

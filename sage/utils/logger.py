@@ -47,3 +47,5 @@ class CustomLogger(logging.Logger):
         self.name = name
         self.setLevel(level)
         self.addHandler(log_handler)
+
+

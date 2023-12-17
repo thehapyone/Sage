@@ -40,7 +40,8 @@ class RepoHandler(BaseModel):
     git_url: str
     repo: Repo
 
-
+# a loader for loading documents in a directory using the unstructured
+        
 class GitlabLoader(BaseLoader):
     """
 
@@ -714,7 +715,7 @@ class Source:
             faiss_db.merge_from(db)
 
         retrievar = faiss_db.as_retriever(
-            search_kwargs={'k': 6, 'fetch_k': 50}
+            search_kwargs={'k': 15, 'fetch_k': 50}
         )
 
         return retrievar

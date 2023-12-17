@@ -11,6 +11,8 @@ from utils.supports import JinaAIEmebeddings
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
+assets_dir = Path(__file__).parent / "assets"
+
 app_name = "codesage.ai"
 logger = CustomLogger(app_name)
 
