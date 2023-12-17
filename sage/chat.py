@@ -1,5 +1,6 @@
 from operator import itemgetter
 from typing import List, Tuple, Sequence
+from datetime import datetime
 
 from langchain.schema.document import Document
 from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
@@ -36,6 +37,7 @@ Your responses should be in line with a journalistic style, which is characteriz
 
 When formulating answers, you are to:
 
+- Be creative when applicable
 - Integrate information from search results into a single, coherent response.
 - Avoid redundancy and repetition, ensuring that each piece of information adds substantive value.
 - Maintain an unbiased tone throughout, focusing on presenting facts without personal opinions or biases.
@@ -65,7 +67,7 @@ Question: {question}
 
 REMEMBER: No in-line citations is allowed and no citations repetition
 If the answer is based on Sage's internal knowledge, state:  
-"This response is based on Sage's internal knowledge base."  
+"This response is based on Sage's internal knowledge base." NOTE: Only say that when applicable.
 
 Footnotes:
 [1] - Brief summary of the first source.
@@ -92,8 +94,8 @@ def generate_git_source(metadata: dict) -> str:
     return source
 
 
-def format_sources(docs: Sequence[Document]):
-    """Helper for formating sources"""
+def format_docs(docs: Sequence[Document]):
+    """Helper for formating documents"""
     formatted_sources = []
     for i, doc in enumerate(docs):
         if "url" in doc.metadata.keys() and ".git" in doc.metadata["url"]:
@@ -110,6 +112,30 @@ def format_sources(docs: Sequence[Document]):
         formatted_sources.append(metadata)
     return formatted_sources
 
+
+def get_time_of_day_greeting():  
+    """Helper to get a greeting based on the current time of day."""  
+    current_hour = datetime.now().hour  
+    if 5 <= current_hour < 12:  
+        return 'Good morning'  
+    elif 12 <= current_hour < 17:  
+        return 'Good afternoon'  
+    elif 17 <= current_hour < 21:  
+        return 'Good evening'  
+    else:  
+        return 'Hello'  
+
+def generate_welcome_message():  
+    """Generate and format an introduction message."""  
+    greeting = get_time_of_day_greeting()
+    sources = Source().sources_to_string()
+
+    message = (f"{greeting} and welcome!\n"
+               "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
+               "I can provide you with data and updates from a variety of sources including:\n"
+               f"  {sources}\n\n"
+               "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!")
+    return message.strip()
 
 async def get_retriever():
     """Loads a retrieval model form the sources"""
@@ -155,7 +181,7 @@ async def setup_runnable():
 
     qa_answer = RunnableMap(
         answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
-        sources=lambda x: format_sources(x["docs"])
+        sources=lambda x: format_docs(x["docs"])
     )
 
     _runnable = (
@@ -180,6 +206,9 @@ async def on_chat_start():
         name="User",
         path=str(assets_dir / "boy.png")
     ).send()
+    
+    await cl.Message(
+        content=generate_welcome_message()).send()
 
     await setup_runnable()
 

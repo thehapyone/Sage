@@ -23,12 +23,12 @@ try:
     jira_config = validated_config.jira
     sources_config = validated_config.source
 except ValidationError as error:
-    raise ConfigException(
-        f"The configuration file is not valid - {str(error)}")
+    raise ConfigException(f"The configuration file is not valid - {str(error)}")
 except (FileNotFoundError, KeyError) as error:
     # Raise a ConfigException for both file not found and missing key errors
     raise ConfigException(
-        f"The required configuration key or file is not found - {str(error)}")
+        f"The required configuration key or file is not found - {str(error)}"
+    )
 
 # Create the main data directory
 Path(core_config.data_dir).mkdir(exist_ok=True)
@@ -37,8 +37,7 @@ JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{ass
 
 # Load the model
 DEPLOYMENT_NAME = "gpt4-128k"
-LLM_MODEL = AzureChatOpenAI(
-    deployment_name=DEPLOYMENT_NAME)
+LLM_MODEL = AzureChatOpenAI(deployment_name=DEPLOYMENT_NAME)
 
 # Load the Embeddings model
 if validated_config.embedding.type == "jina":
@@ -47,18 +46,18 @@ if validated_config.embedding.type == "jina":
     EMBEDDING_MODEL = JinaAIEmebeddings(
         cache_dir=core_config.data_dir + "/models",
         jina_model=jina_config.name,
-        revision=jina_config.revision
+        revision=jina_config.revision,
     )
 elif validated_config.embedding.type == "openai":
     openai_config = validated_config.embedding.openai
 
     EMBEDDING_MODEL = OpenAIEmbeddings(
-        deployment=openai_config.name,
-        openai_api_version=openai_config.revision
+        deployment=openai_config.name, openai_api_version=openai_config.revision
     )
 else:
     raise ValidationError(
-        f"Embedding type {validated_config.embedding.type} is not allowed")
+        f"Embedding type {validated_config.embedding.type} is not allowed"
+    )
 
 # llm = ChatOllama(model="llama2:13b",
 #                  callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]))

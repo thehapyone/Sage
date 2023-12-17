@@ -34,14 +34,14 @@ class RepoHandler(BaseModel):
     """
     A custom repo object that contains the required repo information
     """
+
     class Config:
         arbitrary_types_allowed = True
 
     git_url: str
     repo: Repo
 
-# a loader for loading documents in a directory using the unstructured
-        
+
 class GitlabLoader(BaseLoader):
     """
 
@@ -58,12 +58,12 @@ class GitlabLoader(BaseLoader):
     """
 
     def __init__(
-            self,
-            base_url: str,
-            private_token: SecretStr | None,
-            groups: List[str] = [],
-            projects: List[str] = [],
-            ssl_verify: bool = True
+        self,
+        base_url: str,
+        private_token: SecretStr | None,
+        groups: List[str] = [],
+        projects: List[str] = [],
+        ssl_verify: bool = True,
     ) -> None:
         self.base_url = base_url
         self.private_token = private_token
@@ -77,7 +77,7 @@ class GitlabLoader(BaseLoader):
             url=self.base_url,
             private_token=self.private_token.get_secret_value(),
             user_agent=app_name,
-            ssl_verify=self.ssl_verify
+            ssl_verify=self.ssl_verify,
         )
         gitlab.auth()
         return gitlab
@@ -116,8 +116,8 @@ class GitlabLoader(BaseLoader):
         return project_list
 
     def _get_all_projects(self, group):
-        """  
-        Return all projects in the group including the projects in the subgroups.  
+        """
+        Return all projects in the group including the projects in the subgroups.
         """
         projects = group.projects.list(get_all=True)
         # iterate over each subgroup and get their projects
@@ -133,16 +133,13 @@ class GitlabLoader(BaseLoader):
         Returns the RepoHandler object
         """
         git_url = project.http_url_to_repo.replace(
-            'https://', f'https://oauth2:{self.private_token.get_secret_value()}@')
+            "https://", f"https://oauth2:{self.private_token.get_secret_value()}@"
+        )
 
         try:
             repo_path = tempfile.mkdtemp()
-            repo = Repo.clone_from(
-                git_url, repo_path, branch=project.default_branch)
-            handler = RepoHandler(
-                git_url=project.http_url_to_repo,
-                repo=repo
-            )
+            repo = Repo.clone_from(git_url, repo_path, branch=project.default_branch)
+            handler = RepoHandler(git_url=project.http_url_to_repo, repo=repo)
             return handler
         except Exception as e:
             logger.error(f"Error cloning project {project.name}: {e}")
@@ -187,8 +184,7 @@ class GitlabLoader(BaseLoader):
                         "file_name": item.name,
                         "file_type": file_type,
                     }
-                    doc = Document(page_content=text_content,
-                                   metadata=metadata)
+                    doc = Document(page_content=text_content, metadata=metadata)
                     docs.append(doc)
             except Exception as e:
                 logger.warning(f"Error reading file {file_path}: {e}")
@@ -199,22 +195,25 @@ class GitlabLoader(BaseLoader):
         Function that helps to process the git repos and generate the required documents
         """
         documents: List[Document] = self.execute_concurrently(
-            self._load, repo_data_list, result_type="extends", max_workers=10)
+            self._load, repo_data_list, result_type="extends", max_workers=10
+        )
         return documents
 
     @staticmethod
-    def execute_concurrently(func: Callable, items: List, result_type: str = "append", max_workers: int = 10) -> List:
-        """  
-        Executes a function concurrently on a list of items.  
+    def execute_concurrently(
+        func: Callable, items: List, result_type: str = "append", max_workers: int = 10
+    ) -> List:
+        """
+        Executes a function concurrently on a list of items.
 
-        Args:  
-            func (Callable): The function to execute. This function should accept a single argument.  
+        Args:
+            func (Callable): The function to execute. This function should accept a single argument.
             items (List): The list of items to execute the function on.
             result_type (str): The type of result to return. Can be "append" or "return". Defaults to "append".
-            max_workers (int, optional): The maximum number of workers to use. Defaults to 10.  
+            max_workers (int, optional): The maximum number of workers to use. Defaults to 10.
 
-        Returns:  
-            List: A list of the results of the function execution.  
+        Returns:
+            List: A list of the results of the function execution.
         """
         results = []
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -233,7 +232,8 @@ class GitlabLoader(BaseLoader):
         projects = self._get_all_projects(group)
 
         repo_data_list = self.execute_concurrently(
-            self._clone_project, projects, max_workers=50)
+            self._clone_project, projects, max_workers=50
+        )
 
         return self._build_documents(repo_data_list)
 
@@ -248,12 +248,14 @@ class GitlabLoader(BaseLoader):
         # process groups
         if self.groups:
             group_docs = self.execute_concurrently(
-                self.process_groups, self.groups, result_type="extends")
+                self.process_groups, self.groups, result_type="extends"
+            )
             documents.extend(group_docs)
         # process projects
         if self.projects:
             project_repos = self.execute_concurrently(
-                self._clone_project, self.projects)
+                self._clone_project, self.projects
+            )
             documents.extend(self._build_documents(project_repos))
         return documents
 
@@ -289,8 +291,7 @@ class WebLoader(UnstructuredURLLoader):
                         url=url, headers=self.headers, **self.unstructured_kwargs
                     )
                 else:
-                    elements = partition_html(
-                        url=url, **self.unstructured_kwargs)
+                    elements = partition_html(url=url, **self.unstructured_kwargs)
 
             if self.mode == "single":
                 text = "\n\n".join([str(el) for el in elements])
@@ -301,13 +302,11 @@ class WebLoader(UnstructuredURLLoader):
             for element in elements:
                 metadata = element.metadata.to_dict()
                 metadata["category"] = element.category
-                docs.append(Document(page_content=str(
-                    element), metadata=metadata))
+                docs.append(Document(page_content=str(element), metadata=metadata))
 
         except Exception as e:
             if self.continue_on_failure:
-                logger.error(
-                    f"Error fetching or processing {url}, exception: {e}")
+                logger.error(f"Error fetching or processing {url}, exception: {e}")
             else:
                 raise e
 
@@ -316,7 +315,7 @@ class WebLoader(UnstructuredURLLoader):
     @staticmethod
     def normalize_url(url):
         """Helps to normalize urls by removing ending slash"""
-        if url.endswith('/'):
+        if url.endswith("/"):
             return url[:-1]
         return url
 
@@ -330,6 +329,7 @@ class WebLoader(UnstructuredURLLoader):
         Returns:
             List[Document]: A list of documents
         """
+
         def worker():
             """Worker function to process URLs from the queue"""
             while True:
@@ -345,9 +345,13 @@ class WebLoader(UnstructuredURLLoader):
             try:
                 response = session.get(url, timeout=10)
                 response.raise_for_status()
-            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError,
-                    requests.exceptions.Timeout, requests.exceptions.RequestException,
-                    requests.exceptions.SSLError) as e:
+            except (
+                requests.exceptions.HTTPError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.RequestException,
+                requests.exceptions.SSLError,
+            ) as e:
                 if self.continue_on_failure:
                     logger.error(f"Error occurred: {e}, url: {url}")
                     return
@@ -355,18 +359,18 @@ class WebLoader(UnstructuredURLLoader):
                     raise e
             except Exception as e:
                 if self.continue_on_failure:
-                    logger.error(
-                        f"An unexpected error has occurred: {e}, url: {url}")
+                    logger.error(f"An unexpected error has occurred: {e}, url: {url}")
                     return
                 else:
                     raise e
 
-            soup = BeautifulSoup(response.text, 'lxml')
+            soup = BeautifulSoup(response.text, "lxml")
 
-            for a_tag in soup.find_all('a', href=True):
-                link = a_tag['href']
-                if link.startswith(('mailto:', 'javascript:', '#')) \
-                        or link.endswith(('.png', '.svg', '.jpg', '.jpeg', '.gif')):
+            for a_tag in soup.find_all("a", href=True):
+                link = a_tag["href"]
+                if link.startswith(("mailto:", "javascript:", "#")) or link.endswith(
+                    (".png", ".svg", ".jpg", ".jpeg", ".gif")
+                ):
                     continue
                 absolute_link = urljoin(url, link)
 
@@ -402,13 +406,14 @@ class WebLoader(UnstructuredURLLoader):
 
         session = requests.Session()
         adapter = requests.adapters.HTTPAdapter(
-            pool_connections=100, pool_maxsize=100, max_retries=3)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
+            pool_connections=100, pool_maxsize=100, max_retries=3
+        )
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
         session.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
                 AppleWebKit/537.36 (KHTML, like Gecko) \
-                    Chrome/89.0.4389.82 Safari/537.36'
+                    Chrome/89.0.4389.82 Safari/537.36"
         }
 
         visited_links = set()
@@ -437,7 +442,7 @@ class WebLoader(UnstructuredURLLoader):
         for t in threads:
             t.join()
 
-        logger.debug(f'Total links detected: {len(visited_links)}')
+        logger.debug(f"Total links detected: {len(visited_links)}")
 
         return docs
 
@@ -452,8 +457,9 @@ class WebLoader(UnstructuredURLLoader):
 
         if self.nested:
             with ThreadPoolExecutor() as executor:
-                docs_futures = [executor.submit(
-                    self.find_links, url) for url in self.urls]
+                docs_futures = [
+                    executor.submit(self.find_links, url) for url in self.urls
+                ]
                 for future in docs_futures:
                     docs.extend(future.result())
         else:
@@ -480,6 +486,25 @@ class Source:
         self.source_refresh_list: List[dict] = list()
 
     @staticmethod
+    def sources_to_string():
+        """Helper to format the sources dictionary into a readable string."""
+        source_messages = []
+        for source_name, source_info in vars(sources_config).items():
+            # For each source, create a formatted string
+            if source_name == "confluence":
+                spaces = ", ".join(source_info.spaces)
+                source_messages.append(f"- Confluence spaces: {spaces}")
+            elif source_name == "gitlab":
+                groups = ", ".join(source_info.groups)
+                source_messages.append(f"- GitLab repositories: {groups}")
+            elif source_name == "web":
+                links = ", ".join(source_info.links)
+                source_messages.append(
+                    f"- Relevant documentation and resources available at: {links}"
+                )
+        return "\n  ".join(source_messages)
+
+    @staticmethod
     def _get_hash(input: str) -> str:
         return md5(input.encode()).hexdigest()
 
@@ -490,8 +515,7 @@ class Source:
             return f"confluence-{spaces}.source"
         elif isinstance(source, GitlabModel):
             if source.groups and source.projects:
-                hash_links = self._get_hash(
-                    "-".join(source.groups + source.projects))
+                hash_links = self._get_hash("-".join(source.groups + source.projects))
             elif source.groups:
                 hash_links = self._get_hash("-".join(source.groups))
             else:
@@ -501,7 +525,9 @@ class Source:
             hash_links = self._get_hash("-".join(source.links))
             return f"web-{hash_links}.source"
 
-    def _get_source_metadata_path(self, source: ConfluenceModel | GitlabModel | Web) -> Path:
+    def _get_source_metadata_path(
+        self, source: ConfluenceModel | GitlabModel | Web
+    ) -> Path:
         return self.source_dir / self._get_source_metadata(source)
 
     def _save_source_metadata(self, source: ConfluenceModel | GitlabModel | Web):
@@ -518,17 +544,14 @@ class Source:
             if source_data is None:
                 continue
             if not self._source_exist_locally(source_data):
-                self.source_refresh_list.append({
-                    "id": source_name,
-                    "data": source_data
-                })
+                self.source_refresh_list.append(
+                    {"id": source_name, "data": source_data}
+                )
 
     def _create_and_save_db(self, source_name: str, documents: List[Document]) -> None:
         """Creates and save a vector store index DB to file"""
         # Create vector index
-        db = FAISS.from_documents(
-            documents=documents,
-            embedding=EMBEDDING_MODEL)
+        db = FAISS.from_documents(documents=documents, embedding=EMBEDDING_MODEL)
 
         # Save DB to source directory
         dir_path = self.source_dir / "faiss"
@@ -537,9 +560,7 @@ class Source:
     @staticmethod
     def splitter() -> RecursiveCharacterTextSplitter:
         return RecursiveCharacterTextSplitter(
-            chunk_size=1500,
-            chunk_overlap=300,
-            length_function=len
+            chunk_size=1500, chunk_overlap=300, length_function=len
         )
 
     def _add_confluence(self, source: ConfluenceModel):
@@ -556,25 +577,24 @@ class Source:
             loader = ConfluenceLoader(
                 url=source.server,
                 username=source.username,
-                api_key=source.password.get_secret_value()
+                api_key=source.password.get_secret_value(),
             )
 
             confluence_documents = []
 
             for space in source.spaces:
                 documents = loader.load(
-                    space_key=space,
-                    include_attachments=False,
-                    limit=200
+                    space_key=space, include_attachments=False, limit=200
                 )
                 confluence_documents.extend(documents)
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading confluence source: {str(error)}")
+                f"An error has occured while loading confluence source: {str(error)}"
+            )
 
         self._create_and_save_db(
             source_name="confluence",
-            documents=self.splitter().split_documents(confluence_documents)
+            documents=self.splitter().split_documents(confluence_documents),
         )
 
     def _add_gitlab_source(self, source: GitlabModel):
@@ -587,18 +607,19 @@ class Source:
                 groups=source.groups,
                 projects=source.projects,
                 private_token=source.password,
-                ssl_verify=True
+                ssl_verify=True,
             )
 
             gitlab_documents = loader.load()
 
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading gitlab source: {str(error)}")
+                f"An error has occured while loading gitlab source: {str(error)}"
+            )
 
         self._create_and_save_db(
             source_name="gitlab",
-            documents=self.splitter().split_documents(gitlab_documents)
+            documents=self.splitter().split_documents(gitlab_documents),
         )
 
     def _add_web_source(self, source: Web):
@@ -612,25 +633,22 @@ class Source:
             SourceException: Exception rasied interating with web links
         """
         try:
-
-            loader = WebLoader(
-                nested=source.nested,
-                urls=source.links
-            )
+            loader = WebLoader(nested=source.nested, urls=source.links)
 
             web_documents = loader.load()
 
             if len(web_documents) < len(source.links):
                 raise SourceException(
-                    f"The total documents {len(web_documents)} parsed is less than the number of source links provided")
+                    f"The total documents {len(web_documents)} parsed is less than the number of source links provided"
+                )
 
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading web source: {str(error)}")
+                f"An error has occured while loading web source: {str(error)}"
+            )
 
         self._create_and_save_db(
-            source_name="web",
-            documents=self.splitter().split_documents(web_documents)
+            source_name="web", documents=self.splitter().split_documents(web_documents)
         )
 
     def add_source(self, id: str, data: GitlabModel | ConfluenceModel | Web) -> None:
@@ -652,8 +670,7 @@ class Source:
         elif isinstance(data, GitlabModel):
             self._add_gitlab_source(data)
         else:
-            raise SourceException(
-                f"Unknown source type: {type(data)}")
+            raise SourceException(f"Unknown source type: {type(data)}")
 
         self._save_source_metadata(data)
         logger.info(f"Done with source {id}")
@@ -704,9 +721,8 @@ class Source:
 
         for index in indexes:
             db = FAISS.load_local(
-                folder_path=db_path,
-                index_name=index,
-                embeddings=EMBEDDING_MODEL)
+                folder_path=db_path, index_name=index, embeddings=EMBEDDING_MODEL
+            )
             dbs.append(db)
 
         faiss_db = dbs[0]
@@ -714,8 +730,6 @@ class Source:
         for db in dbs[1:]:
             faiss_db.merge_from(db)
 
-        retrievar = faiss_db.as_retriever(
-            search_kwargs={'k': 15, 'fetch_k': 50}
-        )
+        retrievar = faiss_db.as_retriever(search_kwargs={"k": 15, "fetch_k": 50})
 
         return retrievar
