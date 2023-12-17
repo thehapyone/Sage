@@ -528,54 +528,69 @@ class Source:
     def _get_hash(input: str) -> str:
         return md5(input.encode()).hexdigest()
 
-    def _get_source_metadata(self, source: ConfluenceModel | GitlabModel | Web) -> str:
-        """Generate a unique metadata for each source"""
-        if isinstance(source, ConfluenceModel):
-            spaces = "-".join(source.spaces)
-            return f"confluence-{spaces}.source"
-        elif isinstance(source, GitlabModel):
-            if source.groups and source.projects:
-                hash_links = self._get_hash("-".join(source.groups + source.projects))
-            elif source.groups:
-                hash_links = self._get_hash("-".join(source.groups))
-            else:
-                hash_links = self._get_hash("-".join(source.projects))
-            return f"gitlab-{hash_links}.source"
-        else:
-            hash_links = self._get_hash("-".join(source.links))
-            return f"web-{hash_links}.source"
+    def _get_source_metadata_path(self, source_hash: str) -> Path:
+        return self.source_dir / source_hash
 
-    def _get_source_metadata_path(
-        self, source: ConfluenceModel | GitlabModel | Web
-    ) -> Path:
-        return self.source_dir / self._get_source_metadata(source)
-
-    def _save_source_metadata(self, source: ConfluenceModel | GitlabModel | Web):
+    def _save_source_metadata(self, source_hash: str):
         """Save the source metadata to disk"""
-        metadata = self._get_source_metadata_path(source)
+        metadata = self._get_source_metadata_path(source_hash)
         metadata.write_text("True")
 
-    def _source_exist_locally(self, source: ConfluenceModel | GitlabModel | Web):
+    def _source_exist_locally(self, source_hash: str):
         """Returns whether the given source exist or not"""
-        return self._get_source_metadata_path(source).exists()
+        return self._get_source_metadata_path(source_hash).exists()
+
+    def _get_source_hash(self, source_type: str, name: str) -> str:
+        """Generate a hash for a given source"""
+        return f"{source_type}-{self._get_hash(name.lower())}.source"
+
+    def _append_to_refresh_list(
+        self, source_type: str, identifier: str, identifier_key: str
+    ):
+        """Add source to the refresh list"""
+        source_hash = self._get_source_hash(source_type, identifier)
+        if not self._source_exist_locally(source_hash):
+            self.source_refresh_list.append(
+                {
+                    "hash": source_hash,
+                    "source_type": source_type,
+                    "identifier": identifier,
+                    "identifier_type": identifier_key,
+                }
+            )
+
+    def _check_source(
+        self,
+        source_type: str,
+        source_data: ConfluenceModel | GitlabModel | Web,
+        identifier_key: str,
+    ):
+        """Check if a source exist otherwise add to the refresh list"""
+        for identifier in getattr(source_data, identifier_key, []):
+            self._append_to_refresh_list(source_type, identifier, identifier_key)
 
     def check_sources_exist(self):
-        for source_name, source_data in vars(sources_config).items():
-            if source_data is None:
+        """Checks if sources in the config file exists locally"""
+        for source_type, source_data in vars(sources_config).items():
+            if not source_data:
                 continue
-            if not self._source_exist_locally(source_data):
-                self.source_refresh_list.append(
-                    {"id": source_name, "data": source_data}
-                )
 
-    def _create_and_save_db(self, source_name: str, documents: List[Document]) -> None:
+            if isinstance(source_data, ConfluenceModel):
+                self._check_source(source_type, source_data, "spaces")
+            elif isinstance(source_data, GitlabModel):
+                self._check_source(source_type, source_data, "groups")
+                self._check_source(source_type, source_data, "projects")
+            elif isinstance(source_data, Web):
+                self._check_source(source_type, source_data, "links")
+
+    def _create_and_save_db(self, source_hash: str, documents: List[Document]) -> None:
         """Creates and save a vector store index DB to file"""
         # Create vector index
         db = FAISS.from_documents(documents=documents, embedding=EMBEDDING_MODEL)
 
         # Save DB to source directory
         dir_path = self.source_dir / "faiss"
-        db.save_local(str(dir_path), source_name)
+        db.save_local(str(dir_path), source_hash)
 
     @staticmethod
     def splitter() -> RecursiveCharacterTextSplitter:
@@ -583,12 +598,14 @@ class Source:
             chunk_size=1500, chunk_overlap=300, length_function=len
         )
 
-    def _add_confluence(self, source: ConfluenceModel):
+    def _add_confluence(self, hash: str, source: ConfluenceModel, space: str):
         """
         Adds and saves a confluence data source
 
         Args:
+            hash (str): The source hash
             source (ConfluenceModel): Confluence data model
+            space (str): The confluence space to save
 
         Raises:
             SourceException: HTTP Error communicating with confluence
@@ -600,36 +617,38 @@ class Source:
                 api_key=source.password.get_secret_value(),
             )
 
-            confluence_documents = []
-
-            for space in source.spaces:
-                documents = loader.load(
-                    space_key=space,
-                    include_attachments=False,
-                    limit=200,
-                    keep_markdown_format=True,
-                    content_format=ContentFormat.VIEW,
-                )
-                confluence_documents.extend(documents)
+            confluence_documents = loader.load(
+                space_key=space,
+                include_attachments=False,
+                limit=200,
+                keep_markdown_format=True,
+                content_format=ContentFormat.VIEW,
+            )
         except Exception as error:
             raise SourceException(
                 f"An error has occured while loading confluence source: {str(error)}"
             )
 
         self._create_and_save_db(
-            source_name="confluence",
+            source_hash=hash,
             documents=self.splitter().split_documents(confluence_documents),
         )
 
-    def _add_gitlab_source(self, source: GitlabModel):
+    def _add_gitlab_source(
+        self,
+        hash: str,
+        source: GitlabModel,
+        groups: List[str] = [],
+        projects: List[str] = [],
+    ):
         """
         Adds and saves a gitlab data source.
         """
         try:
             loader = GitlabLoader(
                 base_url=source.server,
-                groups=source.groups,
-                projects=source.projects,
+                groups=groups,
+                projects=projects,
                 private_token=source.password,
                 ssl_verify=True,
             )
@@ -642,28 +661,30 @@ class Source:
             )
 
         self._create_and_save_db(
-            source_name="gitlab",
+            source_hash=hash,
             documents=self.splitter().split_documents(gitlab_documents),
         )
 
-    def _add_web_source(self, source: Web):
+    def _add_web_source(self, hash: str, source: Web, link: str):
         """
         Adds and saves a web data source
 
         Args:
+            hash (str): The source hash
             source (Web): Web data model
+            link (str): The source link value
 
         Raises:
             SourceException: Exception rasied interating with web links
         """
         try:
-            loader = WebLoader(nested=source.nested, urls=source.links)
+            loader = WebLoader(nested=source.nested, urls=[link])
 
             web_documents = loader.load()
 
-            if len(web_documents) < len(source.links):
+            if not web_documents:
                 raise SourceException(
-                    f"The total documents {len(web_documents)} parsed is less than the number of source links provided"
+                    f"No document was parsed from the source link {link}"
                 )
 
         except Exception as error:
@@ -672,32 +693,47 @@ class Source:
             )
 
         self._create_and_save_db(
-            source_name="web", documents=self.splitter().split_documents(web_documents)
+            source_hash=hash, documents=self.splitter().split_documents(web_documents)
         )
 
-    def add_source(self, id: str, data: GitlabModel | ConfluenceModel | Web) -> None:
+    def add_source(
+        self, hash: str, source_type: str, identifier: str, identifier_type: str
+    ) -> None:
         """
         Adds and saves a data source
 
         Args:
-            id (str): Source id
-            data (GitlabModel | ConfluenceModel | Web): Source data
+            hash (str) | The source hash
+            source_type (str) | The source type
+            identifier (str) | The value of the source
+            identifier_type (str) | The type of source value
 
         Raises:
             SourceException: Raised if the source type is unknown
         """
-        logger.info(f"Processing source {id}...")
-        if isinstance(data, ConfluenceModel):
-            self._add_confluence(data)
-        elif isinstance(data, Web):
-            self._add_web_source(data)
-        elif isinstance(data, GitlabModel):
-            self._add_gitlab_source(data)
-        else:
-            raise SourceException(f"Unknown source type: {type(data)}")
 
-        self._save_source_metadata(data)
-        logger.info(f"Done with source {id}")
+        source_ref = f"{source_type}: {identifier_type}={identifier}"
+        logger.info(f"Processing source {source_ref} ...")
+        if source_type == "confluence":
+            self._add_confluence(
+                hash=hash, source=sources_config.confluence, space=identifier
+            )
+        elif source_type == "web":
+            self._add_web_source(hash=hash, source=sources_config.web, link=identifier)
+        elif source_type == "gitlab":
+            if identifier_type == "groups":
+                self._add_gitlab_source(
+                    hash=hash, source=sources_config.gitlab, groups=[identifier]
+                )
+            else:
+                self._add_gitlab_source(
+                    hash=hash, source=sources_config.gitlab, projects=[identifier]
+                )
+        else:
+            raise SourceException(f"Unknown source type: {source_type}")
+
+        self._save_source_metadata(hash)
+        logger.info(f"Done with source {source_ref}")
 
     def run(self) -> None:
         """
