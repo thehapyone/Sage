@@ -28,6 +28,32 @@ from git import Blob, Repo
 from constants import sources_config, core_config, EMBEDDING_MODEL, logger, app_name
 from utils.exceptions import SourceException
 from utils.validator import ConfluenceModel, GitlabModel, Web
+from utils.supports import (
+    markdown_to_text_using_html2text,
+    markdown_to_text_using_unmark,
+)
+
+
+class CustomConfluenceLoader(ConfluenceLoader):
+    """Confluence loader with an overide function"""
+
+    def process_page(self, *args, **kwargs) -> Document:
+        response = super().process_page(*args, **kwargs)
+
+        if not kwargs.get("keep_markdown_format"):
+            return response
+
+        # parse the markdown response
+        try:
+            return Document(
+                page_content=markdown_to_text_using_unmark(response.page_content),
+                metadata=response.metadata,
+            )
+        except Exception:
+            return Document(
+                page_content=markdown_to_text_using_html2text(response.page_content),
+                metadata=response.metadata,
+            )
 
 
 class RepoHandler(BaseModel):
@@ -574,7 +600,7 @@ class Source:
             SourceException: HTTP Error communicating with confluence
         """
         try:
-            loader = ConfluenceLoader(
+            loader = CustomConfluenceLoader(
                 url=source.server,
                 username=source.username,
                 api_key=source.password.get_secret_value(),
@@ -584,7 +610,10 @@ class Source:
 
             for space in source.spaces:
                 documents = loader.load(
-                    space_key=space, include_attachments=False, limit=200
+                    space_key=space,
+                    include_attachments=False,
+                    limit=200,
+                    keep_markdown_format=True,
                 )
                 confluence_documents.extend(documents)
         except Exception as error:
