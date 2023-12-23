@@ -5,6 +5,12 @@ from langchain.schema.embeddings import Embeddings
 
 from markdown import markdown
 from html2text import HTML2Text
+from unstructured.partition.auto import partition_md
+
+text_maker = HTML2Text()
+text_maker.ignore_links = False
+text_maker.ignore_images = True
+text_maker.ignore_emphasis = True
 
 
 class JinaAIEmebeddings(Embeddings):
@@ -43,8 +49,5 @@ def markdown_to_text_using_html2text(markdown_text: str) -> str:
     Returns:
         str: Plain text
     """
-    text_maker = HTML2Text()
-    text_maker.ignore_links = False
-    text_maker.ignore_images = True
-    text_maker.ignore_emphasis = False
-    return text_maker.handle(markdown(markdown_text)).replace("\\", "")
+    html = markdown(markdown_text)
+    return text_maker.handle(html).replace("\\", "")

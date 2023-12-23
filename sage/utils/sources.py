@@ -487,10 +487,8 @@ class WebLoader(UnstructuredURLLoader):
                 docs.extend(self._load(url))
         return docs
 
-
 class Source:
     # TODO: Adds support for batching loading of the documents when generating the Faiss index. As it's easy to reach API throttle limits with OPENAI
-    # TODO: Improve a way to avoid reloading existing documents when the spaces, groups, and projects of a source changes
     # TODO: Old sources metadata are not removed when the source change causing issue if old sources are used again as the source will not loaded because the metadata still exists
 
     _instance = None
@@ -510,13 +508,19 @@ class Source:
         """Helper to format the sources dictionary into a readable string."""
         source_messages = []
         for source_name, source_info in vars(sources_config).items():
+            if not source_info:
+                continue
             # For each source, create a formatted string
             if source_name == "confluence":
                 spaces = ", ".join(source_info.spaces)
                 source_messages.append(f"- Confluence spaces: {spaces}")
             elif source_name == "gitlab":
-                groups = ", ".join(source_info.groups)
-                source_messages.append(f"- GitLab repositories: {groups}")
+                if source_info.groups:
+                    groups = ", ".join(source_info.groups)
+                    source_messages.append(f"- GitLab Groups: {groups}")
+                if source_info.projects:
+                    projects = ", ".join(source_info.projects)
+                    source_messages.append(f"- GitLab repositories: {projects}")
             elif source_name == "web":
                 links = ", ".join(source_info.links)
                 source_messages.append(

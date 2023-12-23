@@ -4,7 +4,13 @@ from datetime import datetime
 
 from langchain.schema.document import Document
 from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
-from langchain.schema.runnable import RunnablePassthrough, RunnableSequence, RunnableConfig, RunnableMap, RunnableLambda
+from langchain.schema.runnable import (
+    RunnablePassthrough,
+    RunnableSequence,
+    RunnableConfig,
+    RunnableMap,
+    RunnableLambda,
+)
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.memory import ConversationBufferWindowMemory
@@ -31,33 +37,26 @@ Standalone question::
 """
 
 qa_template = """
-As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to a variety of questions and also participate in normal conversation. You should be able to differentie between a question that needs answer to and standard user chat conversation.
+As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
+You must differentiate between questions that require answers and standard user chat conversations.
 
-Your responses should be in line with a journalistic style, which is characterized by neutrality and reliance on factual, verifiable information.
+In standard conversation, especially when discussing your own nature as an AI, footnotes or sources are not required, as the information is based on your programmed capabilities and functions.
+
+Your responses should adhere to a journalistic style, characterized by neutrality and reliance on factual, verifiable information.
 
 When formulating answers, you are to:
 
-- Be creative when applicable
-- Integrate information from search results into a single, coherent response.
-- Avoid redundancy and repetition, ensuring that each piece of information adds substantive value.
-- Maintain an unbiased tone throughout, focusing on presenting facts without personal opinions or biases.
-- If the provided 'context' does not contain relevant information to answer a specific question, and the question pertains to general knowledge that Sage is capable of answering, then Sage should use its own database to provide an accurate response.  
-- If a question can be answered using Sage's internal knowledge, provide an answer accordingly and add a note that the response is based on Sage's own data.  
-
-The 'context' HTML blocks below contain information derived from a knowledge bank, which is separate from the user's direct conversation.
-This information serves as the basis for your answers. However, Sage should not rely solely on this context and is expected to use its built-in knowledge when appropriate.  
-
-In the event that no contextually relevant information is available to answer a specific question, your response should be:
-"I apologize, but I am unable to provide an answer to this question."
-This response is to be used exclusively when an answer cannot be constructed and should not be employed as a generic reply to open-ended conversation starters.
-
-- Citations must not be inserted anywhere in the answer only listed in a 'Footnotes' section at the end of the response, with each source numbered as it appears in the context blocks.
-- Select only the most pertinent search results for citation, directly relating to the answer provided.
-- When different results refer to different entities sharing the same name, present separate answers to clearly distinguish between these entities.
-- Keep the footnotes brief and the summaries MUST be lesss than 10 words always.
-
-In your responses, make use of bullet points to aid readability if helpful. 
-Each bullet point should present a piece of information WITHOUT in-line citations. Instead, compile the citations in the 'Footnotes' section at the end of the response.
+- Be creative when applicable.
+- Don't assume you know the meaning of abbreviations unless you have explict context about the abbreviation.
+- Integrate information from the 'context' into a coherent response, avoiding assumptions without clear context.
+- Avoid redundancy and repetition, ensuring each response adds substantive value.
+- Maintain an unbiased tone, presenting facts without personal opinions or biases.
+- Use Sage's internal knowledge to provide accurate responses when appropriate, clearly stating when doing so.
+- When the context does not contain relevant information to answer a specific question, and the question pertains to general knowledge, use Sage's built-in knowledge.
+- Make use of bullet points to aid readability if helpful. Each bullet point should present a piece of information WITHOUT in-line citations.
+- Provide a clear response when unable to answer
+- Avoid adding any sources in the footnotes when the response does not reference specific context.
+- Citations must not be inserted anywhere in the answer only listed in a 'Footnotes' section at the end of the response.
 
 <context>
 {context}
@@ -65,18 +64,18 @@ Each bullet point should present a piece of information WITHOUT in-line citation
 
 Question: {question}
 
-REMEMBER: No in-line citations is allowed and no citations repetition
-If the answer is based on Sage's internal knowledge, state:  
-"This response is based on Sage's internal knowledge base." NOTE: Only say that when applicable.
+REMEMBER: No in-line citations are allowed, and there should be no citation repetition. Clearly state the source of in the 'Footnotes' section or Sage's internal knowledge base.
+For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
 
 Footnotes:
-[1] - Brief summary of the first source.
+[1] - Brief summary of the first source. (Less than 10 words)
 [2] - Brief summary of the second source.
-...and so on for additional sources.
+...continue for additional sources, only if relevant and necessary.  
 """
 
 
 def format_docs(docs: Sequence[Document]) -> str:
+    """Format the output of the retriever by inluding html tags"""
     formatted_docs = []
     for i, doc in enumerate(docs):
         doc_string = f"<doc id='{i}'>{doc.page_content}</doc>"
@@ -90,52 +89,54 @@ def generate_git_source(metadata: dict) -> str:
         url_without_git: str = metadata["url"].removesuffix(".git")
         source = f"{url_without_git}/-/blob/{metadata['branch']}/{metadata['source']}"
     except KeyError:
-        return metadata['source']
+        return metadata["source"]
     return source
 
 
-def format_docs(docs: Sequence[Document]):
-    """Helper for formating documents"""
+def format_sources(docs: Sequence[Document]):
+    """Helper for formating sources. Used in citiation display"""
     formatted_sources = []
     for i, doc in enumerate(docs):
         if "url" in doc.metadata.keys() and ".git" in doc.metadata["url"]:
             source = generate_git_source(doc.metadata)
         else:
             source = doc.metadata["source"]
-        content = doc.metadata.get(
-            "title", None) or doc.page_content.strip().rsplit(".")[0] + " ..."
-        metadata = {
-            "id": i,
-            "source": source,
-            "content": content
-        }
+        content = (
+            doc.metadata.get("title", None)
+            or doc.page_content.strip().rsplit(".")[0] + " ..."
+        )
+        metadata = {"id": i, "source": source, "content": content}
         formatted_sources.append(metadata)
     return formatted_sources
 
 
-def get_time_of_day_greeting():  
-    """Helper to get a greeting based on the current time of day."""  
-    current_hour = datetime.now().hour  
-    if 5 <= current_hour < 12:  
-        return 'Good morning'  
-    elif 12 <= current_hour < 17:  
-        return 'Good afternoon'  
-    elif 17 <= current_hour < 21:  
-        return 'Good evening'  
-    else:  
-        return 'Hello'  
+def get_time_of_day_greeting():
+    """Helper to get a greeting based on the current time of day."""
+    current_hour = datetime.now().hour
+    if 5 <= current_hour < 12:
+        return "Good morning"
+    elif 12 <= current_hour < 17:
+        return "Good afternoon"
+    elif 17 <= current_hour < 21:
+        return "Good evening"
+    else:
+        return "Hello"
 
-def generate_welcome_message():  
-    """Generate and format an introduction message."""  
+
+def generate_welcome_message():
+    """Generate and format an introduction message."""
     greeting = get_time_of_day_greeting()
     sources = Source().sources_to_string()
 
-    message = (f"{greeting} and welcome!\n"
-               "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
-               "I can provide you with data and updates from a variety of sources including:\n"
-               f"  {sources}\n\n"
-               "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!")
+    message = (
+        f"{greeting} and welcome!\n"
+        "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
+        "I can provide you with data and updates from a variety of sources including:\n"
+        f"  {sources}\n\n"
+        "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!"
+    )
     return message.strip()
+
 
 async def get_retriever():
     """Loads a retrieval model form the sources"""
@@ -153,15 +154,16 @@ async def setup_runnable():
     # Get the memory
     memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
 
-    condense_question_prompt = PromptTemplate.from_template(
-        condensed_template)
+    condense_question_prompt = PromptTemplate.from_template(condensed_template)
 
     qa_prompt = ChatPromptTemplate.from_template(qa_template)
 
     # define the inputs runnable to generate a standalone question from history
     _inputs = RunnableMap(
         standalone_question=RunnablePassthrough.assign(
-            chat_history=RunnableLambda(memory.load_memory_variables) | itemgetter("history"))
+            chat_history=RunnableLambda(memory.load_memory_variables)
+            | itemgetter("history")
+        )
         | condense_question_prompt
         | LLM_MODEL
         | StrOutputParser()
@@ -170,7 +172,7 @@ async def setup_runnable():
     # retrieve the documents
     retrieved_docs = RunnableMap(
         docs=itemgetter("standalone_question") | retriever,
-        question=itemgetter("standalone_question")
+        question=itemgetter("standalone_question"),
     )
 
     # construct the inputs
@@ -181,12 +183,10 @@ async def setup_runnable():
 
     qa_answer = RunnableMap(
         answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
-        sources=lambda x: format_docs(x["docs"])
+        sources=lambda x: format_sources(x["docs"]),
     )
 
-    _runnable = (
-        _inputs | retrieved_docs | qa_answer
-    )
+    _runnable = _inputs | retrieved_docs | qa_answer
 
     cl.user_session.set("runnable", _runnable)
 
@@ -196,19 +196,12 @@ async def on_chat_start():
     """Initialize a new chat environment"""
     memory = ConversationBufferWindowMemory()
     cl.user_session.set("memory", memory)
-    
-    await cl.Avatar(
-        name="Sage",
-        path=str(assets_dir / "ai-assistant.png")
-    ).send()
-    
-    await cl.Avatar(
-        name="User",
-        path=str(assets_dir / "boy.png")
-    ).send()
-    
-    await cl.Message(
-        content=generate_welcome_message()).send()
+
+    await cl.Avatar(name="Sage", path=str(assets_dir / "ai-assistant.png")).send()
+
+    await cl.Avatar(name="User", path=str(assets_dir / "boy.png")).send()
+
+    await cl.Message(content=generate_welcome_message()).send()
 
     await setup_runnable()
 
@@ -221,16 +214,14 @@ async def on_message(message: cl.Message):
 
     msg = cl.Message(content="")
 
-    query = {
-        "question": message.content
-    }
+    query = {"question": message.content}
     _sources = None
     _answer = None
     text_elements = []  # type: List[cl.Text]
 
     async for chunk in runnable.astream(
-            query,
-            config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()])):
+        query, config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()])
+    ):
         _answer = chunk.get("answer")
         if _answer:
             await msg.stream_token(_answer)
@@ -242,11 +233,11 @@ async def on_message(message: cl.Message):
     if _sources:
         for source_doc in _sources:
             source_name = f"[{source_doc['id']}]"
-            source_content = source_doc['content'] + \
-                "\n" + source_doc['source']
+            source_content = source_doc["content"] + "\n" + source_doc["source"]
             text_elements.append(
-                cl.Text(content=source_content,
-                        url=source_doc['source'], name=source_name)
+                cl.Text(
+                    content=source_content, url=source_doc["source"], name=source_name
+                )
             )
 
     msg.elements = text_elements

@@ -63,4 +63,9 @@ header .MuiStack-root img[alt="logo"] {
 
 .css-lzolpx {
     color: #d3e2df !important;
-  }
+}
+
+/* Color for the sidebar close icon */
+.css-mgjzyx {
+    color: #d3e2df !important;
+}
