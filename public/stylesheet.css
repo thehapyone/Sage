@@ -69,3 +69,14 @@ header .MuiStack-root img[alt="logo"] {
 .css-mgjzyx {
     color: #d3e2df !important;
 }
+
+/* Color for the highlights in the AI text */
+
+.MuiBox-root code {
+    background-color: #0f0f0f !important;
+    color: aqua !important;
+}
+
+.css-me129t {
+    background: #0f0f0f !important;
+}
