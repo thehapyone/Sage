@@ -1,3 +1,4 @@
+from functools import lru_cache
 import os
 from anyio import Path as aPath
 from pathlib import Path
@@ -5,7 +6,7 @@ import tempfile
 from typing import Callable, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock, Thread
-from urllib.parse import urljoin, urldefrag
+from urllib.parse import urljoin, urldefrag, urlparse
 from queue import Queue
 from pydantic import BaseModel, SecretStr
 import requests
@@ -289,6 +290,7 @@ class WebLoader(UnstructuredURLLoader):
     def __init__(self, nested: bool = False, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.nested = nested
+        self.ssl_verify = kwargs.get("ssl_verify", True)
 
     def _load(self, url: str) -> List[Document]:
         """Load documents"""
@@ -318,7 +320,6 @@ class WebLoader(UnstructuredURLLoader):
                 metadata = {"source": url}
                 return [Document(page_content=text, metadata=metadata)]
 
-            # self.mode == elements
             for element in elements:
                 metadata = element.metadata.to_dict()
                 metadata["category"] = element.category
@@ -338,6 +339,18 @@ class WebLoader(UnstructuredURLLoader):
         if url.endswith("/"):
             return url[:-1]
         return url
+
+    @lru_cache(maxsize=1)
+    def get_base_path(self, url):
+        """Get the base path of a URL, excluding any file names."""
+        parsed = urlparse(url)
+        path_parts = parsed.path.rsplit("/", 1)
+        if "." in path_parts[-1]:
+            return self.normalize_url(
+                parsed.scheme + "://" + parsed.netloc + "/".join(path_parts[:-1])
+            )
+        else:
+            return self.normalize_url(url)
 
     def find_links(self, base_url: str) -> List[Document]:
         """
@@ -363,7 +376,7 @@ class WebLoader(UnstructuredURLLoader):
         def add_child_links(url: str, depth: int) -> None:
             """Find and add child links to the list"""
             try:
-                response = session.get(url, timeout=10)
+                response = session.get(url, timeout=10, verify=self.ssl_verify)
                 response.raise_for_status()
             except (
                 requests.exceptions.HTTPError,
@@ -406,7 +419,9 @@ class WebLoader(UnstructuredURLLoader):
             url = self.normalize_url(urldefrag(url)[0])
 
             with lock:
-                if url in visited_links or base_url not in url:
+                if url in visited_links or not url.startswith(
+                    self.get_base_path(base_url)
+                ):
                     return
                 visited_links.add(url)
 
@@ -414,7 +429,7 @@ class WebLoader(UnstructuredURLLoader):
                 logger.warning(f"Max depth reached - {url}")
                 return
 
-            # logger.info(f"Scraping {url}")
+            logger.debug(f"Scraping {url}")
 
             documents = self._load(url)
             with docs_lock:
@@ -486,6 +501,7 @@ class WebLoader(UnstructuredURLLoader):
             for url in self.urls:
                 docs.extend(self._load(url))
         return docs
+
 
 class Source:
     # TODO: Adds support for batching loading of the documents when generating the Faiss index. As it's easy to reach API throttle limits with OPENAI
@@ -682,7 +698,7 @@ class Source:
             SourceException: Exception rasied interating with web links
         """
         try:
-            loader = WebLoader(nested=source.nested, urls=[link])
+            loader = WebLoader(nested=source.nested, ssl_verify=source.ssl_verify, urls=[link])
 
             web_documents = loader.load()
 

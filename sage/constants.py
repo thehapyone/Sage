@@ -14,7 +14,7 @@ config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
 assets_dir = Path(__file__).parent / "assets"
 
 app_name = "codesage.ai"
-logger = CustomLogger(app_name)
+logger = CustomLogger(name=app_name)
 
 try:
     config = toml.load(config_path)

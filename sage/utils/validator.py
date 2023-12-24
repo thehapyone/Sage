@@ -81,6 +81,7 @@ class Web(BaseModel):
     """
     links: List[str]
     nested: bool
+    ssl_verify: bool = True
 
 
 class Source(BaseModel):
