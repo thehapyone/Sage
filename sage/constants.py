@@ -33,6 +33,9 @@ except (FileNotFoundError, KeyError) as error:
 # Create the main data directory
 Path(core_config.data_dir).mkdir(exist_ok=True)
 
+# Update the logging level
+logger.setLevel(core_config.logging_level)
+
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
 # Load the model
