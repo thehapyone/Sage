@@ -27,7 +27,7 @@ from langchain.agents import AgentType
 from langchain.chains.llm_math.base import LLMMathChain
 from utils.source_qa import SourceQAService
 
-agent_instructions = """
+agent_instructions_bak = """
 You are a helpful assistant named Sage. Your goal is to assist the user in answering any questions or performing any actions they may have.
 
 You have access to the following tools:  
@@ -82,6 +82,50 @@ Question: {question}
 """
 
 
+agent_instructions = """
+You are Sage, a knowledgeable and efficient assistant. Your mission is to provide users with precise and up-to-date answers to their questions.
+
+You have access to the following tools:
+
+<available_tools>{tools}</available_tools>
+
+When presented with a question, follow these steps:
+
+1. Assess whether an external tool listed under <available_tools> can assist with the question.
+2. Prioritize using the available tools, even if you have internal knowledge, to ensure the information is current and validated.
+3. To engage a tool, use the tags <tool> for the tool name and <tool_input> for your query.
+4. After sending your tool request, an external parser will return the tool's output within an <observation> tag.
+5. Once you have all necessary information, including any required calculations or additional data, provide the final answer to the user, ensuring it is enclosed within the <final_answer> tag.
+6. Always use the <final_answer> tag to deliver your final response, whether it is a complete answer, a partial answer, or an acknowledgment of the inability to provide the requested information.  
+
+Example:
+if asked about the weather and a weather tool is listed, your response should be:
+<tool>weather</tool><tool_input>current weather in New York</tool_input>
+
+Upon receiving the observation:
+<observation>75 degrees and sunny</observation>
+
+Conclude with the final answer:
+<final_answer>The current weather in New York is 75 degrees and sunny.</final_answer>
+
+
+Important: 
+ - Do not use the <final_answer> tag until you are ready to provide the complete and definitive answer to the user's question.
+ - If you need to use multiple tools or perform several steps to arrive at the answer, only use the <final_answer> tag after all these steps have been completed and the final answer is fully formulated.
+
+Remember:
+- Always check <available_tools> and use them when appropriate to enhance the accuracy and reliability of your responses.
+- Always conclude with the <final_answer> tag only after all necessary information has been gathered and verified.
+- Provide precise and factual responses, avoiding speculation and inaccuracies.
+- Act autonomously in using tools, without asking for user confirmation.
+- If a user asks a question that you cannot answer due to a lack of information and no tools are available to assist, your response should still use the <final_answer> tag
+
+Begin!
+
+Question: {question}
+"""
+
+
 def agent_prompt() -> ChatPromptTemplate:
     return ChatPromptTemplate.from_template(
         agent_instructions
@@ -93,7 +137,7 @@ tavily_tool = TavilySearchResults(api_wrapper=search)
 
 duck_search = DuckDuckGoSearchRun()
 math_tool = Tool(
-    name="Calculator",
+    name="calculator",
     description="Useful for when you need to answer questions about math.",
     func=LLMMathChain.from_llm(llm=model).run,
     coroutine=LLMMathChain.from_llm(llm=model).arun,
@@ -123,7 +167,7 @@ def ask_anything(query: str) -> str:
     return response
 
 
-tool_list = [toolsss, qa_tool, tavily_tool]
+tool_list = [toolsss, qa_tool, tavily_tool, math_tool]
 
 # Get prompt to use
 prompt = agent_prompt()
@@ -133,8 +177,9 @@ def convert_intermediate_steps(intermediate_steps):
     log = ""
     for action, observation in intermediate_steps:
         log += (
-            f"<tool>{action.tool}</tool><tool_input>{action.tool_input}"
-            f"</tool_input><observation>{observation}</observation>"
+            f"<tool>{action.tool}</tool>"
+            f"<tool_input>{action.tool_input}</tool_input>"
+            f"<observation>{observation}</observation>"
         )
     return log
 
@@ -142,7 +187,6 @@ def convert_intermediate_steps(intermediate_steps):
 # Logic for converting tools to string to go in prompt
 def convert_tools(tools):
     result = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
-    print(result)
     return result
 
 
@@ -159,7 +203,11 @@ agent = (
 )
 
 agent_executor = AgentExecutor(agent=agent, tools=tool_list, verbose=True)
-for chunk in agent_executor.stream({"question": "Who is Ayodeji Ayibiowu?"}):
+for chunk in agent_executor.stream(
+    {
+        "question": "What is this link of https://dadsa.sdasdads.com/demo?"
+    }
+):
     print(chunk)
 
 # print(agent_executor.invoke({"question": "whats the weather in New york?"}))

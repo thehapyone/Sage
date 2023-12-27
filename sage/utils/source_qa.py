@@ -21,12 +21,20 @@ from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.tools import Tool
+from langchain.agents import AgentExecutor
+
 import chainlit as cl
 from pydantic import BaseModel
 
 from utils.sources import Source
 from utils.exceptions import SourceException
 from constants import LLM_MODEL, assets_dir
+from utils.supports import (
+    CustomXMLAgentOutputParser,
+    agent_prompt,
+    convert_intermediate_steps,
+    convert_tools,
+)
 
 
 class SourceQAService:
@@ -73,7 +81,7 @@ class SourceQAService:
     Standalone question::
     """
 
-    qa_template: str = """
+    qa_template_bak: str = """
     As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
     You must differentiate between questions that require answers and standard user chat conversations.
 
@@ -110,8 +118,78 @@ class SourceQAService:
     ...continue for additional sources, only if relevant and necessary.  
     """
 
-    def __init__(self, mode: str = "tool") -> None:
+    qa_template: str = """
+    As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
+    You must differentiate between questions that require answers and standard user chat conversations.
+    In standard conversation, especially when discussing your own nature as an AI, footnotes or sources are not required, as the information is based on your programmed capabilities and functions.
+
+    Your responses should adhere to a journalistic style, characterized by neutrality and reliance on factual, verifiable information.
+
+    When formulating answers, you are to:
+
+    - Be creative when applicable.
+    - Don't assume you know the meaning of abbreviations unless you have explicit context about the abbreviation.
+    - Integrate information from the 'context' and any 'tool' observation into a coherent response, avoiding assumptions without clear context.
+    - Maintain an unbiased tone, presenting facts without personal opinions or biases.
+    - Use Sage's internal knowledge to provide accurate responses when appropriate, clearly stating when doing so.
+    - When the 'context' does not contain relevant information to answer a specific question, and the question pertains to general knowledge, use Sage's built-in knowledge.
+    - Make use of bullet points to aid readability if helpful. Each bullet point should present a piece of information WITHOUT in-line citations.
+    - Provide a clear response when unable to answer
+    - Avoid adding any sources in the footnotes when the response does not reference specific context.
+    - Citations must not be inserted anywhere in the answer only listed in a 'Footnotes' section at the end of the response.
+    
+    <context>
+    {context}
+    </context>
+    
+    You have access to the following tools to enrich your functionality:
+
+    <available_tools>{tools}</available_tools>
+
+    When a question arises that could benefit from the use of an external tool, you are encouraged to use the appropriate tool listed under <available_tools>.
+
+    Follow these steps:
+    
+    1. Assess whether an external tool listed under <available_tools> can assist with the question or help enrich the answer
+    2. To engage a tool, use the tags <tool> for the tool name and <tool_input> for your query.
+    3. After sending your tool request, an external parser will return the tool's output within an <observation> tag.
+    4. Once you have all necessary information, including any required calculations or additional data, provide the final answer to the user, ensuring it is enclosed within the <final_answer> tag.
+    5. Always use the <final_answer> tag to deliver your final response, whether it is a complete answer, a partial answer, or an acknowledgment of the inability to provide the requested information.  
+
+    Example:
+    if asked about the weather and a weather tool is listed, your response should be:
+    <tool>weather</tool><tool_input>current weather in New York</tool_input>
+
+    Upon receiving the observation:
+    <observation>75 degrees and sunny</observation>
+
+    Conclude with the final answer:
+    <final_answer>The current weather in New York is 75 degrees and sunny.</final_answer>
+    
+    Important: 
+    - Do not use the <final_answer> tag until you are ready to provide the complete and definitive answer to the user's question.
+    - If you need to use multiple tools or perform several steps to arrive at the answer, only use the <final_answer> tag after all these steps have been completed and the final answer is fully formulated.
+
+    Remember:
+    - Always check <available_tools> and use them when appropriate to enhance the accuracy and reliability of your responses.
+    - Provide precise and factual responses, avoiding speculation and inaccuracies.
+    - Act autonomously in using tools, without asking for user confirmation.
+    - If a user asks a question that you cannot answer due to a lack of information and no tools are available to assist, your response should still use the <final_answer> tag.
+
+    Question: {question}
+
+    REMEMBER: No in-line citations are allowed, and there should be no citation repetition. Clearly state the source in the 'Footnotes' section or Sage's internal knowledge base.
+    For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
+
+    Footnotes:
+    [1] - Brief summary of the first source. (Less than 10 words)
+    [2] - Brief summary of the second source.
+    ...continue for additional sources, only if relevant and necessary.
+    """
+
+    def __init__(self, mode: str = "tool", tools: List[Tool] = []) -> None:
         self._mode = mode
+        self.tools = tools
 
     @staticmethod
     def _get_time_of_day_greeting():
@@ -152,11 +230,20 @@ class SourceQAService:
         greeting = self._get_time_of_day_greeting()
         sources = Source().sources_to_string()
 
+        tools_prep = "\n  ".join(
+            [f"- {tool.name}: {tool.description}" for tool in self.tools]
+        )
+        tools_message = (
+            "I have access to external tools and can be used when applicable:\n"
+            f"  {tools_prep}\n\n"
+        )
+
         message = (
             f"{greeting} and welcome!\n"
             "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
             "I can provide you with data and updates from a variety of sources including:\n"
             f"  {sources}\n\n"
+            f"{tools_message if self.tools else ''}"
             "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!"
         )
         return message.strip()
@@ -220,7 +307,7 @@ class SourceQAService:
 
         condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
 
-        qa_prompt = ChatPromptTemplate.from_template(self.qa_template)
+        agent_qa_prompt = agent_prompt(self.qa_template)
 
         # define the inputs runnable to generate a standalone question from history
         _inputs = RunnableMap(
@@ -245,9 +332,26 @@ class SourceQAService:
             "question": lambda x: x["question"],
         }
 
+        # create the agent engine
+        _agent = (
+            {
+                "question": lambda x: x["question"],
+                "context": lambda x: x["context"],
+                "intermediate_steps": lambda x: convert_intermediate_steps(
+                    x["intermediate_steps"]
+                ),
+            }
+            | agent_qa_prompt.partial(tools=convert_tools(self.tools))
+            | LLM_MODEL.bind(stop=["</tool_input>", "</final_answer>"])
+            | CustomXMLAgentOutputParser()
+        )
+        _agent_runner = AgentExecutor(
+            agent=_agent, tools=self.tools, verbose=True
+        ) | itemgetter("output")
+
         # construct the question and answer model
         qa_answer = RunnableMap(
-            answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
+            answer=_context | _agent_runner,
             sources=lambda x: self._format_sources(x["docs"]),
         )
 
