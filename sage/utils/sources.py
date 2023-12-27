@@ -12,7 +12,6 @@ from pydantic import BaseModel, SecretStr
 import requests
 from time import sleep
 from hashlib import md5
-import re
 
 from bs4 import BeautifulSoup
 from langchain.document_loaders.confluence import ContentFormat, ConfluenceLoader
@@ -698,7 +697,9 @@ class Source:
             SourceException: Exception rasied interating with web links
         """
         try:
-            loader = WebLoader(nested=source.nested, ssl_verify=source.ssl_verify, urls=[link])
+            loader = WebLoader(
+                nested=source.nested, ssl_verify=source.ssl_verify, urls=[link]
+            )
 
             web_documents = loader.load()
 
@@ -774,7 +775,7 @@ class Source:
         for thread in threads:
             thread.join()
 
-    async def _get_faiss_indexes(self) -> str | List[str]:
+    async def _aget_faiss_indexes(self) -> str | List[str]:
         """Returns a list of all available faiss indexes"""
         dir_path = aPath(self.source_dir / "faiss")
 
@@ -785,15 +786,19 @@ class Source:
 
         return str(dir_path), indexes
 
-    async def load(self) -> Optional[VectorStoreRetriever]:
-        """
-        Returns a retriever model from the FAISS vector indexes
-        """
+    def _get_faiss_indexes(self) -> str | List[str]:
+        """Returns a list of all available faiss indexes"""
+        dir_path = Path(self.source_dir / "faiss")
 
-        self.run()
+        indexes: List[str] = []
 
-        db_path, indexes = await self._get_faiss_indexes()
+        for file in dir_path.glob("*.faiss"):
+            indexes.append(file.stem)
 
+        return str(dir_path), indexes
+
+    def _load_retriever(self, db_path: str, indexes: List[str]):
+        # Loads retriever
         if not indexes:
             return None
 
@@ -810,6 +815,26 @@ class Source:
         for db in dbs[1:]:
             faiss_db.merge_from(db)
 
-        retrievar = faiss_db.as_retriever(search_kwargs={"k": 15, "fetch_k": 50})
+        return faiss_db.as_retriever(search_kwargs={"k": 15, "fetch_k": 50})
 
-        return retrievar
+    async def aload(self) -> Optional[VectorStoreRetriever]:
+        """
+        Returns a retriever model from the FAISS vector indexes
+        """
+
+        self.run()
+
+        db_path, indexes = await self._aget_faiss_indexes()
+
+        return self._load_retriever(db_path, indexes)
+
+    def load(self) -> Optional[VectorStoreRetriever]:
+        """
+        Returns a retriever model from the FAISS vector indexes
+        """
+
+        self.run()
+
+        db_path, indexes = self._get_faiss_indexes()
+
+        return self._load_retriever(db_path, indexes)
