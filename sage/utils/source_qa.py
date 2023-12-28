@@ -308,7 +308,7 @@ class SourceQAService:
             | CustomXMLAgentOutputParser()
         )
         _agent_runner = AgentExecutor(
-            agent=_agent, tools=self.tools, verbose=True
+            agent=_agent, tools=self.tools, verbose=False
         ) | itemgetter("output")
 
         # construct the question and answer model
