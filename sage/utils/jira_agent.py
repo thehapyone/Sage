@@ -15,42 +15,17 @@ from constants import LLM_MODEL
 
 issue_template = """
 **Title**: {title}
-
 **Key**: {key}
-
 **Status**: {status}
-
 **Description**: {description}
-
 **Reporter**: {reporter}
-
+**Assignee**: {assignee}
 **Comments**: 
 {comments}
-
 **Parent Issue Summary**: 
 {parent}
-
 """
 
-issue_templateb_bak = """
-**Title**: {title}
-
-**Key**: {key}
-
-**Status**: {status}
-
-**Description**: {description}
-
-**Reporter**: {reporter}
-
-**Parent Issue**: <parent_summary>
-
-**Comments**: 
-{comments}
-
-Linked Issues:
-    <linked_issues>
-"""
 
 linked_issue_template = """
 {issue_key}: {issue_summary}
@@ -138,12 +113,17 @@ class IssueAgent:
         if isinstance(issue, str):
             issue = self._jira.get_issue(issue)
 
+        issue_assignee : str = (
+            issue.fields.assignee.displayName if issue.fields.assignee else "None"
+        )
+
         issue_formatted = self.template.format(
             title=self.get_field("summary", issue),
             key=issue.key,
             status=issue.fields.status.name,
             description=self.get_field("description", issue),
             reporter=issue.fields.reporter.displayName,
+            assignee=issue_assignee,
             comments=self._get_comments(issue),
             parent=self._get_parent(issue),
         )
