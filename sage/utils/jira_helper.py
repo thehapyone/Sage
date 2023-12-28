@@ -32,7 +32,7 @@ class Jira:
     def __init__(self) -> None:
         self._jira = JIRA(
             server=jira_config.url,
-            basic_auth=(jira_config.username, jira_config.password)
+            basic_auth=(jira_config.username, jira_config.password.get_secret_value())
         )
         self._tracked_issues = list()  # type: List[Issue]
 
@@ -63,7 +63,7 @@ class Jira:
         return self._jira.issue(id=issue_key)
 
     def add_comment(self, issue_key: str, body: str) -> None:
-        # Add a comment to the Issue
+        """Add a comment to the Issue"""
         response = self._jira.add_comment(issue=issue_key, body=body)
 
         if response:

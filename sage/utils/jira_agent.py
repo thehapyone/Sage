@@ -5,7 +5,9 @@ from jira import Issue, JIRAError
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain.callbacks.manager import CallbackManager
 from langchain_experimental.plan_and_execute.planners.base import LLMPlanner
-from langchain_experimental.plan_and_execute.planners.chat_planner import PlanningOutputParser
+from langchain_experimental.plan_and_execute.planners.chat_planner import (
+    PlanningOutputParser,
+)
 from langchain.schema.messages import SystemMessage
 
 from utils.jira_helper import Jira
@@ -88,43 +90,53 @@ PLANNER_SYSTEM_PROMPT = (
 
 
 class PlannerChain(LLMPlanner):
-
     def __init__(self) -> None:
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system", PLANNER_SYSTEM_PROMPT),
-            ("human", "{input}"),
-        ])
+        prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", PLANNER_SYSTEM_PROMPT),
+                ("human", "{input}"),
+            ]
+        )
         llm_chain = LLMChain(llm=LLM_MODEL, prompt=prompt_template)
         stop = ["<END_OF_PLAN>"]
-        super().__init__(llm_chain=llm_chain, output_parser=PlanningOutputParser(), stop=stop)
+        super().__init__(
+            llm_chain=llm_chain, output_parser=PlanningOutputParser(), stop=stop
+        )
 
 
 class SummaryChain:
-
     def __init__(self, system_template: str = SUMMARY_TEMPLATE) -> None:
-
-        chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", system_template),
-            ("human", "{issue}"),
-        ])
+        chat_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_template),
+                ("human", "{issue}"),
+            ]
+        )
 
         self.chain = LLMChain(llm=LLM_MODEL, prompt=chat_prompt)
 
-    def summarize(self, issue: str) -> Any:
-        # Summarize the given issue
-        return self.chain.invoke({
-            "issue": issue
-        }).get("text")
+    def summarize(self, issue: str) -> str:
+        """Summarize the given issue"""
+        return self.chain.invoke({"issue": issue}).get("text")
+
+    async def asummarize(self, issue: str) -> str:
+        """Summarize the given issue"""
+        result = await self.chain.ainvoke({"issue": issue})
+        return result.get("text")
 
 
 class IssueAgent:
+    """A Jira Issue Agent that can assist in various Jira Issue interaction"""
 
     def __init__(self) -> None:
-
         self.template = PromptTemplate.from_template(issue_template)
+        self._jira = Jira()
 
     def generate_issue_template(self, issue: Issue) -> str:
-        # Given an issue, it returns a formatted issue template
+        """Given an issue, it returns a formatted issue template"""
+
+        if isinstance(issue, str):
+            issue = self._jira.get_issue(issue)
 
         issue_formatted = self.template.format(
             title=self.get_field("summary", issue),
@@ -133,7 +145,7 @@ class IssueAgent:
             description=self.get_field("description", issue),
             reporter=issue.fields.reporter.displayName,
             comments=self._get_comments(issue),
-            parent=self._get_parent(issue)
+            parent=self._get_parent(issue),
         )
 
         return issue_formatted
@@ -147,7 +159,7 @@ class IssueAgent:
 
     def _get_parent(self, issue) -> str:
         """Returns a summarized version of the parent Issue"""
-        parent_issue = self.get_field("parent", issue)     # type: Issue
+        parent_issue = self.get_field("parent", issue)  # type: Issue
         if parent_issue == "None":
             return "No parent issue"
 
@@ -159,10 +171,12 @@ class IssueAgent:
 
         # Summarize this parent issue
         issue_formatted = self.generate_issue_template(
-            Jira().get_issue(parent_issue.key))
+            Jira().get_issue(parent_issue.key)
+        )
 
-        parent_summary = SummaryChain(
-            PARENT_SUMMARY_TEMPLATE).summarize(issue_formatted)
+        parent_summary = SummaryChain(PARENT_SUMMARY_TEMPLATE).summarize(
+            issue_formatted
+        )
         return parent_summary
 
     def _get_comments(self, issue) -> str:
@@ -177,8 +191,7 @@ class IssueAgent:
         comment_list = []
         for comment in comments.comments:
             message = comment_template.format(
-                author=comment.author.displayName,
-                content=comment.body
+                author=comment.author.displayName, content=comment.body
             ).strip()
             comment_list.append(message)
 
@@ -187,20 +200,43 @@ class IssueAgent:
 
         return "\n".join(comment_list)
 
-    def summarize(self, issue: Issue) -> None:
+    def summarize(self, issue: str | Issue) -> str:
         """
         Given an Issue, this method helps to provide a detail summary of a Jira issue and then publish the issue
         in the commnents field of the Jira ticket
 
         Args:
-            issue (Issue): A Jira Issue object
+            issue (Issue): A Jira Issue object or Issue key
         """
+
+        if isinstance(issue, str):
+            issue = self._jira.get_issue(issue)
 
         # Get the issue format out
         issue_formatted = self.generate_issue_template(issue)
 
         chain = SummaryChain()
         summary_text = chain.summarize(issue_formatted)
+
+        return summary_text
+
+    async def asummarize(self, issue: str | Issue) -> str:
+        """
+        Given an Issue, this method helps to provide a detail summary of a Jira issue and then publish the issue
+        in the commnents field of the Jira ticket
+
+        Args:
+            issue (Issue): A Jira Issue object or Issue key
+        """
+
+        if isinstance(issue, str):
+            issue = self._jira.get_issue(issue)
+
+        # Get the issue format out
+        issue_formatted = self.generate_issue_template(issue)
+
+        chain = SummaryChain()
+        summary_text = await chain.asummarize(issue_formatted)
 
         return summary_text
 
