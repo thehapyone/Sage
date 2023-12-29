@@ -80,7 +80,36 @@ class SourceQAService:
     Follow-Up Inquiry: {question}
     Standalone question::
     """
-    qa_template: str = """
+    qa_template_chat: str = """
+    As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
+    You must differentiate between questions that require answers and standard user chat conversations.
+    In standard conversation, especially when discussing your own nature as an AI, footnotes or sources are not required, as the information is based on your programmed capabilities and functions.
+    Your responses should adhere to a journalistic style, characterized by neutrality and reliance on factual, verifiable information.
+    When formulating answers, you are to:
+    - Be creative when applicable.
+    - Don't assume you know the meaning of abbreviations unless you have explict context about the abbreviation.
+    - Integrate information from the 'context' into a coherent response, avoiding assumptions without clear context.
+    - Avoid redundancy and repetition, ensuring each response adds substantive value.
+    - Maintain an unbiased tone, presenting facts without personal opinions or biases.
+    - Use Sage's internal knowledge to provide accurate responses when appropriate, clearly stating when doing so.
+    - When the context does not contain relevant information to answer a specific question, and the question pertains to general knowledge, use Sage's built-in knowledge.
+    - Make use of bullet points to aid readability if helpful. Each bullet point should present a piece of information WITHOUT in-line citations.
+    - Provide a clear response when unable to answer
+    - Avoid adding any sources in the footnotes when the response does not reference specific context.
+    - Citations must not be inserted anywhere in the answer only listed in a 'Footnotes' section at the end of the response.
+    <context>
+    {context}
+    </context>
+    Question: {question}
+    REMEMBER: No in-line citations are allowed, and there should be no citation repetition. Clearly state the source of in the 'Footnotes' section or Sage's internal knowledge base.
+    For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
+    Footnotes:
+    [1] - Brief summary of the first source. (Less than 10 words)
+    [2] - Brief summary of the second source.
+    ...continue for additional sources, only if relevant and necessary.  
+    """
+
+    qa_template_agent: str = """
     As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
     You must differentiate between questions that require answers and standard user chat conversations.
     In standard conversation, especially when discussing your own nature as an AI, footnotes or sources are not required, as the information is based on your programmed capabilities and functions.
@@ -187,25 +216,28 @@ class SourceQAService:
             return metadata["source"]
         return source
 
-    def _generate_welcome_message(self):
+    def _generate_welcome_message(self, profile: str = "chat"):
         """Generate and format an introduction message."""
         greeting = self._get_time_of_day_greeting()
         sources = Source().sources_to_string()
 
-        tools_prep = "\n  ".join(
-            [f"- {tool.name}: {tool.description}" for tool in self.tools]
-        )
-        tools_message = (
-            "I have access to external tools and can be used when applicable:\n"
-            f"  {tools_prep}\n\n"
-        )
+        if self.tools and "agent" in profile.lower():
+            tools_prep = "\n  ".join(
+                [f"- {tool.name}: {tool.description}" for tool in self.tools]
+            )
+            tools_message = (
+                "I have access to external tools and can be used when applicable:\n"
+                f"  {tools_prep}\n\n"
+            )
+        else:
+            tools_message = ""
 
         message = (
             f"{greeting} and welcome!\n"
             "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
             "I can provide you with data and updates from a variety of sources including:\n"
             f"  {sources}\n\n"
-            f"{tools_message if self.tools else ''}"
+            f"{tools_message}"
             "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!"
         )
         return message.strip()
@@ -259,7 +291,7 @@ class SourceQAService:
             )
         return self._mode
 
-    def _setup_runnable(self, retriever: VectorStoreRetriever):
+    def _setup_runnable_chat(self, retriever: VectorStoreRetriever):
         """Setups the runnable model"""
 
         if self.mode == "chat":
@@ -269,7 +301,7 @@ class SourceQAService:
 
         condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
 
-        agent_qa_prompt = agent_prompt(self.qa_template)
+        qa_prompt = ChatPromptTemplate.from_template(self.qa_template)
 
         # define the inputs runnable to generate a standalone question from history
         _inputs = RunnableMap(
@@ -294,26 +326,9 @@ class SourceQAService:
             "question": lambda x: x["question"],
         }
 
-        # create the agent engine
-        _agent = (
-            {
-                "question": lambda x: x["question"],
-                "context": lambda x: x["context"],
-                "intermediate_steps": lambda x: convert_intermediate_steps(
-                    x["intermediate_steps"]
-                ),
-            }
-            | agent_qa_prompt.partial(tools=convert_tools(self.tools))
-            | LLM_MODEL.bind(stop=["</tool_input>", "</final_answer>"])
-            | CustomXMLAgentOutputParser()
-        )
-        _agent_runner = AgentExecutor(
-            agent=_agent, tools=self.tools, verbose=False
-        ) | itemgetter("output")
-
         # construct the question and answer model
         qa_answer = RunnableMap(
-            answer=_context | _agent_runner,
+            answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
             sources=lambda x: self._format_sources(x["docs"]),
         )
 
@@ -325,27 +340,115 @@ class SourceQAService:
         else:
             self._runnable = _runnable
 
-    async def asetup_runnable(self):
+    def _setup_runnable(self, retriever: VectorStoreRetriever, profile: str):
+        """Setups the runnable model"""
+
+        if self.mode == "chat":
+            memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
+        else:
+            memory = self._chat_memory
+
+        condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
+
+        # define the inputs runnable to generate a standalone question from history
+        _inputs = RunnableMap(
+            standalone_question=RunnablePassthrough.assign(
+                chat_history=RunnableLambda(memory.load_memory_variables)
+                | itemgetter("history")
+            )
+            | condense_question_prompt
+            | LLM_MODEL
+            | StrOutputParser()
+        )
+
+        # retrieve the documents
+        retrieved_docs = RunnableMap(
+            docs=itemgetter("standalone_question") | retriever,
+            question=itemgetter("standalone_question"),
+        )
+
+        # construct the inputs
+        _context = {
+            "context": lambda x: self._format_docs(x["docs"]),
+            "question": lambda x: x["question"],
+        }
+        if "agent" in profile.lower():
+            agent_qa_prompt = agent_prompt(self.qa_template_agent)
+            # create the agent engine
+            _agent = (
+                {
+                    "question": lambda x: x["question"],
+                    "context": lambda x: x["context"],
+                    "intermediate_steps": lambda x: convert_intermediate_steps(
+                        x["intermediate_steps"]
+                    ),
+                }
+                | agent_qa_prompt.partial(tools=convert_tools(self.tools))
+                | LLM_MODEL.bind(stop=["</tool_input>", "</final_answer>"])
+                | CustomXMLAgentOutputParser()
+            )
+            _agent_runner = AgentExecutor(
+                agent=_agent, tools=self.tools, verbose=False
+            ) | itemgetter("output")
+            # construct the question and answer model
+            qa_answer = RunnableMap(
+                answer=_context | _agent_runner,
+                sources=lambda x: self._format_sources(x["docs"]),
+            )
+        else:
+            qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
+            # construct the question and answer model
+            qa_answer = RunnableMap(
+                answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
+                sources=lambda x: self._format_sources(x["docs"]),
+            )
+
+        # create the complete chain
+        _runnable = _inputs | retrieved_docs | qa_answer
+
+        if self.mode == "chat":
+            cl.user_session.set("runnable", _runnable)
+        else:
+            self._runnable = _runnable
+
+    async def asetup_runnable(self, profile: str = "chat only"):
         """Setup the runnable model for the chat"""
         retriever = await self._aget_retriever()
         if not retriever:
             raise SourceException("No source retriever found")
 
-        self._setup_runnable(retriever)
+        self._setup_runnable(retriever, profile)
 
-    def setup_runnable(self):
+    def setup_runnable(self, profile: str = "chat only"):
         """Setup the runnable model for the chat"""
         retriever = self._get_retriever()
         if not retriever:
             raise SourceException("No source retriever found")
 
-        self._setup_runnable(retriever)
+        self._setup_runnable(retriever, profile)
+
+    @cl.set_chat_profiles
+    async def chat_profile(current_user: cl.AppUser):
+        return [
+            cl.ChatProfile(
+                name="Chat Only",
+                markdown_description="Run Sage in Chat only mode and interact with provided sources",
+                icon="https://picsum.photos/200",
+            ),
+            cl.ChatProfile(
+                name="Agent Mode",
+                markdown_description="Sage runs as an AI Agent with access to external tools and data sources.",
+                icon="https://picsum.photos/250",
+            ),
+        ]
 
     @cl.on_chat_start
     async def on_chat_start(self):
         """Initialize a new chat environment"""
         if self.mode == "tool":
             raise ValueError("Tool mode is not supported here")
+
+        chat_profile = cl.user_session.get("chat_profile")
         cl.user_session.set("memory", self._chat_memory)
 
         await cl.Avatar(
@@ -354,9 +457,9 @@ class SourceQAService:
 
         await cl.Avatar(name="User", path=str(assets_dir / "boy.png")).send()
 
-        await cl.Message(content=self._generate_welcome_message()).send()
+        await cl.Message(content=self._generate_welcome_message(chat_profile)).send()
 
-        await self.asetup_runnable()
+        await self.asetup_runnable(chat_profile)
 
     @cl.on_message
     async def on_message(self, message: cl.Message):
