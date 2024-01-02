@@ -6,7 +6,7 @@ from pydantic import (
     SecretStr,
     field_serializer,
 )
-from typing import Optional, List
+from typing import Literal, Optional, List
 from pathlib import Path
 import os
 from logging import getLevelName
@@ -138,6 +138,7 @@ class Core(BaseModel):
 
     data_dir: Optional[str | Path] = Path.home() / sage_base
     logging_level: str | int = "INFO"
+    user_agent: str = "codesage.ai"
 
     @validator("logging_level", pre=True, always=True)
     def set_logging_level(cls, v):
@@ -154,7 +155,39 @@ class EmbeddingCore(BaseModel):
 class EmbeddingsConfig(BaseModel):
     openai: Optional[EmbeddingCore]
     jina: Optional[EmbeddingCore]
-    type: str
+    type: Literal["jina", "openai"]
+
+
+class CohereReRanker(Password):
+    """The Cohere rerank schema"""
+
+    name: str
+
+    @validator("password", pre=True, always=True)
+    def set_password(cls, v):
+        password = v or os.getenv("COHERE_PASSWORD") or os.getenv("COHERE_API_KEY")
+        if password is None:
+            raise ConfigException(
+                "The COHERE API KEY or password is missing. \
+                    Please add it via an env variable or to the config - 'COHERE_PASSWORD'"
+            )
+        return password
+
+
+class HuggingFaceReRanker(BaseModel):
+    """The HuggingFace schema"""
+
+    name: str
+    revision: str
+
+
+class ReRankerConfig(BaseModel):
+    """Reranker config schema"""
+
+    cohere: Optional[CohereReRanker]
+    huggingface: Optional[HuggingFaceReRanker]
+    type: Literal["cohere", "huggingface"]
+    top_n: int = 5
 
 
 class Config(BaseModel):
@@ -165,4 +198,5 @@ class Config(BaseModel):
     core: Core
     jira: Jira_Config
     source: Source
+    reranker: Optional[ReRankerConfig]
     embedding: EmbeddingsConfig

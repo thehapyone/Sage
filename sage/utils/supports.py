@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Sequence, Tuple
 from typing import Union
 
 from transformers import AutoModel
@@ -8,7 +8,11 @@ from langchain.prompts import ChatPromptTemplate, AIMessagePromptTemplate
 from langchain.tools import Tool
 from langchain.agents.output_parsers import XMLAgentOutputParser
 from langchain.schema import AgentAction, AgentFinish
+from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain.schema import Document
+from langchain.callbacks.manager import Callbacks
 
+from sentence_transformers import CrossEncoder
 from markdown import markdown
 from html2text import HTML2Text
 from unstructured.partition.auto import partition_md
@@ -46,6 +50,70 @@ class JinaAIEmebeddings(Embeddings):
         return self.model.encode(texts)
 
 
+class BgeRerank(BaseDocumentCompressor):
+    """Document compressor that uses the BAAI BGE reranking models."""
+
+    name: str = "BAAI/bge-reranker-large"
+    """Model name to use for reranking."""
+    top_n: int = 10
+    """Number of documents to return."""
+    cache_dir: str = None
+    revision: str = None
+    model_args: dict = {
+        "cache_dir": cache_dir,
+        "resume_download": True,
+        "revision": revision,
+    }
+    model: CrossEncoder = CrossEncoder(
+        name, tokenizer_args=model_args, automodel_args=model_args
+    )
+    """CrossEncoder instance to use for reranking."""
+
+    class Config:
+        """Configuration for this pydantic object."""
+
+        extra = "forbid"
+        arbitrary_types_allowed = True
+
+    def _rerank(self, query: str, documents: Sequence[Document]) -> Sequence[Document]:
+        """Rerank the documents"""
+        _inputs = [[query, doc.page_content] for doc in documents]
+        _scores = self.model.predict(_inputs)
+        results: List[Tuple[int, float]] = sorted(
+            enumerate(_scores), key=lambda x: x[1], reverse=True
+        )[: self.top_n]
+
+        final_results = []
+        for r in results:
+            doc_index, relevance_score = r
+            doc = documents[doc_index]
+            doc.metadata["relevance_score"] = relevance_score
+            final_results.append(doc)
+
+        return final_results
+
+    def compress_documents(
+        self,
+        documents: Sequence[Document],
+        query: str,
+        callbacks: Optional[Callbacks] = None,
+    ) -> Sequence[Document]:
+        """
+        Compress documents using BAAI/bge-reranker models.
+
+        Args:
+            documents: A sequence of documents to compress.
+            query: The query to use for compressing the documents.
+            callbacks: Callbacks to run during the compression process.
+
+        Returns:
+            A sequence of compressed documents.
+        """
+        if len(documents) == 0:  # to avoid empty api call
+            return []
+        return self._rerank(query=query, documents=documents)
+
+
 def markdown_to_text_using_html2text(markdown_text: str) -> str:
     """Convert the markdown docs into plaintext using the html2text plugin
 
@@ -57,6 +125,7 @@ def markdown_to_text_using_html2text(markdown_text: str) -> str:
     """
     html = markdown(markdown_text)
     return text_maker.handle(html).replace("\\", "")
+
 
 def convert_intermediate_steps(intermediate_steps: dict):
     """
@@ -71,16 +140,19 @@ def convert_intermediate_steps(intermediate_steps: dict):
         )
     return log
 
+
 def agent_prompt(instructions: str) -> ChatPromptTemplate:
     """Generate a prompt template for XML agents"""
     return ChatPromptTemplate.from_template(
         instructions
     ) + AIMessagePromptTemplate.from_template("{intermediate_steps}")
 
+
 def convert_tools(tools: List[Tool]):
     """Logic for converting tools to string to for usage in prompt"""
     result = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
     return result
+
 
 class CustomXMLAgentOutputParser(XMLAgentOutputParser):
     """Parses tool invocations and final answers in XML format.

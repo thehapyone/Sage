@@ -22,12 +22,21 @@ from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.schema import Document
 from langchain.document_loaders import UnstructuredURLLoader
 from langchain.document_loaders.base import BaseLoader
+from langchain.retrievers import ContextualCompressionRetriever
+
 from gitlab import Gitlab, GitlabGetError
 from gitlab.v4.objects import Project
 from gitlab.v4.objects import Group
 from git import Blob, Repo
 
-from constants import sources_config, core_config, EMBEDDING_MODEL, logger, app_name
+from constants import (
+    validated_config,
+    sources_config,
+    core_config,
+    EMBEDDING_MODEL,
+    logger,
+    app_name,
+)
 from utils.exceptions import SourceException
 from utils.validator import ConfluenceModel, GitlabModel, Web
 from utils.supports import (
@@ -815,26 +824,79 @@ class Source:
         for db in dbs[1:]:
             faiss_db.merge_from(db)
 
-        return faiss_db.as_retriever(search_kwargs={"k": 15, "fetch_k": 50})
+        return faiss_db.as_retriever(search_kwargs={"k": 20, "fetch_k": 100})
 
-    async def aload(self) -> Optional[VectorStoreRetriever]:
+    def _compression_retriever(
+        self, retriever: VectorStoreRetriever
+    ) -> ContextualCompressionRetriever:
+        """Loads a compresion retriever"""
+
+        ranker_config = validated_config.reranker
+
+        if not ranker_config:
+            raise SourceException("There is no valid reranker configuration found")
+
+        try:
+            if ranker_config.type == "cohere":
+                from langchain.retrievers.document_compressors import CohereRerank
+
+                _compressor = CohereRerank(
+                    top_n=ranker_config.top_n,
+                    model=ranker_config.cohere.name,
+                    cohere_api_key=ranker_config.cohere.password.get_secret_value(),
+                    user_agent=core_config.user_agent,
+                )
+            elif ranker_config.type == "huggingface":
+                from utils.supports import BgeRerank
+
+                _compressor = BgeRerank(
+                    name=ranker_config.huggingface.name,
+                    top_n=ranker_config.top_n,
+                    cache_dir=str(core_config.data_dir + "/models"),
+                    revision=ranker_config.huggingface.revision,
+                )
+            else:
+                raise SourceException(
+                    f"Reranker type {ranker_config.type} not supported has a valid compression retriever"
+                )
+        except Exception as error:
+            raise SourceException(str(error))
+
+        _compression_retriever = ContextualCompressionRetriever(
+            base_compressor=_compressor, base_retriever=retriever
+        )
+        return _compression_retriever
+
+    async def aload(
+        self,
+    ) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
         """
-        Returns a retriever model from the FAISS vector indexes
+        Returns either a retriever model from the FAISS vector indexes or compression based retriever model
         """
 
         self.run()
 
         db_path, indexes = await self._aget_faiss_indexes()
 
-        return self._load_retriever(db_path, indexes)
+        _retriever = self._load_retriever(db_path, indexes)
 
-    def load(self) -> Optional[VectorStoreRetriever]:
+        if not validated_config.reranker:
+            return _retriever
+        else:
+            return self._compression_retriever(_retriever)
+
+    def load(self) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
         """
-        Returns a retriever model from the FAISS vector indexes
+        Returns either a retriever model from the FAISS vector indexes or compression based retriever model
         """
 
         self.run()
 
         db_path, indexes = self._get_faiss_indexes()
 
-        return self._load_retriever(db_path, indexes)
+        _retriever = self._load_retriever(db_path, indexes)
+
+        if not validated_config.reranker:
+            return _retriever
+        else:
+            return self._compression_retriever(_retriever)
