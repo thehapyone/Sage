@@ -7,7 +7,6 @@ from datetime import datetime
 import asyncio
 
 from langchain.schema.document import Document
-from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.schema.runnable import (
     RunnablePassthrough,
@@ -16,15 +15,15 @@ from langchain.schema.runnable import (
     RunnableMap,
     RunnableLambda,
     RunnableSerializable,
+    RunnableBranch,
 )
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.output_parser import StrOutputParser
+from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.tools import Tool
 from langchain.agents import AgentExecutor
-
 import chainlit as cl
-from pydantic import BaseModel
 
 from utils.sources import Source
 from utils.exceptions import SourceException
@@ -67,19 +66,34 @@ class SourceQAService:
     )
 
     condensed_template: str = """
-    Given a conversation and a follow-up inquiry, determine whether the inquiry is a continuation of the existing conversation or a new, standalone question. 
-    If it is a continuation, use the conversation history encapsulated in the "chat_history" to rephrase the follow up question to be a standalone question, in its original language.
-    If the inquiry is new or unrelated, recognize it as such and provide a standalone question without consdering the "chat_history".
+    Given a conversation and a follow-up inquiry, determine whether the inquiry is a continuation of the existing conversation or a new, standalone question or statement.
+    Also, assess if the inquiry requires the use of a retriever system to obtain additional context or sources that could help answer the question or clarify the statement more comprehensively.
+    
+    If the inquiry is a continuation, rephrase the follow-up into a standalone question or statement using the "chat_history".
+    Decide if a retriever system might be beneficial in providing more context or detailed information, even if the AI has basic knowledge of the subject.
 
-    PLEASE don't overdo it and return ONLY the standalone question
+    If the inquiry is new or unrelated, provide a standalone question or statement as appropriate. Evaluate the complexity of the inquiry and the potential value of additional context from the retriever system.
+    If the inquiry involves topics like specific organizations, proprietary processes, acronyms, or subjects where more context could enhance the AI's response, or if there's any sense of doubt or uncertainty, indicate the use of the retriever system.
+
+    PLEASE return ONLY the structured output with "retriever:" indicating the need for a retriever system, and "response:" with the rephrased or original standalone question or statement.
+    Keep the response concise and focused on these two elements.
 
     <chat_history>
     {chat_history}
     <chat_history/>
 
     Follow-Up Inquiry: {question}
-    Standalone question::
+
+    Output Format::
+    {{"retriever": "<retriever_decision>",
+    "response": "<rephrased_response>"}}
+
+    Where:
+    - "<retriever_decision>" is "YES" if the inquiry could benefit from additional context due to its specificity, complexity, hypothetical nature, or if the AI lacks certainty. It is "NO" if the AI can confidently address the inquiry without further context.
+    - "<rephrased_response>" is the rephrased standalone question or statement, or the original inquiry if it is unrelated to the chat_history and can be addressed directly.
+    REMEMBER: Only say "NO" to the retriever if you are absolute certain (100%) the AI can address the inquiry.
     """
+
     qa_template_chat: str = """
     As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
     You must differentiate between questions that require answers and standard user chat conversations.
@@ -291,54 +305,8 @@ class SourceQAService:
             )
         return self._mode
 
-    def _setup_runnable_chat(self, retriever: VectorStoreRetriever):
-        """Setups the runnable model"""
-
-        if self.mode == "chat":
-            memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
-        else:
-            memory = self._chat_memory
-
-        condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
-
-        qa_prompt = ChatPromptTemplate.from_template(self.qa_template)
-
-        # define the inputs runnable to generate a standalone question from history
-        _inputs = RunnableMap(
-            standalone_question=RunnablePassthrough.assign(
-                chat_history=RunnableLambda(memory.load_memory_variables)
-                | itemgetter("history")
-            )
-            | condense_question_prompt
-            | LLM_MODEL
-            | StrOutputParser()
-        )
-
-        # retrieve the documents
-        retrieved_docs = RunnableMap(
-            docs=itemgetter("standalone_question") | retriever,
-            question=itemgetter("standalone_question"),
-        )
-
-        # construct the inputs
-        _context = {
-            "context": lambda x: self._format_docs(x["docs"]),
-            "question": lambda x: x["question"],
-        }
-
-        # construct the question and answer model
-        qa_answer = RunnableMap(
-            answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
-            sources=lambda x: self._format_sources(x["docs"]),
-        )
-
-        # create the complete chain
-        _runnable = _inputs | retrieved_docs | qa_answer
-
-        if self.mode == "chat":
-            cl.user_session.set("runnable", _runnable)
-        else:
-            self._runnable = _runnable
+    def _handle_error(self, error: Exception) -> str:
+        return str(error)
 
     def _setup_runnable(self, retriever: VectorStoreRetriever, profile: str):
         """Setups the runnable model"""
@@ -349,22 +317,38 @@ class SourceQAService:
             memory = self._chat_memory
 
         condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
+        condense_response_schemas = [
+            ResponseSchema(
+                name="retriever", description="Decide whether to us a retriever or not"
+            ),
+            ResponseSchema(
+                name="response",
+                description="The followup question or statement",
+            ),
+        ]
 
         # define the inputs runnable to generate a standalone question from history
-        _inputs = RunnableMap(
-            standalone_question=RunnablePassthrough.assign(
+        _inputs = (
+            RunnablePassthrough.assign(
                 chat_history=RunnableLambda(memory.load_memory_variables)
                 | itemgetter("history")
             )
             | condense_question_prompt
             | LLM_MODEL
-            | StrOutputParser()
+            | StructuredOutputParser.from_response_schemas(condense_response_schemas)
         )
 
         # retrieve the documents
-        retrieved_docs = RunnableMap(
-            docs=itemgetter("standalone_question") | retriever,
-            question=itemgetter("standalone_question"),
+        _retrieved_docs = RunnableMap(
+            docs=RunnableBranch(
+                (
+                    lambda x: "yes" in x["retriever"].lower(),
+                    itemgetter("response") | retriever,
+                ),
+                (lambda x: "no" in x["retriever"].lower(), lambda x: []),
+                itemgetter("response") | retriever,
+            ),
+            question=itemgetter("response"),
         )
 
         # construct the inputs
@@ -388,7 +372,10 @@ class SourceQAService:
                 | CustomXMLAgentOutputParser()
             )
             _agent_runner = AgentExecutor(
-                agent=_agent, tools=self.tools, verbose=False
+                agent=_agent,
+                tools=self.tools,
+                verbose=False,
+                handle_parsing_errors=self._handle_error,
             ) | itemgetter("output")
             # construct the question and answer model
             qa_answer = RunnableMap(
@@ -404,7 +391,7 @@ class SourceQAService:
             )
 
         # create the complete chain
-        _runnable = _inputs | retrieved_docs | qa_answer
+        _runnable = _inputs | _retrieved_docs | qa_answer
 
         if self.mode == "chat":
             cl.user_session.set("runnable", _runnable)
@@ -479,7 +466,20 @@ class SourceQAService:
         text_elements = []  # type: List[cl.Text]
 
         async for chunk in runnable.astream(
-            query, config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()])
+            query,
+            config=RunnableConfig(
+                callbacks=[
+                    cl.AsyncLangchainCallbackHandler(
+                        stream_final_answer=True,
+                        answer_prefix_tokens=[
+                            "<final_answer>",
+                            "<tool>",
+                            "</tool>",
+                            "tool_input",
+                        ],
+                    )
+                ]
+            ),
         ):
             _answer = chunk.get("answer")
             if _answer:

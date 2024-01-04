@@ -11,7 +11,7 @@ from langchain_experimental.plan_and_execute.planners.chat_planner import (
 from langchain.schema.messages import SystemMessage
 
 from utils.jira_helper import Jira
-from constants import LLM_MODEL
+from constants import LLM_MODEL, logger
 
 issue_template = """
 **Title**: {title}
@@ -110,10 +110,15 @@ class IssueAgent:
     def generate_issue_template(self, issue: Issue) -> str:
         """Given an issue, it returns a formatted issue template"""
 
-        if isinstance(issue, str):
-            issue = self._jira.get_issue(issue)
+        try:
+            if isinstance(issue, str):
+                issue = self._jira.get_issue(issue)
+        except JIRAError as error:
+            response = f"An error has occurred using the Jira tool {str(error)}"
+            logger.error(response)
+            return response
 
-        issue_assignee : str = (
+        issue_assignee: str = (
             issue.fields.assignee.displayName if issue.fields.assignee else "None"
         )
 
@@ -189,8 +194,13 @@ class IssueAgent:
             issue (Issue): A Jira Issue object or Issue key
         """
 
-        if isinstance(issue, str):
-            issue = self._jira.get_issue(issue)
+        try:
+            if isinstance(issue, str):
+                issue = self._jira.get_issue(issue)
+        except JIRAError as error:
+            response = f"An error has occurred using the Jira tool {str(error)}"
+            logger.error(response)
+            return response
 
         # Get the issue format out
         issue_formatted = self.generate_issue_template(issue)
@@ -209,8 +219,13 @@ class IssueAgent:
             issue (Issue): A Jira Issue object or Issue key
         """
 
-        if isinstance(issue, str):
-            issue = self._jira.get_issue(issue)
+        try:
+            if isinstance(issue, str):
+                issue = self._jira.get_issue(issue)
+        except JIRAError as error:
+            response = f"An error has occurred using the Jira tool {str(error)}"
+            logger.error(response)
+            return response
 
         # Get the issue format out
         issue_formatted = self.generate_issue_template(issue)

@@ -36,7 +36,6 @@ def load_calculator() -> Tool:
 def load_jira_tools() -> List[Tool]:
     """A toolbox for various Jira issue functionality"""
     from utils.jira_agent import IssueAgent
-    from utils.jira_helper import Jira
 
     summarize_tool = Tool(
         name="summarize_jira_issue",
