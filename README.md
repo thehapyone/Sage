@@ -2,7 +2,7 @@
 
 
 ## What is CodeSage
-The ultimate objective of sage is to a full fledge AGI that will be capable of working fully autonomosoly in software development capacity.
+The ultimate objective of sage is to be a full fledge AGI that will be capable of working fully autonomosoly in software development capacity.
 
 For the time being, here the main objectives:
  - To assist users in analysing, generating, debugging, performing static and dynamic analysi. Fault detection, code documentaiton, CI/CD evaluation and many more
