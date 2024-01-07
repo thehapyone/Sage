@@ -91,7 +91,9 @@ class SourceQAService:
     Where:
     - "<retriever_decision>" is "YES" if the inquiry could benefit from additional context due to its specificity, complexity, hypothetical nature, or if the AI lacks certainty. It is "NO" if the AI can confidently address the inquiry without further context.
     - "<rephrased_response>" is the rephrased standalone question or statement, or the original inquiry if it is unrelated to the chat_history and can be addressed directly.
-    REMEMBER: Only say "NO" to the retriever if you are absolute certain (100%) the AI can address the inquiry.
+    REMEMBER:
+     - Only say "NO" to the retriever if you are absolute certain (100%) the AI can address the inquiry.
+     - You should never attempt to answer the user orginal question only return a condensed question or statement based on the chat history when available
     """
 
     qa_template_chat: str = """

@@ -34,19 +34,31 @@ class JinaAIEmebeddings(Embeddings):
     ):
         """Initialize the Jina Embeddings"""
         Path(cache_dir).mkdir(exist_ok=True)
-
-        self.model = AutoModel.from_pretrained(
-            pretrained_model_name_or_path=jina_model,
-            trust_remote_code=True,
-            cache_dir=cache_dir,
-            resume_download=True,
-            revision=revision,
-        )
+        self.name = jina_model
+        self.revision = revision
+        self.cache_dir = cache_dir
+        self.model = None
 
     def embed_query(self, text: str) -> List[float]:
+        if self.model is None:
+            self.model = AutoModel.from_pretrained(
+                pretrained_model_name_or_path=self.name,
+                trust_remote_code=True,
+                cache_dir=self.cache_dir,
+                resume_download=True,
+                revision=self.revision,
+            )
         return self.model.encode(text)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        if self.model is None:
+            self.model = AutoModel.from_pretrained(
+                pretrained_model_name_or_path=self.name,
+                trust_remote_code=True,
+                cache_dir=self.cache_dir,
+                resume_download=True,
+                revision=self.revision,
+            )
         return self.model.encode(texts)
 
 
@@ -64,9 +76,7 @@ class BgeRerank(BaseDocumentCompressor):
         "resume_download": True,
         "revision": revision,
     }
-    model: CrossEncoder = CrossEncoder(
-        name, tokenizer_args=model_args, automodel_args=model_args
-    )
+    model: Optional[CrossEncoder] = None
     """CrossEncoder instance to use for reranking."""
 
     class Config:
@@ -78,6 +88,12 @@ class BgeRerank(BaseDocumentCompressor):
     def _rerank(self, query: str, documents: Sequence[Document]) -> Sequence[Document]:
         """Rerank the documents"""
         _inputs = [[query, doc.page_content] for doc in documents]
+        if self.model is None:
+            self.model = CrossEncoder(
+                self.name,
+                tokenizer_args=self.model_args,
+                automodel_args=self.model_args,
+            )
         _scores = self.model.predict(_inputs)
         results: List[Tuple[int, float]] = sorted(
             enumerate(_scores), key=lambda x: x[1], reverse=True

@@ -91,3 +91,16 @@ This final stage varies based on the user-selected mode in the chat interface:
 
 If Sage is unable to answer a question, even with the correct information in the sources, users can improve the response by providing more detailed questions or guidance, which can significantly enhance the results.
 
+For instance - To force the condense question chain from not rephraseing the orginial question you can add some quidance
+```yaml
+# -------Before--------------
+HUMAN:
+Question: "In your own words or possibility, how many years do humanaility have left to able to achieve AGI? I understand you don't know but I insist to give some estimates here - take a look at historical human advanment in the last few decades."
+AI: "Based on the progress in AI over the past decades, what is an estimated timeline for the achievement of Artificial General Intelligence (AGI)?"
+# -------After--------------
+HUMAN:
+Question: "In your own words or possibility, how many years do humanity have left to able to achieve AGI? I understand you don't know but I insist to give some estimates here - take a look at historical human advancement in the last few decades."
+
+Return question as it is - DO NOT MODIFY PLEASE"
+AI: "In your own words or possibility, how many years do humanity have left to able to achieve AGI? I understand you don't know but I insist to give some estimates here - take a look at historical human advancement in the last few decades."
+```
