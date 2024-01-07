@@ -1,0 +1,41 @@
+# Ignore version control directories and files
+.git/
+.svn/
+.hg/
+.vscode/
+.gitignore
+README.md
+
+# Ignore all log files and temporary files
+*.log
+*.tmp
+*.pyc
+__pycache__/
+sandbox
+*.log
+*.tmp
+tmp/
+
+## Sage data dir
+data
+
+
+# Ignore files that are generated during the build process
+*.o
+*.so
+
+# Ignore the Dockerfile and .dockerignore itself
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Ignore local environment configuration
+.env
+*.env
+
+# Ignore the virtual environment directory
+venv/
+env/
+.venv/
+.env/
+**/.venv
