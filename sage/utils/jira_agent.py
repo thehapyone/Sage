@@ -4,10 +4,11 @@ from jira import Issue, JIRAError
 
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain.callbacks.manager import CallbackManager
-from langchain_experimental.plan_and_execute.planners.base import LLMPlanner
-from langchain_experimental.plan_and_execute.planners.chat_planner import (
-    PlanningOutputParser,
-)
+
+# from langchain_experimental.plan_and_execute.planners.base import LLMPlanner
+# from langchain_experimental.plan_and_execute.planners.chat_planner import (
+#     PlanningOutputParser,
+# )
 from langchain.schema.messages import SystemMessage
 
 from utils.jira_helper import Jira
@@ -64,19 +65,19 @@ PLANNER_SYSTEM_PROMPT = (
 )
 
 
-class PlannerChain(LLMPlanner):
-    def __init__(self) -> None:
-        prompt_template = ChatPromptTemplate.from_messages(
-            [
-                ("system", PLANNER_SYSTEM_PROMPT),
-                ("human", "{input}"),
-            ]
-        )
-        llm_chain = LLMChain(llm=LLM_MODEL, prompt=prompt_template)
-        stop = ["<END_OF_PLAN>"]
-        super().__init__(
-            llm_chain=llm_chain, output_parser=PlanningOutputParser(), stop=stop
-        )
+# class PlannerChain(LLMPlanner):
+#     def __init__(self) -> None:
+#         prompt_template = ChatPromptTemplate.from_messages(
+#             [
+#                 ("system", PLANNER_SYSTEM_PROMPT),
+#                 ("human", "{input}"),
+#             ]
+#         )
+#         llm_chain = LLMChain(llm=LLM_MODEL, prompt=prompt_template)
+#         stop = ["<END_OF_PLAN>"]
+#         super().__init__(
+#             llm_chain=llm_chain, output_parser=PlanningOutputParser(), stop=stop
+#         )
 
 
 class SummaryChain:
@@ -245,24 +246,24 @@ class IssueAgent:
         """
         Jira().add_comment(issue_key=issue_key, body=summary)
 
-    def planner(self, issue: Issue) -> None:
-        """
-        Helps to generate an execution plan for the given issue
-        """
-        planner = PlannerChain()
+    # def planner(self, issue: Issue) -> None:
+    #     """
+    #     Helps to generate an execution plan for the given issue
+    #     """
+    #     planner = PlannerChain()
 
-        issue_formatted = self.generate_issue_template(issue)
+    #     issue_formatted = self.generate_issue_template(issue)
 
-        task_summary = self.summarize(issue)
-        print(task_summary)
+    #     task_summary = self.summarize(issue)
+    #     print(task_summary)
 
-        print("------------------------------------")
+    #     print("------------------------------------")
 
-        query = issue_formatted
-        query2 = task_summary
+    #     query = issue_formatted
+    #     query2 = task_summary
 
-        response = planner.plan({"input": query})
-        print(response)
-        print("######################################################################")
-        response = planner.plan({"input": query2})
-        print(response)
+    #     response = planner.plan({"input": query})
+    #     print(response)
+    #     print("######################################################################")
+    #     response = planner.plan({"input": query2})
+    #     print(response)

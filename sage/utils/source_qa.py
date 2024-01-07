@@ -2,9 +2,8 @@
 
 from functools import cached_property
 from operator import itemgetter
-from typing import List, Tuple, Sequence
+from typing import List, Sequence
 from datetime import datetime
-import asyncio
 
 from langchain.schema.document import Document
 from langchain.schema.vectorstore import VectorStoreRetriever
