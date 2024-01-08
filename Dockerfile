@@ -27,7 +27,8 @@ COPY . .
 EXPOSE 8000
 
 # Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos '' appuser
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser /app
 USER appuser
 
 # Run the application

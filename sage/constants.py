@@ -1,7 +1,9 @@
 import os
 import toml
-from langchain.chat_models import AzureChatOpenAI, ChatOllama
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.chat_models import ChatOllama
+from langchain_openai.chat_models import AzureChatOpenAI
+from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from pydantic import ValidationError
 from pathlib import Path
 from utils.exceptions import ConfigException
@@ -47,7 +49,7 @@ if validated_config.embedding.type == "jina":
     jina_config = validated_config.embedding.jina
 
     EMBEDDING_MODEL = JinaAIEmebeddings(
-        cache_dir=core_config.data_dir + "/models",
+        cache_dir=str(core_config.data_dir) + "/models",
         jina_model=jina_config.name,
         revision=jina_config.revision,
     )

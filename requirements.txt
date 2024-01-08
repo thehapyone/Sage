@@ -5,6 +5,7 @@ annotated-types==0.6.0
 anyio==3.7.1
 async-timeout==4.0.3
 asyncer==0.0.2
+atlassian-python-api==3.41.4
 attrs==23.2.0
 backoff==2.2.1
 beautifulsoup4==4.12.2
@@ -51,8 +52,9 @@ jsonpatch==1.33
 jsonpath-python==1.0.6
 jsonpointer==2.4
 langchain==0.1.0
-langchain-community==0.0.9
-langchain-core==0.1.7
+langchain-community==0.0.10
+langchain-core==0.1.8
+langchain-openai==0.0.2
 langdetect==1.0.9
 langsmith==0.0.77
 Lazify==0.4.0
@@ -130,6 +132,7 @@ syncer==2.0.3
 tabulate==0.9.0
 tenacity==8.2.3
 threadpoolctl==3.2.0
+tiktoken==0.5.2
 tokenizers==0.15.0
 toml==0.10.2
 tomli==2.0.1

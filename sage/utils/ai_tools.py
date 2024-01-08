@@ -10,7 +10,7 @@ from utils.jira_agent import SummaryChain
 
 def load_duck_search() -> List[Tool]:
     """Load a DuckDuckGoSearch tool"""
-    from langchain.tools import DuckDuckGoSearchRun
+    from langchain_community.tools import DuckDuckGoSearchRun
 
     search_description: str = (
         "Useful for searching the Internet using the DuckDuckGo search engine and returns the first result."

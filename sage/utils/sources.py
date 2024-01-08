@@ -14,14 +14,14 @@ from time import sleep
 from hashlib import md5
 
 from bs4 import BeautifulSoup
-from langchain.document_loaders.confluence import ContentFormat, ConfluenceLoader
-from langchain.vectorstores.faiss import FAISS
-from langchain.document_loaders import ConfluenceLoader
+from langchain_community.document_loaders.confluence import ContentFormat, ConfluenceLoader
+from langchain_community.vectorstores.faiss import FAISS
+from langchain_community.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.schema import Document
-from langchain.document_loaders import UnstructuredURLLoader
-from langchain.document_loaders.base import BaseLoader
+from langchain_community.document_loaders import UnstructuredURLLoader
+from langchain_community.document_loaders.base import BaseLoader
 from langchain.retrievers import ContextualCompressionRetriever
 
 from gitlab import Gitlab, GitlabGetError
