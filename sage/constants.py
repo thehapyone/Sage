@@ -1,4 +1,5 @@
 import os
+import sys
 import toml
 from langchain_community.chat_models import ChatOllama
 from langchain_openai.chat_models import AzureChatOpenAI
@@ -25,12 +26,11 @@ try:
     jira_config = validated_config.jira
     sources_config = validated_config.source
 except ValidationError as error:
-    raise ConfigException(f"The configuration file is not valid - {str(error)}")
+    logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
+    sys.exit(1)
 except (FileNotFoundError, KeyError) as error:
-    # Raise a ConfigException for both file not found and missing key errors
-    raise ConfigException(
-        f"The required configuration key or file is not found - {str(error)}"
-    )
+    logger.error(f"The required configuration key or file is not found - {str(error)}", exc_info=False)
+    sys.exit(1)
 
 # Create the main data directory
 Path(core_config.data_dir).mkdir(exist_ok=True)
@@ -41,8 +41,20 @@ logger.setLevel(core_config.logging_level)
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
 # Load the model
-DEPLOYMENT_NAME = "gpt4-128k"
-LLM_MODEL = AzureChatOpenAI(deployment_name=DEPLOYMENT_NAME)
+if validated_config.llm.type == "azure":
+    azure_config = validated_config.llm.azure
+
+    LLM_MODEL = AzureChatOpenAI(
+        azure_endpoint=azure_config.endpoint,
+        api_version=azure_config.revision,
+        azure_deployment=azure_config.name,
+        api_key=azure_config.password.get_secret_value(),
+    )
+
+elif validated_config.llm.type == "ollama":
+    ollama_config = validated_config.llm.azure
+
+    LLM_MODEL = ChatOllama(base_url=ollama_config.endpoint, model=ollama_config.name)
 
 # Load the Embeddings model
 if validated_config.embedding.type == "jina":
@@ -59,10 +71,3 @@ elif validated_config.embedding.type == "openai":
     EMBEDDING_MODEL = OpenAIEmbeddings(
         deployment=openai_config.name, openai_api_version=openai_config.revision
     )
-else:
-    raise ValidationError(
-        f"Embedding type {validated_config.embedding.type} is not allowed"
-    )
-
-# llm = ChatOllama(model="llama2:13b",
-#                  callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]))

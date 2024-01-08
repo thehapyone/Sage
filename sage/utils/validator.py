@@ -190,6 +190,36 @@ class ReRankerConfig(BaseModel):
     top_n: int = 5
 
 
+class LLMCore(Password):
+    """The LLM Core Model schema"""
+
+    name: str
+    endpoint: str
+    revision: Optional[str] = None
+
+
+class AzureLLM(LLMCore):
+    """The LLM Core Model schema"""
+
+    @validator("password", pre=True, always=True)
+    def set_password(cls, v):
+        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
+        if password is None:
+            raise ConfigException(
+                "The AZURE_OPENAI_API_KEY or password is missing. \
+                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
+            )
+        return password
+
+
+class LLMConfig(BaseModel):
+    """The configuration for LLM models"""
+
+    azure: Optional[AzureLLM]
+    ollama: Optional[LLMCore]
+    type: Literal["azure", "ollama"]
+
+
 class Config(BaseModel):
     """
     Config Model.
@@ -200,3 +230,4 @@ class Config(BaseModel):
     source: Source
     reranker: Optional[ReRankerConfig]
     embedding: EmbeddingsConfig
+    llm: LLMConfig

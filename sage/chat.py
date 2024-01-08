@@ -1,5 +1,13 @@
 # chat.py
+# TODO: Address issue with in the agent mode not able to run mutliple actions
+# What is the weather in stockholm, malmo and lagos nigeria?
+"""
+The current weather conditions are as follows:
 
+    Stockholm: Clear skies with temperatures around -10°C (14°F), feeling like -16°C (3°F) with no precipitation expected in the next 90 minutes and winds at 5 m/s.
+    Unfortunately, I do not have the current weather conditions for Malmö and Lagos, Nigeria, as my capabilities to fetch real-time data are limited without further tool usage.
+
+"""
 import chainlit as cl
 
 from utils.source_qa import SourceQAService
