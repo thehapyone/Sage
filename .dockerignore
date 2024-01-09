@@ -31,7 +31,8 @@ docker-compose.yml
 
 # Ignore local environment configuration
 .env
-*.env
+**/*.env
+docker
 
 # Ignore the virtual environment directory
 venv/

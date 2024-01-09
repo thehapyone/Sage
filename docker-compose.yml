@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8000"
     environment:
-      SAGE_CONFIG_PATH: "/app/sage/config.toml"
+      SAGE_CONFIG_PATH: "/home/appuser/sage/config.toml"
       REQUESTS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
       JIRA_PASSWORD: ${JIRA_PASSWORD}
       AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
@@ -15,8 +15,9 @@ services:
       CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET}
       COHERE_API_KEY: ${COHERE_API_KEY}
     volumes:
-      - ${SAGE_HOME}/config.toml:/app/sage/config.toml
-      - sage_data:/app/data
+      - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
+      - sage_data:/home/appuser/data
+      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca.crt:ro
 
 volumes:
   sage_data:
