@@ -92,7 +92,7 @@ class SourceQAService:
     - "<rephrased_response>" is the rephrased standalone question or statement, or the original inquiry if it is unrelated to the chat_history and can be addressed directly.
     REMEMBER:
      - Only say "NO" to the retriever if you are absolute certain (100%) the AI can address the inquiry.
-     - You should never attempt to answer the user orginal question only return a condensed question or statement based on the chat history when available
+     - NEVER ANSWER THE the user's question only return a condensed question or statement based on the chat history when available
     """
 
     qa_template_chat: str = """
@@ -152,32 +152,65 @@ class SourceQAService:
 
     <available_tools>{tools}</available_tools>
 
-    When a question arises that could benefit from the use of an external tool, you are encouraged to use the appropriate tool listed under <available_tools>.
-
-    Follow these steps:
+    When a question arises that could benefit from the use of an external tool(s), you are encouraged to use the appropriate tool iteratively for each part of the question listed under <available_tools>.
     
-    1. Assess whether an external tool listed under <available_tools> can assist with the question or help enrich the answer
-    2. To engage a tool, use the tags <tool> for the tool name and <tool_input> for your query.
-    3. After sending your tool request, an external parser will return the tool's output within an <observation> tag.
-    4. Once you have all necessary information, including any required calculations or additional data, provide the final answer to the user, ensuring it is enclosed within the <final_answer> tag.
-    5. Always use the <final_answer> tag to deliver your final response, whether it is a complete answer, a partial answer, or an acknowledgment of the inability to provide the requested information.  
+    Follow these steps:  
+    
+    1. Break down the question into individual components that require information from a tool.  
+    2. For each component, assess whether an external tool listed under <available_tools> can assist with the question or help enrich the answer.  
+    3. Iteratively engage each tool using the tags <tool> for the tool name and <tool_input> for your query. Repeat this process for each component of the question.  
+    4. After sending your tool request, an external parser will return the tool's output within an <observation> tag. 
+    5. Collect and compile all the observations for each part of the question into a comprehensive response.  
+    6. Once you have all necessary information, including any required calculations or additional data, provide the final answer to the user, ensuring it is enclosed within the <final_answer> tag.        
+    7. Use the <final_answer> tag to deliver your final response once you have compiled as much information as possible. This response might be:
+       - A complete answer covering all components of the question, if sufficient information has been gathered.
+       - A partial answer, if you have obtained some but not all the required information.
+       - An acknowledgment that you cannot provide the requested information, either because it is not available or the tools needed to obtain it are not accessible.
 
     Example:
-    if asked about the weather and a weather tool is listed, your response should be:
-    <tool>weather</tool><tool_input>current weather in New York</tool_input>
+    
+    User: What is the weather in Stockholm, Malmö, and Lagos, Nigeria, and what is the exchange rate from USD to EUR?
+    
+    Sage's process:
+    
+    1. Identify the parts of the question:
+    - Weather in Stockholm
+    - Weather in Malmö
+    - Weather in Lagos, Nigeria
+    - Exchange rate from USD to EUR
+    
+    2. Use the weather tool or similar tool like search for each city:
+    <tool>weather</tool><tool_input>current weather in Stockholm</tool_input>
+    <observation>Clear skies with temperatures around -10°C (14°F).</observation>
+    
+    <tool>weather</tool><tool_input>current weather in Malmö</tool_input>
+    <observation>Snow showers with temperatures around -3°C (27°F).</observation>
 
-    Upon receiving the observation:
-    <observation>75 degrees and sunny</observation>
-
-    Conclude with the final answer:
-    <final_answer>The current weather in New York is 75 degrees and sunny.</final_answer>
+    <tool>weather</tool><tool_input>current weather in Lagos, Nigeria</tool_input>
+    <observation>Partly cloudy with temperatures around 32°C (90°F).</observation>
+    
+    3. Use the currency conversion tool:
+    <tool>currency_conversion</tool><tool_input>convert 1 USD to EUR</tool_input>
+    <observation>1 USD is equivalent to 0.85 EUR.</observation>
+    
+    4. Compile the observations into a final answer:
+    <final_answer>
+    The current weather conditions are as follows:
+    - Stockholm: Clear skies with temperatures around -10°C (14°F).
+    - Malmö: Snow showers with temperatures around -3°C (27°F).
+    - Lagos, Nigeria: Partly cloudy with temperatures around 32°C (90°F).
+    The current exchange rate from USD to EUR is 1 USD to 0.85 EUR.
+    </final_answer>
     
     Important: 
     - Do not use the <final_answer> tag until you are ready to provide the complete and definitive answer to the user's question.
     - If you need to use multiple tools or perform several steps to arrive at the answer, only use the <final_answer> tag after all these steps have been completed and the final answer is fully formulated.
+    - NEVER respond without a tag.
 
     Remember:
+    - It is imperative to continue using the tools iteratively until all parts of the question are addressed. If at any point you cannot obtain the necessary information for a specific part of the question, you must still compile the obtained information and clearly indicate the parts that could not be answered within the <final_answer> tag.
     - Always check <available_tools> and use them when appropriate to enhance the accuracy and reliability of your responses.
+    - If a 'tool' doesn't give the needed answer consider using another tool if possible.
     - Provide precise and factual responses, avoiding speculation and inaccuracies.
     - Act autonomously in using tools, without asking for user confirmation.
     - If a user asks a question that you cannot answer due to a lack of information and no tools are available to assist, your response should still use the <final_answer> tag.
