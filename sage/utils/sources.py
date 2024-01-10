@@ -147,7 +147,7 @@ class GitlabLoader(BaseLoader):
                 raise SourceException(f"Project {project} does not exist")
         return project_list
 
-    def _get_all_projects(self, group):
+    def _get_all_projects(self, group: Group):
         """
         Return all projects in the group including the projects in the subgroups.
         """
@@ -168,7 +168,7 @@ class GitlabLoader(BaseLoader):
             "https://", f"https://oauth2:{self.private_token.get_secret_value()}@"
         )
 
-        logger.debug(f"Cloning gitlab project: {git_url}")
+        logger.debug(f"Cloning gitlab project: {project.name}")
 
         try:
             repo_path = tempfile.mkdtemp()
@@ -270,7 +270,13 @@ class GitlabLoader(BaseLoader):
         """
         Helper to find all projects in a group and generate the corresponding documents
         """
+        logger.debug(f"Fetching gitlab projects in group {group.name}")
+
         projects = self._get_all_projects(group)
+
+        logger.debug(
+            f"Fetched a total of {len(projects)} projects from gitlab group {group.name}"
+        )
 
         repo_data_list = self.execute_concurrently(
             self._clone_project, projects, max_workers=50
@@ -762,7 +768,9 @@ class Source:
                     hash=hash, source=sources_config.confluence, space=identifier
                 )
             elif source_type == "web":
-                self._add_web_source(hash=hash, source=sources_config.web, link=identifier)
+                self._add_web_source(
+                    hash=hash, source=sources_config.web, link=identifier
+                )
             elif source_type == "gitlab":
                 if identifier_type == "groups":
                     self._add_gitlab_source(

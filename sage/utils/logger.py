@@ -38,14 +38,18 @@ class CustomLogger(logging.Logger):
         super().__init__(name, level)
 
         # create console handler
-        log_handler = logging.StreamHandler()
-        log_handler.setLevel(level)
+        self._log_handler = logging.StreamHandler()
+        self._log_handler.setLevel(level)
 
-        log_handler.setFormatter(CustomFormatter())
+        self._log_handler.setFormatter(CustomFormatter())
 
         # customize the logger
         self.name = name
         self.setLevel(level)
-        self.addHandler(log_handler)
+        self.addHandler(self._log_handler)
+        
+    def setLevel(self, level) -> None:
+        self._log_handler.setLevel(level)
+        super().setLevel(level)
 
 
