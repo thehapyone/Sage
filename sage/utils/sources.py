@@ -14,7 +14,10 @@ from time import sleep
 from hashlib import md5
 
 from bs4 import BeautifulSoup
-from langchain_community.document_loaders.confluence import ContentFormat, ConfluenceLoader
+from langchain_community.document_loaders.confluence import (
+    ContentFormat,
+    ConfluenceLoader,
+)
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -156,7 +159,7 @@ class GitlabLoader(BaseLoader):
 
         return projects
 
-    def _clone_project(self, project: Project) -> RepoHandler:
+    def _clone_project(self, project: Project) -> RepoHandler | None:
         """
         Clone the project to a temporary directory.
         Returns the RepoHandler object
@@ -165,24 +168,31 @@ class GitlabLoader(BaseLoader):
             "https://", f"https://oauth2:{self.private_token.get_secret_value()}@"
         )
 
+        logger.debug(f"Cloning gitlab project: {git_url}")
+
         try:
             repo_path = tempfile.mkdtemp()
             repo = Repo.clone_from(git_url, repo_path, branch=project.default_branch)
             handler = RepoHandler(git_url=project.http_url_to_repo, repo=repo)
             return handler
         except Exception as e:
-            logger.error(f"Error cloning project {project.name}: {e}")
-            raise e
+            logger.warning(f"Error cloning project {project.name}: {e}")
+            return None
 
     @staticmethod
-    def _load(repo_data: RepoHandler):
+    def _load(repo_data: RepoHandler | None):
         """
         Parse and load a repo as a document object and return a list of documents
         """
 
         docs: List[Document] = []
 
+        if repo_data is None:
+            return docs
+
         repo = repo_data.repo
+
+        logger.debug(f"Processing local git repo at: {repo_data.git_url}")
 
         for item in repo.tree().traverse():
             if not isinstance(item, Blob):
@@ -219,7 +229,9 @@ class GitlabLoader(BaseLoader):
                 logger.warning(f"Error reading file {file_path}: {e}")
         return docs
 
-    def _build_documents(self, repo_data_list: List[RepoHandler]) -> List[Document]:
+    def _build_documents(
+        self, repo_data_list: List[RepoHandler | None]
+    ) -> List[Document]:
         """
         Function that helps to process the git repos and generate the required documents
         """
@@ -744,26 +756,31 @@ class Source:
 
         source_ref = f"{source_type}: {identifier_type}={identifier}"
         logger.info(f"Processing source {source_ref} ...")
-        if source_type == "confluence":
-            self._add_confluence(
-                hash=hash, source=sources_config.confluence, space=identifier
-            )
-        elif source_type == "web":
-            self._add_web_source(hash=hash, source=sources_config.web, link=identifier)
-        elif source_type == "gitlab":
-            if identifier_type == "groups":
-                self._add_gitlab_source(
-                    hash=hash, source=sources_config.gitlab, groups=[identifier]
+        try:
+            if source_type == "confluence":
+                self._add_confluence(
+                    hash=hash, source=sources_config.confluence, space=identifier
                 )
+            elif source_type == "web":
+                self._add_web_source(hash=hash, source=sources_config.web, link=identifier)
+            elif source_type == "gitlab":
+                if identifier_type == "groups":
+                    self._add_gitlab_source(
+                        hash=hash, source=sources_config.gitlab, groups=[identifier]
+                    )
+                else:
+                    self._add_gitlab_source(
+                        hash=hash, source=sources_config.gitlab, projects=[identifier]
+                    )
             else:
-                self._add_gitlab_source(
-                    hash=hash, source=sources_config.gitlab, projects=[identifier]
-                )
+                raise SourceException(f"Unknown source type: {source_type}")
+        except Exception as e:
+            logger.error(f"An error has occurred processing source {source_ref}")
+            logger.error(str(e))
+            logger.error("Source will retry next re-run")
         else:
-            raise SourceException(f"Unknown source type: {source_type}")
-
-        self._save_source_metadata(hash)
-        logger.info(f"Done with source {source_ref}")
+            self._save_source_metadata(hash)
+            logger.info(f"Done with source {source_ref}")
 
     def run(self) -> None:
         """
