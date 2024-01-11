@@ -43,7 +43,7 @@ Key components include:
 
 ### Condense Question LLM Chain
 
-This stage processes the user input question along with chat history to generate a new standalone question. The output is a JSON object as shown below:
+This stage processes the user input question along with chat history to generate a new standalone question:
 
 ```yaml
 HUMAN:
@@ -52,22 +52,7 @@ history: []
 
 AI:
 {
-    "retriever": "YES",
-    "standalone_question": "How many team members are in the Xerex team?"
-}
-```
-
-The chain also outputs a "YES" or "NO" for the retriever field, indicating whether the question requires support from external sources. For instance:
-
-```yaml
-HUMAN:
-question: "Nigeria's independence?"
-history: []
-
-AI:
-{
-    "retriever": "NO",
-    "standalone_question": "When did Nigeria gain its independence?"
+    How many team members are in the Xerex team?"
 }
 ```
 
