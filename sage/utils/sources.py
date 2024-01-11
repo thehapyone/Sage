@@ -631,12 +631,15 @@ class Source:
 
     def _create_and_save_db(self, source_hash: str, documents: List[Document]) -> None:
         """Creates and save a vector store index DB to file"""
+        logger.debug(f"Creating a vector store for source with hash - {source_hash}")
+
         # Create vector index
         db = FAISS.from_documents(documents=documents, embedding=EMBEDDING_MODEL)
 
         # Save DB to source directory
         dir_path = self.source_dir / "faiss"
         db.save_local(str(dir_path), source_hash)
+        logger.debug(f"Succesfully created and saved vector store for source with hash - {source_hash}")
 
     @staticmethod
     def splitter() -> RecursiveCharacterTextSplitter:
@@ -670,6 +673,8 @@ class Source:
                 keep_markdown_format=True,
                 content_format=ContentFormat.VIEW,
             )
+            logger.debug(f"Processed {len(confluence_documents)} documents from the confluence source")
+
         except Exception as error:
             raise SourceException(
                 f"An error has occured while loading confluence source: {str(error)}"
@@ -700,6 +705,8 @@ class Source:
             )
 
             gitlab_documents = loader.load()
+            
+            logger.debug(f"Processed {len(gitlab_documents)} documents from the Gitlab source")
 
         except Exception as error:
             raise SourceException(
@@ -734,6 +741,7 @@ class Source:
                 raise SourceException(
                     f"No document was parsed from the source link {link}"
                 )
+            logger.debug(f"Processed {len(web_documents)} documents from the Web source")
 
         except Exception as error:
             raise SourceException(
