@@ -65,32 +65,22 @@ class SourceQAService:
     )
 
     condensed_template: str = """
-    Given a conversation and a follow-up inquiry, determine whether the inquiry is a continuation of the existing conversation or a new, standalone question or statement.
-    Assess if the inquiry requires using a retriever system to obtain additional context or sources for a more comprehensive answer or clarification.
+    Given a conversation and a follow-up inquiry, determine whether the inquiry is a continuation of the existing conversation or a new, standalone question. 
+    If it is a continuation, use the conversation history encapsulated in the "chat_history" to rephrase the follow up question to be a standalone question, in its original language.
+    If the inquiry is new or unrelated, recognize it as such and provide a standalone question without consdering the "chat_history".
 
-    - If the inquiry continues the conversation, use "chat_history" to inform your rephrased standalone question or statement.
-    - If the inquiry is new or unrelated, provide a standalone response as needed. Use a retriever system if the inquiry involves specific organizations, proprietary processes, acronyms, or requires additional context, or if there is doubt or uncertainty.
-
-    PLEASE return ONLY the structured output with "retriever:" indicating the need for a retriever, and "response:" with the rephrased or original standalone question or statement. Keep the response concise and focused on these two elements.
-
+    PLEASE don't overdo it and return ONLY the standalone question.
+    
+    REMEBER:
+     - The inquiry is not meant for you at all. Don't refer new meanings or distort the original inquiry.
+     - Always keep the original language. Not all inquires are questions.
+     
     <chat_history>
     {chat_history}
     <chat_history/>
 
     Follow-Up Inquiry: {question}
-
-    Output Format::
-    {{"retriever": "<retriever_decision>",
-    "response": "<rephrased_response>"}}
-
-    Where:
-    - "<retriever_decision>" is "YES" if the inquiry could benefit from additional context, or if the AI lacks certainty. It is "NO" if the AI can confidently address the inquiry without further context. Say "NO" only if certain (100%) the AI can address the inquiry.
-    - "<rephrased_response>" is the rephrased standalone question or statement, reflecting the original inquiry without deviation or assumption. If unrelated to "chat_history," use the original inquiry directly.
-
-    REMINDER:
-    - Do not make assumptions about abbreviations or context not provided
-    - Maintain the user's original question intent without adding or inferring context that deviates from the inquiry.
-    - NEVER ANSWER the user's question within this template; only return a condensed question or statement based on the "chat_history" when available.
+    Standalone question::
     """
 
     qa_template_chat: str = """
@@ -381,7 +371,7 @@ class SourceQAService:
             self._retriever = Source().load()
         return self._retriever
 
-    @cached_property
+    @property
     def _chat_memory(self):
         """Keeps track of chat conversation in buffer memory"""
         return ConversationBufferWindowMemory()
@@ -407,38 +397,27 @@ class SourceQAService:
             memory = self._chat_memory
 
         condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
-        condense_response_schemas = [
-            ResponseSchema(
-                name="retriever", description="Decide whether to us a retriever or not"
-            ),
-            ResponseSchema(
-                name="response",
-                description="The followup question or statement",
-            ),
-        ]
 
-        # define the inputs runnable to generate a standalone question from history
-        _inputs = (
-            RunnablePassthrough.assign(
-                chat_history=RunnableLambda(memory.load_memory_variables)
-                | itemgetter("history")
+        ## The standalone chain for generating a new standalone question
+        _standalone_chain = condense_question_prompt | LLM_MODEL | StrOutputParser()
+
+        _raw_input = RunnableMap(
+            question=itemgetter("question"),
+            chat_history=RunnableLambda(memory.load_memory_variables)
+            | itemgetter("history"),
+        )
+
+        _inputs = _raw_input | RunnableMap(
+            standalone=RunnableBranch(
+                (lambda x: bool(x.get("chat_history")), _standalone_chain),
+                itemgetter("question"),
             )
-            | condense_question_prompt
-            | LLM_MODEL
-            | StructuredOutputParser.from_response_schemas(condense_response_schemas)
         )
 
         # retrieve the documents
         _retrieved_docs = RunnableMap(
-            docs=RunnableBranch(
-                (
-                    lambda x: "yes" in x["retriever"].lower(),
-                    itemgetter("response") | retriever,
-                ),
-                (lambda x: "no" in x["retriever"].lower(), lambda x: []),
-                itemgetter("response") | retriever,
-            ),
-            question=itemgetter("response"),
+            docs=itemgetter("standalone") | retriever,
+            question=itemgetter("standalone"),
         )
 
         # construct the inputs
