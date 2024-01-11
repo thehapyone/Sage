@@ -66,16 +66,12 @@ class SourceQAService:
 
     condensed_template: str = """
     Given a conversation and a follow-up inquiry, determine whether the inquiry is a continuation of the existing conversation or a new, standalone question or statement.
-    Also, assess if the inquiry requires the use of a retriever system to obtain additional context or sources that could help answer the question or clarify the statement more comprehensively.
-    
-    If the inquiry is a continuation, rephrase the follow-up into a standalone question or statement using the "chat_history".
-    Decide if a retriever system might be beneficial in providing more context or detailed information, even if the AI has basic knowledge of the subject.
+    Assess if the inquiry requires using a retriever system to obtain additional context or sources for a more comprehensive answer or clarification.
 
-    If the inquiry is new or unrelated, provide a standalone question or statement as appropriate. Evaluate the complexity of the inquiry and the potential value of additional context from the retriever system.
-    If the inquiry involves topics like specific organizations, proprietary processes, acronyms, or subjects where more context could enhance the AI's response, or if there's any sense of doubt or uncertainty, indicate the use of the retriever system.
+    - If the inquiry continues the conversation, use "chat_history" to inform your rephrased standalone question or statement.
+    - If the inquiry is new or unrelated, provide a standalone response as needed. Use a retriever system if the inquiry involves specific organizations, proprietary processes, acronyms, or requires additional context, or if there is doubt or uncertainty.
 
-    PLEASE return ONLY the structured output with "retriever:" indicating the need for a retriever system, and "response:" with the rephrased or original standalone question or statement.
-    Keep the response concise and focused on these two elements.
+    PLEASE return ONLY the structured output with "retriever:" indicating the need for a retriever, and "response:" with the rephrased or original standalone question or statement. Keep the response concise and focused on these two elements.
 
     <chat_history>
     {chat_history}
@@ -88,11 +84,13 @@ class SourceQAService:
     "response": "<rephrased_response>"}}
 
     Where:
-    - "<retriever_decision>" is "YES" if the inquiry could benefit from additional context due to its specificity, complexity, hypothetical nature, or if the AI lacks certainty. It is "NO" if the AI can confidently address the inquiry without further context.
-    - "<rephrased_response>" is the rephrased standalone question or statement, or the original inquiry if it is unrelated to the chat_history and can be addressed directly.
-    REMEMBER:
-     - Only say "NO" to the retriever if you are absolute certain (100%) the AI can address the inquiry.
-     - NEVER ANSWER THE the user's question only return a condensed question or statement based on the chat history when available
+    - "<retriever_decision>" is "YES" if the inquiry could benefit from additional context, or if the AI lacks certainty. It is "NO" if the AI can confidently address the inquiry without further context. Say "NO" only if certain (100%) the AI can address the inquiry.
+    - "<rephrased_response>" is the rephrased standalone question or statement, reflecting the original inquiry without deviation or assumption. If unrelated to "chat_history," use the original inquiry directly.
+
+    REMINDER:
+    - Do not make assumptions about abbreviations or context not provided
+    - Maintain the user's original question intent without adding or inferring context that deviates from the inquiry.
+    - NEVER ANSWER the user's question within this template; only return a condensed question or statement based on the "chat_history" when available.
     """
 
     qa_template_chat: str = """
@@ -225,7 +223,7 @@ class SourceQAService:
     [2] - Brief summary of the second source.
     ...continue for additional sources, only if relevant and necessary.
     """
-    
+
     qa_template_agent: str = """
     As Sage, I am tasked to provide factual answers and engage in conversations, distinguishing between informational queries and casual discussions. For AI-related topics, sources aren't needed, but for others, a neutral, journalistic approach is required.
 
@@ -283,7 +281,6 @@ class SourceQAService:
     [2] - Brief summary of the second source.
     ...continue for additional sources, only as needed.
     """
-
 
     def __init__(self, mode: str = "tool", tools: List[Tool] = []) -> None:
         self._mode = mode
