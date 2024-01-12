@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   codesage:
-    image: thehapyone/codesage:0.0.1-rc1
+    image: thehapyone/codesage:0.0.1-rc7
     container_name: codesage
     ports:
       - "8080:8000"
