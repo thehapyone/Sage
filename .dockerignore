@@ -15,6 +15,7 @@ sandbox
 *.log
 *.tmp
 tmp/
+.files
 
 ## Sage data dir
 data

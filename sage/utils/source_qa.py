@@ -484,7 +484,7 @@ class SourceQAService:
         self._setup_runnable(retriever, profile)
 
     @cl.set_chat_profiles
-    async def chat_profile(current_user: cl.AppUser):
+    async def chat_profile():
         return [
             cl.ChatProfile(
                 name="Chat Only",
@@ -495,6 +495,11 @@ class SourceQAService:
                 name="Agent Mode",
                 markdown_description="Sage runs as an AI Agent with access to external tools and data sources.",
                 icon="https://picsum.photos/250",
+            ),
+            cl.ChatProfile(
+                name="File Mode",
+                markdown_description="Ask Sage questions about files. No data sources just the file as the only data source",
+                icon="https://picsum.photos/260",
             ),
         ]
 
@@ -514,6 +519,35 @@ class SourceQAService:
         await cl.Avatar(name="User", path=str(assets_dir / "boy.png")).send()
 
         await cl.Message(content=self._generate_welcome_message(chat_profile)).send()
+        
+        welcome_message = """Welcome to the Chainlit PDF QA demo! To get started:
+        1. Upload a PDF or text file
+        2. Ask a question about the file
+        """
+        if chat_profile == "File Mode":
+            files = None
+            # Wait for the user to upload a file
+            while files == None:
+                files = await cl.AskFileMessage(
+                    content=welcome_message,
+                    accept=["text/plain", "application/pdf"],
+                    max_size_mb=100,
+                    max_files=10,
+                    timeout=180,
+                ).send()
+
+            text_file = files[0]
+            
+            msg = cl.Message(content=f"Processing `{text_file.name}`...")
+            await msg.send()
+
+            with open(text_file.path, "r", encoding="utf-8") as f:
+                text = f.read()
+
+            # Let the user know that the system is ready
+            await cl.Message(
+                content=f"`{text_file.name}` uploaded, it contains {len(text)} characters!"
+            ).send()
 
         await self.asetup_runnable(chat_profile)
 

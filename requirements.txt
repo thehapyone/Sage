@@ -12,13 +12,13 @@ beautifulsoup4==4.12.2
 bidict==0.22.1
 certifi==2023.11.17
 cffi==1.16.0
-chainlit==0.7.700
+chainlit==1.0.101
 chardet==5.2.0
 charset-normalizer==3.3.2
 click==8.1.7
 cohere==4.40
 curl-cffi==0.5.10
-dataclasses-json==0.6.3
+dataclasses-json==0.5.14
 defusedxml==0.7.1
 Deprecated==1.2.14
 distro==1.9.0
@@ -58,6 +58,7 @@ langchain-openai==0.0.2
 langdetect==1.0.9
 langsmith==0.0.77
 Lazify==0.4.0
+literalai==0.0.102
 lxml==5.0.1
 Markdown==3.5.1
 markdownify==0.11.6
