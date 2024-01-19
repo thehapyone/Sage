@@ -326,14 +326,25 @@ class SourceQAService:
         else:
             tools_message = ""
 
-        message = (
-            f"{greeting} and welcome!\n"
-            "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
-            "I can provide you with data and updates from a variety of sources including:\n"
-            f"  {sources}\n\n"
-            f"{tools_message}"
-            "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!"
-        )
+        if "file" in profile.lower():
+            message = (
+                f"{greeting} and welcome!\n"
+                "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
+                "I can answer questions about the contents of the files you upload. To get started:\n\n"
+                "  1. Upload one or more documents\n"
+                "  2. Ask questions about the files a document file\n\n"
+                "Supported file types: Word Documents, PDFs, txt files, and Powerpoints\n"
+                "Looking forward to our conversation!"
+            )
+        else:
+            message = (
+                f"{greeting} and welcome!\n"
+                "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
+                "I can provide you with data and updates from a variety of sources including:\n"
+                f"  {sources}\n\n"
+                f"{tools_message}"
+                "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!"
+            )
         return message.strip()
 
     @property
@@ -519,37 +530,38 @@ class SourceQAService:
         await cl.Avatar(name="User", path=str(assets_dir / "boy.png")).send()
 
         await cl.Message(content=self._generate_welcome_message(chat_profile)).send()
-        
-        welcome_message = """Welcome to the Chainlit PDF QA demo! To get started:
-        1. Upload a PDF or text file
-        2. Ask a question about the file
-        """
+
         if chat_profile == "File Mode":
             files = None
             # Wait for the user to upload a file
             while files == None:
                 files = await cl.AskFileMessage(
-                    content=welcome_message,
+                    content=" ",
                     accept=["text/plain", "application/pdf"],
                     max_size_mb=100,
                     max_files=10,
                     timeout=180,
                 ).send()
 
-            text_file = files[0]
-            
-            msg = cl.Message(content=f"Processing `{text_file.name}`...")
+            msg = cl.Message(
+                content=f"Now, I will begin processing {len(files)} files ..."
+            )
             await msg.send()
-
-            with open(text_file.path, "r", encoding="utf-8") as f:
-                text = f.read()
+            
+            await cl.sleep(1)
+            # Get the files retriever
+            retriever = await Source().load_files_retriever(files)
 
             # Let the user know that the system is ready
-            await cl.Message(
-                content=f"`{text_file.name}` uploaded, it contains {len(text)} characters!"
-            ).send()
+            msg.content = "All files now processed and ready to be used!"
+            await msg.update()
 
-        await self.asetup_runnable(chat_profile)
+        else:
+            retriever = await self._aget_retriever()
+            if not retriever:
+                raise SourceException("No source retriever found")
+        
+        self._setup_runnable(retriever, chat_profile)
 
     @cl.on_message
     async def on_message(self, message: cl.Message):

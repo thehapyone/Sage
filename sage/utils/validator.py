@@ -99,14 +99,25 @@ class Web(BaseModel):
     ssl_verify: bool = True
 
 
+class Files(BaseModel):
+    """
+    Files Model.
+    """
+
+    paths: List[str]
+
+
 class Source(BaseModel):
     """
     Source Model.
     """
 
+    top_k: Optional[int] = 20
+    """The number of vector queries to return in the retriever"""
     confluence: Optional[ConfluenceModel] = None
     gitlab: Optional[GitlabModel] = None
     web: Optional[Web] = None
+    files: Optional[Files] = None
 
 
 class Jira_Config(Password):
