@@ -118,24 +118,22 @@ class SourceQAService:
     When answering questions, you should:
     - Provide answers that are directly based on the information from the attached file(s).
     - Understand the context of the user's question and the contents of the file(s) to provide accurate and relevant answers.
-    - Not introduce external information unless the question cannot be answered with the information from the files and the answer pertains to general knowledge.
+    - Do not introduce external information unless the question cannot be answered with the information from the files and the answer pertains to general knowledge.
     - Be concise and avoid unnecessary repetition, ensuring each response adds value.
     - Maintain a neutral and unbiased tone, presenting facts based on the file contents without personal opinions.
     - Use the provided document chunks to formulate a coherent response, avoiding assumptions without clear context.
     - Be creative when applicable, while ensuring that the creativity does not compromise the accuracy of the information from the files.
     - Make use of bullet points to aid readability if necessary, with each bullet point presenting a piece of information based on the file contents.
     - Clearly state when unable to answer a question due to lack of relevant information in the file(s).
-    - Eliminate the need for footnotes or citations, as the user has provided the sources.
 
-    Here are the chunks of documents provided by the system relevant to your question:
+    Here are the chunks of documents provided by the system relevant to the user's question:
     <document_chunks>
     {context}
     </document_chunks>
 
     Question: {question}
 
-    Remember: You are to answer based solely on the provided document chunks and the contents of the file(s) attached by the user.
-    No need for footnotes or external citations, as the user has supplied the source material.
+    Remember: You are to answer based solely on the provided document chunks.
     """
 
     qa_template_agent: str = """
@@ -257,7 +255,7 @@ class SourceQAService:
                 "I can answer questions about the contents of the files you upload. To get started:\n\n"
                 "  1. Upload one or more documents\n"
                 "  2. Ask questions about the files a document file\n\n"
-                "Supported file types: Word Documents, PDFs, txt files, and Powerpoints\n"
+                "Supported file types: Word Documents, PDFs, txt files, and Excel files\n"
                 "Looking forward to our conversation!"
             )
         else:
@@ -387,7 +385,10 @@ class SourceQAService:
                 sources=lambda x: self._format_sources(x["docs"]),
             )
         else:
-            qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
+            if "file" in profile.lower():
+                qa_prompt = ChatPromptTemplate.from_template(self.file_qa_template_chat)
+            else:
+                qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
             # construct the question and answer model
             qa_answer = RunnableMap(
                 answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
@@ -464,6 +465,8 @@ class SourceQAService:
                         "application/pdf",
                         "application/vnd.ms-excel",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/msword"
                     ],
                     max_size_mb=10,
                     max_files=5,
