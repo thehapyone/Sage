@@ -787,7 +787,7 @@ class Source:
             SourceException: Exception rasied interating with the files
         """
         try:
-            loader = UnstructuredFileLoader(file_path=path, mode="elements")
+            loader = UnstructuredFileLoader(file_path=path, mode="single")
 
             file_documents = loader.load()
 

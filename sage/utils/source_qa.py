@@ -314,12 +314,16 @@ class SourceQAService:
             question=itemgetter("question"),
             chat_history=RunnableLambda(memory.load_memory_variables)
             | itemgetter("history"),
+        ).with_config(
+            run_name="RawInput",
         )
 
         _inputs = _raw_input | RunnableMap(
             standalone=RunnableBranch(
                 (lambda x: bool(x.get("chat_history")), _standalone_chain),
                 itemgetter("question"),
+            ).with_config(
+                run_name="CondenseQuestionWithHistory",
             )
         )
 
@@ -327,6 +331,8 @@ class SourceQAService:
         _retrieved_docs = RunnableMap(
             docs=itemgetter("standalone") | retriever,
             question=itemgetter("standalone"),
+        ).with_config(
+            run_name="FetchSources",
         )
 
         # construct the inputs
@@ -354,7 +360,7 @@ class SourceQAService:
                 tools=self.tools,
                 verbose=False,
                 handle_parsing_errors=self._handle_error,
-            ) | itemgetter("output")
+            ).with_config(run_name="AgentExecutor") | itemgetter("output")
             # construct the question and answer model
             qa_answer = RunnableMap(
                 answer=_context | _agent_runner,
@@ -457,10 +463,10 @@ class SourceQAService:
             await cl.sleep(0.5)
             # Get the files retriever
             retriever = await Source().load_files_retriever(files)
-            await cl.sleep(0.5)
             # Let the user know that the system is ready
             msg.content = "All files now processed and ready to be used!"
             await msg.update()
+            await cl.sleep(0.5)
 
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()

@@ -6,6 +6,7 @@ __pycache__
 *.env
 docker/
 .files
+translations
 
 ## Sage data dir
 data
