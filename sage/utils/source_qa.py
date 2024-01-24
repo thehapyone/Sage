@@ -425,7 +425,7 @@ class SourceQAService:
             name=self.ai_assistant_name, path=str(assets_dir / "ai-assistant.png")
         ).send()
 
-        await cl.Avatar(name="User", path=str(assets_dir / "boy.png")).send()
+        await cl.Avatar(name="You", path=str(assets_dir / "boy.png")).send()
 
         intro_message = self._generate_welcome_message(chat_profile)
 
