@@ -112,30 +112,6 @@ class SourceQAService:
     ...continue for additional sources, only if relevant and necessary.  
     """
 
-    file_qa_template_chat: str = """
-    As an AI assistant named Sage, your primary objective is to answer questions based on the contents of the file(s) attached by the user.
-    You will analyze the text extracted from these files, and your responses will be informed by the relevant chunks of documents provided by a vector search system.
-    When answering questions, you should:
-    - Provide answers that are directly based on the information from the attached file(s).
-    - Understand the context of the user's question and the contents of the file(s) to provide accurate and relevant answers.
-    - Do not introduce external information unless the question cannot be answered with the information from the files and the answer pertains to general knowledge.
-    - Be concise and avoid unnecessary repetition, ensuring each response adds value.
-    - Maintain a neutral and unbiased tone, presenting facts based on the file contents without personal opinions.
-    - Use the provided document chunks to formulate a coherent response, avoiding assumptions without clear context.
-    - Be creative when applicable, while ensuring that the creativity does not compromise the accuracy of the information from the files.
-    - Make use of bullet points to aid readability if necessary, with each bullet point presenting a piece of information based on the file contents.
-    - Clearly state when unable to answer a question due to lack of relevant information in the file(s).
-
-    Here are the chunks of documents provided by the system relevant to the user's question:
-    <document_chunks>
-    {context}
-    </document_chunks>
-
-    Question: {question}
-
-    Remember: You are to answer based solely on the provided document chunks.
-    """
-
     qa_template_agent: str = """
     As Sage, I am tasked to provide factual answers and engage in conversations, distinguishing between informational queries and casual discussions. For AI-related topics, sources aren't needed, but for others, a neutral, journalistic approach is required.
 
@@ -385,10 +361,7 @@ class SourceQAService:
                 sources=lambda x: self._format_sources(x["docs"]),
             )
         else:
-            if "file" in profile.lower():
-                qa_prompt = ChatPromptTemplate.from_template(self.file_qa_template_chat)
-            else:
-                qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
+            qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
             # construct the question and answer model
             qa_answer = RunnableMap(
                 answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
@@ -454,19 +427,22 @@ class SourceQAService:
 
         await cl.Avatar(name="User", path=str(assets_dir / "boy.png")).send()
 
+        intro_message = self._generate_welcome_message(chat_profile)
+
         if chat_profile == "File Mode":
             files = None
             # Wait for the user to upload a file
             while files == None:
                 files = await cl.AskFileMessage(
-                    content=self._generate_welcome_message(chat_profile),
+                    content=intro_message,
+                    disable_feedback=True,
                     accept=[
                         "text/plain",
                         "application/pdf",
                         "application/vnd.ms-excel",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "application/msword"
+                        "application/msword",
                     ],
                     max_size_mb=10,
                     max_files=5,
@@ -478,7 +454,7 @@ class SourceQAService:
             )
             await msg.send()
 
-            await cl.sleep(1)
+            await cl.sleep(0.5)
             # Get the files retriever
             retriever = await Source().load_files_retriever(files)
             await cl.sleep(0.5)
@@ -487,6 +463,7 @@ class SourceQAService:
             await msg.update()
 
         else:
+            await cl.Message(content=intro_message, disable_feedback=True).send()
             retriever = await self._aget_retriever()
             if not retriever:
                 raise SourceException("No source retriever found")
