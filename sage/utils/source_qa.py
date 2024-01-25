@@ -464,7 +464,11 @@ class SourceQAService:
             # Get the files retriever
             retriever = await Source().load_files_retriever(files)
             # Let the user know that the system is ready
-            msg.content = "All files now processed and ready to be used!"
+            file_names = "\n  ".join([file.name for file in files])
+            msg.content = (
+                "The following files are now processed and ready to be used!\n"
+                f"  {file_names}"
+            )
             await msg.update()
             await cl.sleep(0.5)
 

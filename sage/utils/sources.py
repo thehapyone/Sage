@@ -938,8 +938,23 @@ class Source:
             ContextualCompressionRetriever | VectorStoreRetriever: A retriever instance
         """
 
+        ## TODO: Remove when chainlit set the file path to match the exact file name
+        def rename_file_path(file: AskFileResponse) -> AskFileResponse:
+            """Extract the base path and file extension from the current file path"""
+            file_path = Path(file.path)
+            new_path = file_path.with_name(file.name)
+
+            try:
+                file_path.rename(new_path)
+                file.path = str(new_path)
+                return file
+            except OSError as e:
+                logger.warning(f"Error: {e.strerror}")
+                return file
+
         def process_file(file: AskFileResponse) -> FAISS:
             """Simple helper to process the files"""
+            file = rename_file_path(file)
             file_source = Files(paths=[file.path])
             db = self._add_files_source(
                 hash=file.id, source=file_source, path=file.path, save_db=False
