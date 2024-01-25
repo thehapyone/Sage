@@ -245,7 +245,7 @@ class Config(BaseModel):
     """
 
     core: Core
-    upload: UploadConfig
+    upload: Optional[UploadConfig] = UploadConfig()
     jira: Jira_Config
     source: Source
     reranker: Optional[ReRankerConfig] = None

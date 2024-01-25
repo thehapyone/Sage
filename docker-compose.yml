@@ -14,6 +14,8 @@ services:
       GITLAB_PASSWORD: ${GITLAB_PASSWORD}
       CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET}
       COHERE_API_KEY: ${COHERE_API_KEY}
+      HF_HOME: /home/appuser/data/huggingface
+      HF_TOKEN: ${HF_TOKEN}
     volumes:
       - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
       - sage_data:/home/appuser/data

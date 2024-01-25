@@ -8,10 +8,9 @@ ENV PYTHONUNBUFFERED 1
 # install basic dependencies
 RUN apt-get update && \
     apt-get install --fix-broken --no-install-recommends -y \
-    git && \
+    git ffmpeg libsm6 libxext6 && \
     apt-get autoremove -y && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' appuser
 

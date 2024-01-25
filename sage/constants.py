@@ -29,7 +29,10 @@ except ValidationError as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(1)
 except (FileNotFoundError, KeyError) as error:
-    logger.error(f"The required configuration key or file is not found - {str(error)}", exc_info=False)
+    logger.error(
+        f"The required configuration key or file is not found - {str(error)}",
+        exc_info=False,
+    )
     sys.exit(1)
 
 # Create the main data directory
@@ -55,7 +58,9 @@ if validated_config.llm.type == "azure":
 elif validated_config.llm.type == "ollama":
     ollama_config = validated_config.llm.azure
 
-    LLM_MODEL = ChatOllama(base_url=ollama_config.endpoint, model=ollama_config.name, streaming=True)
+    LLM_MODEL = ChatOllama(
+        base_url=ollama_config.endpoint, model=ollama_config.name, streaming=True
+    )
 
 # Load the Embeddings model
 if validated_config.embedding.type == "jina":
