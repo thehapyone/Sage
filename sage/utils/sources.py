@@ -45,9 +45,7 @@ from constants import (
 )
 from utils.exceptions import SourceException
 from utils.validator import ConfluenceModel, GitlabModel, Web, Files
-from utils.supports import (
-    markdown_to_text_using_html2text,
-)
+from utils.supports import markdown_to_text_using_html2text, execute_concurrently
 
 
 class CustomConfluenceLoader(ConfluenceLoader):
@@ -238,36 +236,10 @@ class GitlabLoader(BaseLoader):
         """
         Function that helps to process the git repos and generate the required documents
         """
-        documents: List[Document] = self.execute_concurrently(
+        documents: List[Document] = execute_concurrently(
             self._load, repo_data_list, result_type="extends", max_workers=10
         )
         return documents
-
-    @staticmethod
-    def execute_concurrently(
-        func: Callable, items: List, result_type: str = "append", max_workers: int = 10
-    ) -> List:
-        """
-        Executes a function concurrently on a list of items.
-
-        Args:
-            func (Callable): The function to execute. This function should accept a single argument.
-            items (List): The list of items to execute the function on.
-            result_type (str): The type of result to return. Can be "append" or "return". Defaults to "append".
-            max_workers (int, optional): The maximum number of workers to use. Defaults to 10.
-
-        Returns:
-            List: A list of the results of the function execution.
-        """
-        results = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(func, item) for item in items]
-            for future in as_completed(futures):
-                if result_type == "append":
-                    results.append(future.result())
-                else:
-                    results.extend(future.result())
-        return results
 
     def process_groups(self, group: Group) -> List[Document]:
         """
@@ -281,7 +253,7 @@ class GitlabLoader(BaseLoader):
             f"Fetched a total of {len(projects)} projects from gitlab group {group.name}"
         )
 
-        repo_data_list = self.execute_concurrently(
+        repo_data_list = execute_concurrently(
             self._clone_project, projects, max_workers=50
         )
 
@@ -297,15 +269,13 @@ class GitlabLoader(BaseLoader):
         documents: List[Document] = []
         # process groups
         if self.groups:
-            group_docs = self.execute_concurrently(
+            group_docs = execute_concurrently(
                 self.process_groups, self.groups, result_type="extends"
             )
             documents.extend(group_docs)
         # process projects
         if self.projects:
-            project_repos = self.execute_concurrently(
-                self._clone_project, self.projects
-            )
+            project_repos = execute_concurrently(self._clone_project, self.projects)
             documents.extend(self._build_documents(project_repos))
         return documents
 
@@ -774,7 +744,7 @@ class Source:
         )
 
     def _add_files_source(
-        self, hash: str, source: Files, path: str, save_db: bool = True
+        self, hash: str, path: str, source: Files = None, save_db: bool = True
     ) -> FAISS | None:
         """
         Adds and saves a files data source
@@ -967,13 +937,16 @@ class Source:
         Returns:
             ContextualCompressionRetriever | VectorStoreRetriever: A retriever instance
         """
-        dbs: List[FAISS] = []
-        for file in files:
+
+        def process_file(file: AskFileResponse) -> FAISS:
+            """Simple helper to process the files"""
             file_source = Files(paths=[file.path])
             db = self._add_files_source(
                 hash=file.id, source=file_source, path=file.path, save_db=False
             )
-            dbs.append(db)
+            return db
+
+        dbs: List[FAISS] = execute_concurrently(process_file, files, max_workers=10)
         faiss_db = self._combine_dbs(dbs)
         retriever = faiss_db.as_retriever(search_kwargs=self._retriever_args)
 

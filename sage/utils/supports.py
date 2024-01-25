@@ -1,5 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple
 from typing import Union
 
 from transformers import AutoModel
@@ -208,3 +209,29 @@ class CustomXMLAgentOutputParser(XMLAgentOutputParser):
             return AgentFinish(return_values={"output": answer}, log=text)
         else:
             return AgentFinish(return_values={"output": text}, log=text)
+
+
+def execute_concurrently(
+    func: Callable, items: List, result_type: str = "append", max_workers: int = 10
+) -> List:
+    """
+    Executes a function concurrently on a list of items.
+
+    Args:
+        func (Callable): The function to execute. This function should accept a single argument.
+        items (List): The list of items to execute the function on.
+        result_type (str): The type of result to return. Can be "append" or "return". Defaults to "append".
+        max_workers (int, optional): The maximum number of workers to use. Defaults to 10.
+
+    Returns:
+        List: A list of the results of the function execution.
+    """
+    results = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(func, item) for item in items]
+        for future in as_completed(futures):
+            if result_type == "append":
+                results.append(future.result())
+            else:
+                results.extend(future.result())
+    return results
