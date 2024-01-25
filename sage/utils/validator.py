@@ -231,14 +231,23 @@ class LLMConfig(BaseModel):
     type: Literal["azure", "ollama"]
 
 
+class UploadConfig(BaseModel):
+    """The configuration for the Chat upload mode"""
+
+    max_size_mb: Optional[int] = 10
+    max_files: Optional[int] = 5
+    timeout: Optional[int] = 300
+
+
 class Config(BaseModel):
     """
     Config Model.
     """
 
     core: Core
+    upload: UploadConfig
     jira: Jira_Config
     source: Source
-    reranker: Optional[ReRankerConfig]
+    reranker: Optional[ReRankerConfig] = None
     embedding: EmbeddingsConfig
     llm: LLMConfig

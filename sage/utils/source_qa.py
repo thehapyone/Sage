@@ -26,7 +26,7 @@ import chainlit as cl
 
 from utils.sources import Source
 from utils.exceptions import SourceException
-from constants import LLM_MODEL, assets_dir
+from constants import LLM_MODEL, assets_dir, validated_config
 from utils.supports import (
     CustomXMLAgentOutputParser,
     agent_prompt,
@@ -450,9 +450,9 @@ class SourceQAService:
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         "application/msword",
                     ],
-                    max_size_mb=10,
-                    max_files=5,
-                    timeout=180,
+                    max_size_mb=validated_config.upload.max_size_mb,
+                    max_files=validated_config.upload.max_files,
+                    timeout=validated_config.upload.timeout,
                 ).send()
 
             msg = cl.Message(
