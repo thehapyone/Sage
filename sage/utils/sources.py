@@ -26,6 +26,9 @@ from langchain.schema import Document
 from langchain_community.document_loaders import UnstructuredURLLoader
 from langchain_community.document_loaders.base import BaseLoader
 from langchain.retrievers import ContextualCompressionRetriever
+from langchain_community.document_loaders import UnstructuredFileLoader
+
+from chainlit.types import AskFileResponse
 
 from gitlab import Gitlab, GitlabGetError
 from gitlab.v4.objects import Project
@@ -41,10 +44,8 @@ from constants import (
     app_name,
 )
 from utils.exceptions import SourceException
-from utils.validator import ConfluenceModel, GitlabModel, Web
-from utils.supports import (
-    markdown_to_text_using_html2text,
-)
+from utils.validator import ConfluenceModel, GitlabModel, Web, Files
+from utils.supports import markdown_to_text_using_html2text, execute_concurrently
 
 
 class CustomConfluenceLoader(ConfluenceLoader):
@@ -235,36 +236,10 @@ class GitlabLoader(BaseLoader):
         """
         Function that helps to process the git repos and generate the required documents
         """
-        documents: List[Document] = self.execute_concurrently(
+        documents: List[Document] = execute_concurrently(
             self._load, repo_data_list, result_type="extends", max_workers=10
         )
         return documents
-
-    @staticmethod
-    def execute_concurrently(
-        func: Callable, items: List, result_type: str = "append", max_workers: int = 10
-    ) -> List:
-        """
-        Executes a function concurrently on a list of items.
-
-        Args:
-            func (Callable): The function to execute. This function should accept a single argument.
-            items (List): The list of items to execute the function on.
-            result_type (str): The type of result to return. Can be "append" or "return". Defaults to "append".
-            max_workers (int, optional): The maximum number of workers to use. Defaults to 10.
-
-        Returns:
-            List: A list of the results of the function execution.
-        """
-        results = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(func, item) for item in items]
-            for future in as_completed(futures):
-                if result_type == "append":
-                    results.append(future.result())
-                else:
-                    results.extend(future.result())
-        return results
 
     def process_groups(self, group: Group) -> List[Document]:
         """
@@ -278,7 +253,7 @@ class GitlabLoader(BaseLoader):
             f"Fetched a total of {len(projects)} projects from gitlab group {group.name}"
         )
 
-        repo_data_list = self.execute_concurrently(
+        repo_data_list = execute_concurrently(
             self._clone_project, projects, max_workers=50
         )
 
@@ -294,15 +269,13 @@ class GitlabLoader(BaseLoader):
         documents: List[Document] = []
         # process groups
         if self.groups:
-            group_docs = self.execute_concurrently(
+            group_docs = execute_concurrently(
                 self.process_groups, self.groups, result_type="extends"
             )
             documents.extend(group_docs)
         # process projects
         if self.projects:
-            project_repos = self.execute_concurrently(
-                self._clone_project, self.projects
-            )
+            project_repos = execute_concurrently(self._clone_project, self.projects)
             documents.extend(self._build_documents(project_repos))
         return documents
 
@@ -535,6 +508,8 @@ class Source:
 
     _instance = None
     source_dir = Path(core_config.data_dir) / "sources"
+    _retriever_args = {"k": sources_config.top_k}
+    """Custom retriever search args"""
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -629,17 +604,27 @@ class Source:
             elif isinstance(source_data, Web):
                 self._check_source(source_type, source_data, "links")
 
-    def _create_and_save_db(self, source_hash: str, documents: List[Document]) -> None:
+    def _create_and_save_db(
+        self, source_hash: str, documents: List[Document], save_db: bool = True
+    ) -> FAISS | None:
         """Creates and save a vector store index DB to file"""
         logger.debug(f"Creating a vector store for source with hash - {source_hash}")
 
         # Create vector index
         db = FAISS.from_documents(documents=documents, embedding=EMBEDDING_MODEL)
 
-        # Save DB to source directory
-        dir_path = self.source_dir / "faiss"
-        db.save_local(str(dir_path), source_hash)
-        logger.debug(f"Succesfully created and saved vector store for source with hash - {source_hash}")
+        if save_db:
+            # Save DB to source directory
+            dir_path = self.source_dir / "faiss"
+            db.save_local(str(dir_path), source_hash)
+            logger.debug(
+                f"Succesfully created and saved vector store for source with hash - {source_hash}"
+            )
+            return
+        logger.debug(
+            f"Succesfully created the vector store for source with hash - {source_hash}"
+        )
+        return db
 
     @staticmethod
     def splitter() -> RecursiveCharacterTextSplitter:
@@ -673,7 +658,9 @@ class Source:
                 keep_markdown_format=True,
                 content_format=ContentFormat.VIEW,
             )
-            logger.debug(f"Processed {len(confluence_documents)} documents from the confluence source")
+            logger.debug(
+                f"Processed {len(confluence_documents)} documents from the confluence source"
+            )
 
         except Exception as error:
             raise SourceException(
@@ -705,8 +692,10 @@ class Source:
             )
 
             gitlab_documents = loader.load()
-            
-            logger.debug(f"Processed {len(gitlab_documents)} documents from the Gitlab source")
+
+            logger.debug(
+                f"Processed {len(gitlab_documents)} documents from the Gitlab source"
+            )
 
         except Exception as error:
             raise SourceException(
@@ -741,7 +730,9 @@ class Source:
                 raise SourceException(
                     f"No document was parsed from the source link {link}"
                 )
-            logger.debug(f"Processed {len(web_documents)} documents from the Web source")
+            logger.debug(
+                f"Processed {len(web_documents)} documents from the Web source"
+            )
 
         except Exception as error:
             raise SourceException(
@@ -751,6 +742,44 @@ class Source:
         self._create_and_save_db(
             source_hash=hash, documents=self.splitter().split_documents(web_documents)
         )
+
+    def _add_files_source(
+        self, hash: str, path: str, source: Files = None, save_db: bool = True
+    ) -> FAISS | None:
+        """
+        Adds and saves a files data source
+
+        Args:
+            hash (str): The source hash
+            source (Files): Files data model
+
+        Raises:
+            SourceException: Exception rasied interating with the files
+        """
+        try:
+            loader = UnstructuredFileLoader(file_path=path, mode="single")
+
+            file_documents = loader.load()
+
+            if not file_documents:
+                raise SourceException(
+                    f"No document was parsed from the source path: {path}"
+                )
+            logger.debug(
+                f"Processed {len(file_documents)} documents from the Files source"
+            )
+
+        except Exception as error:
+            raise SourceException(
+                f"An error has occured while loading file source: {str(error)}"
+            )
+
+        db = self._create_and_save_db(
+            source_hash=hash,
+            documents=self.splitter().split_documents(file_documents),
+            save_db=save_db,
+        )
+        return db
 
     def add_source(
         self, hash: str, source_type: str, identifier: str, identifier_type: str
@@ -839,25 +868,20 @@ class Source:
 
         return str(dir_path), indexes
 
-    def _load_retriever(self, db_path: str, indexes: List[str]):
-        # Loads retriever
-        if not indexes:
-            return None
+    @staticmethod
+    def _combine_dbs(dbs: List[FAISS]) -> FAISS:
+        """
+        Combines various DBs into a single one
 
-        dbs: List[FAISS] = []
-
-        for index in indexes:
-            db = FAISS.load_local(
-                folder_path=db_path, index_name=index, embeddings=EMBEDDING_MODEL
-            )
-            dbs.append(db)
-
-        faiss_db = dbs[0]
+        Args:
+            dbs (List[FAISS]): A List of FAISS indexes
+        """
+        faiss_db: FAISS = dbs[0]
 
         for db in dbs[1:]:
             faiss_db.merge_from(db)
 
-        return faiss_db.as_retriever(search_kwargs={"k": 20, "fetch_k": 100})
+        return faiss_db
 
     def _compression_retriever(
         self, retriever: VectorStoreRetriever
@@ -899,6 +923,69 @@ class Source:
             base_compressor=_compressor, base_retriever=retriever
         )
         return _compression_retriever
+
+    ## Helper to create a retriever while the data input is a list of files path
+    async def load_files_retriever(
+        self, files: List[AskFileResponse]
+    ) -> ContextualCompressionRetriever | VectorStoreRetriever:
+        """
+        Create a retriever from a list of files input from the chainlit interface
+
+        Args:
+            files (List[AskFileResponse]): A list of files
+
+        Returns:
+            ContextualCompressionRetriever | VectorStoreRetriever: A retriever instance
+        """
+
+        ## TODO: Remove when chainlit set the file path to match the exact file name
+        def rename_file_path(file: AskFileResponse) -> AskFileResponse:
+            """Extract the base path and file extension from the current file path"""
+            file_path = Path(file.path)
+            new_path = file_path.with_name(file.name)
+
+            try:
+                file_path.rename(new_path)
+                file.path = str(new_path)
+                return file
+            except OSError as e:
+                logger.warning(f"Error: {e.strerror}")
+                return file
+
+        def process_file(file: AskFileResponse) -> FAISS:
+            """Simple helper to process the files"""
+            file = rename_file_path(file)
+            file_source = Files(paths=[file.path])
+            db = self._add_files_source(
+                hash=file.id, source=file_source, path=file.path, save_db=False
+            )
+            return db
+
+        dbs: List[FAISS] = execute_concurrently(process_file, files, max_workers=10)
+        faiss_db = self._combine_dbs(dbs)
+        retriever = faiss_db.as_retriever(search_kwargs=self._retriever_args)
+
+        if not validated_config.reranker:
+            return retriever
+        else:
+            return self._compression_retriever(retriever)
+
+    def _load_retriever(self, db_path: str, indexes: List[str]):
+        # Loads retriever
+        if not indexes:
+            return None
+
+        dbs: List[FAISS] = []
+
+        for index in indexes:
+            db = FAISS.load_local(
+                folder_path=db_path, index_name=index, embeddings=EMBEDDING_MODEL
+            )
+            dbs.append(db)
+
+        faiss_db = self._combine_dbs(dbs)
+
+        return faiss_db.as_retriever(search_kwargs=self._retriever_args)
 
     async def aload(
         self,

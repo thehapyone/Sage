@@ -49,12 +49,13 @@ if validated_config.llm.type == "azure":
         api_version=azure_config.revision,
         azure_deployment=azure_config.name,
         api_key=azure_config.password.get_secret_value(),
+        streaming=True,
     )
 
 elif validated_config.llm.type == "ollama":
     ollama_config = validated_config.llm.azure
 
-    LLM_MODEL = ChatOllama(base_url=ollama_config.endpoint, model=ollama_config.name)
+    LLM_MODEL = ChatOllama(base_url=ollama_config.endpoint, model=ollama_config.name, streaming=True)
 
 # Load the Embeddings model
 if validated_config.embedding.type == "jina":

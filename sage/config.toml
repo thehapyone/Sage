@@ -1,12 +1,40 @@
 [core]
 data_dir = "/home/ayo/Desktop/codes/codesage-ai/data"
 
+[upload]
+max_size_mb = 100
+max_files = 10
+timeout = 300
+
 [jira]
 url = "https://example.atlassian.net/"
 username = "jira-user@example.com"
 polling_interval = 300
 project = "JIRAPROJECT"
 status_todo = "To Do"
+
+[llm]
+type = "azure"
+
+[llm.azure]
+name = "gpt4"
+endpoint = "https://instance.openai.azure.com"
+revision = "2023-12-01-preview"
+
+[llm.ollama]
+name = "llama2:13b"
+endpoint = "http://localhost:11434"
+
+[reranker]
+type = "cohere"
+top_n = 5
+
+[reranker.cohere]
+name = "rerank-english-v2.0"
+
+[reranker.huggingface]
+name = "BAAI/bge-reranker-large"
+revision = "708e6d1fff4ba9c97540a97c23dba46b26d87764"
 
 [embedding]
 type = "jina"
@@ -20,6 +48,7 @@ name = "jinaai/jina-embeddings-v2-base-en"
 revision = "7302ac470bed880590f9344bfeee32ff8722d0e5"
 
 [source]
+top_k = 20
 
 [source.confluence]
 username = "jira-user@example.com"

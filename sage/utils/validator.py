@@ -99,14 +99,25 @@ class Web(BaseModel):
     ssl_verify: bool = True
 
 
+class Files(BaseModel):
+    """
+    Files Model.
+    """
+
+    paths: List[str]
+
+
 class Source(BaseModel):
     """
     Source Model.
     """
 
+    top_k: Optional[int] = 20
+    """The number of vector queries to return in the retriever"""
     confluence: Optional[ConfluenceModel] = None
     gitlab: Optional[GitlabModel] = None
     web: Optional[Web] = None
+    files: Optional[Files] = None
 
 
 class Jira_Config(Password):
@@ -220,14 +231,23 @@ class LLMConfig(BaseModel):
     type: Literal["azure", "ollama"]
 
 
+class UploadConfig(BaseModel):
+    """The configuration for the Chat upload mode"""
+
+    max_size_mb: Optional[int] = 10
+    max_files: Optional[int] = 5
+    timeout: Optional[int] = 300
+
+
 class Config(BaseModel):
     """
     Config Model.
     """
 
     core: Core
+    upload: UploadConfig
     jira: Jira_Config
     source: Source
-    reranker: Optional[ReRankerConfig]
+    reranker: Optional[ReRankerConfig] = None
     embedding: EmbeddingsConfig
     llm: LLMConfig

@@ -18,6 +18,12 @@ cache = false
 # Show the prompt playground
 prompt_playground = true
 
+# Process and display HTML in messages. This can be a security risk (see https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
+unsafe_allow_html = false
+
+# Process and display mathematical expressions. This can clash with "$" characters in messages.
+latex = false
+
 # Authorize users to upload files with messages
 multi_modal = false
 
@@ -31,7 +37,7 @@ multi_modal = false
 # Name of the app and chatbot.
 name = "Sage"
 
-# Show the readme while the conversation is empty.
+# Show the readme while the thread is empty.
 show_readme_as_default = true
 
 # Description of the app and chatbot. This is used for HTML tags.
@@ -77,4 +83,4 @@ custom_css = '/public/stylesheet.css'
 
 
 [meta]
-generated_by = "0.7.604"
+generated_by = "1.0.101"
