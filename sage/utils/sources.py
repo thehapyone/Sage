@@ -961,9 +961,24 @@ class Source:
             )
             return db
 
+        def cleanup_files(files: List[AskFileResponse]):
+            """Deletes a list of files from the filesystem."""
+            for file_obj in files:
+                try:
+                    file_path = Path(file_obj.path)
+                    if file_path.is_file():
+                        file_path.unlink()
+                        logger.debug(f"Deleted file: {file_path}")
+                    else:
+                        logger.warning(f"File not found: {file_path}")
+                except OSError as e:
+                    logger.error(f"Error deleting file {file_path}: {e.strerror}")
+
         dbs: List[FAISS] = execute_concurrently(process_file, files, max_workers=10)
         faiss_db = self._combine_dbs(dbs)
         retriever = faiss_db.as_retriever(search_kwargs=self._retriever_args)
+
+        cleanup_files(files)
 
         if not validated_config.reranker:
             return retriever
