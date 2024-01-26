@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED 1
 # install basic dependencies
 RUN apt-get update && \
     apt-get install --fix-broken --no-install-recommends -y \
-    git ffmpeg libsm6 libxext6 && \
+    git ffmpeg libsm6 libxext6 poppler-utils && \
     apt-get autoremove -y && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 # Create a non-root user

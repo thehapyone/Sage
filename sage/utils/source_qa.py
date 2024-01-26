@@ -460,7 +460,6 @@ class SourceQAService:
             )
             await msg.send()
 
-            await cl.sleep(0.5)
             # Get the files retriever
             retriever = await Source().load_files_retriever(files)
             # Let the user know that the system is ready
@@ -469,8 +468,8 @@ class SourceQAService:
                 "The following files are now processed and ready to be used!\n"
                 f"  {file_names}"
             )
+            await cl.sleep(5)
             await msg.update()
-            await cl.sleep(0.5)
 
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()
