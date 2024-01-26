@@ -459,6 +459,7 @@ class SourceQAService:
                 content=f"Now, I will begin processing {len(files)} files ..."
             )
             await msg.send()
+            await cl.sleep(1)
 
             # Get the files retriever
             retriever = await Source().load_files_retriever(files)
