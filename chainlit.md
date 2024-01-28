@@ -71,6 +71,7 @@ This final stage varies based on the user-selected mode in the chat interface:
 
  - Chat-only mode (default): The results from reranking/retrieval are passed to an LLM chain to answer the question using the retrieved documents as a knowledge source.
  - Agent mode: The agent executor, equipped with tools, actively combines data from retrieval/reranking and any available tools to answer the question, possibly involving multiple steps.
+ - File mode: In this mode, Sage is not configured with any retriever and it insteads creates a real-time retriever for user's upload documents and the user can then ask questions about the documents provided.
 
 ## Tips
 

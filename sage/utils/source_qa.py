@@ -227,8 +227,8 @@ class SourceQAService:
                 "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
                 "I can answer questions about the contents of the files you upload. To get started:\n\n"
                 "  1. Upload one or more documents\n"
-                "  2. Ask questions about the files a document file\n\n"
-                "Supported file types: Word Documents, PDFs, txt files, and Excel files\n"
+                "  2. Ask questions about the files and will I try to answer as best as I can\n\n"
+                "Supported file types: Word Documents, PDFs, Text files, Excel files, JSON, and YAML files.\n"
                 "Looking forward to our conversation!"
             )
         else:
@@ -425,14 +425,23 @@ class SourceQAService:
                 files = await cl.AskFileMessage(
                     content=intro_message,
                     disable_feedback=True,
-                    accept=[
-                        "text/plain",
-                        "application/pdf",
-                        "application/vnd.ms-excel",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "application/msword",
-                    ],
+                    accept={
+                        "text/plain": [".txt"],
+                        "application/pdf": [".pdf"],
+                        "application/json": [".json"],
+                        "application/x-yaml": [
+                            ".yaml",
+                            ".yml",
+                        ],
+                        "application/vnd.ms-excel": [".xls"],
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+                            ".xlsx"
+                        ],
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+                            ".docx"
+                        ],
+                        "application/msword": [".doc"],
+                    },
                     max_size_mb=validated_config.upload.max_size_mb,
                     max_files=validated_config.upload.max_files,
                     timeout=validated_config.upload.timeout,
