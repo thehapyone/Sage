@@ -845,7 +845,7 @@ class Source:
             func=self.add_source, items=self.source_refresh_list, input_type="dict"
         )
 
-    async def _aget_faiss_indexes(self) -> str | List[str]:
+    async def _get_faiss_indexes(self) -> str | List[str]:
         """Returns a list of all available faiss indexes"""
         dir_path = self.source_dir / "faiss"
 
@@ -992,7 +992,7 @@ class Source:
 
         return faiss_db.as_retriever(search_kwargs=self._retriever_args)
 
-    async def aload(
+    async def load(
         self,
     ) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
         """
@@ -1001,7 +1001,7 @@ class Source:
 
         await self.run()
 
-        db_path, indexes = await self._aget_faiss_indexes()
+        db_path, indexes = await self._get_faiss_indexes()
 
         _retriever = self._load_retriever(db_path, indexes)
 

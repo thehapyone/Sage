@@ -265,10 +265,10 @@ class SourceQAService:
             formatted_sources.append(metadata)
         return formatted_sources
 
-    async def _aget_retriever(self):
+    async def _get_retriever(self):
         """Loads a retrieval model from the source engine"""
         if not self._retriever:
-            self._retriever = await Source().aload()
+            self._retriever = await Source().load()
         return self._retriever
 
     @property
@@ -375,7 +375,7 @@ class SourceQAService:
 
     async def asetup_runnable(self, profile: str = "chat only"):
         """Setup the runnable model for the chat"""
-        retriever = await self._aget_retriever()
+        retriever = await self._get_retriever()
         if not retriever:
             raise SourceException("No source retriever found")
 
@@ -457,7 +457,7 @@ class SourceQAService:
 
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()
-            retriever = await self._aget_retriever()
+            retriever = await self._get_retriever()
             if not retriever:
                 raise SourceException("No source retriever found")
 
@@ -523,7 +523,7 @@ class SourceQAService:
         memory.chat_memory.add_ai_message(msg.content)
         memory.chat_memory.add_user_message(message.content)
 
-    async def _arun(self, query: str) -> str:
+    async def _run(self, query: str) -> str:
         """Answer the question in the query"""
         if not self._runnable:
             await self.asetup_runnable()
@@ -536,7 +536,7 @@ class SourceQAService:
         _tool = Tool(
             name=self.tool_name,
             description=self.tool_description,
-            func=run_sync(self._arun),
-            coroutine=self._arun,
+            func=run_sync(self._run),
+            coroutine=self._run,
         )
         return _tool
