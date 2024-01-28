@@ -1,10 +1,9 @@
 from functools import lru_cache
 import os
 from anyio import Path as aPath
-from pathlib import Path
 import tempfile
-from typing import Callable, List, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Optional
+from concurrent.futures import ThreadPoolExecutor
 from threading import Lock, Thread
 from urllib.parse import urljoin, urldefrag, urlparse
 from queue import Queue
@@ -45,7 +44,11 @@ from constants import (
 )
 from utils.exceptions import SourceException
 from utils.validator import ConfluenceModel, GitlabModel, Web, Files
-from utils.supports import markdown_to_text_using_html2text, execute_concurrently
+from utils.supports import (
+    markdown_to_text_using_html2text,
+    execute_concurrently,
+    aexecute_concurrently,
+)
 
 
 class CustomConfluenceLoader(ConfluenceLoader):
@@ -507,7 +510,7 @@ class Source:
     # TODO: Old sources metadata are not removed when the source change causing issue if old sources are used again as the source will not loaded because the metadata still exists
 
     _instance = None
-    source_dir = Path(core_config.data_dir) / "sources"
+    source_dir = aPath(core_config.data_dir) / "sources"
     _retriever_args = {"k": sources_config.top_k}
     """Custom retriever search args"""
 
@@ -517,7 +520,6 @@ class Source:
         return cls._instance
 
     def __init__(self) -> None:
-        self.source_dir.mkdir(exist_ok=True)
         self.source_refresh_list: List[dict] = list()
 
     @staticmethod
@@ -549,28 +551,29 @@ class Source:
     def _get_hash(input: str) -> str:
         return md5(input.encode()).hexdigest()
 
-    def _get_source_metadata_path(self, source_hash: str) -> Path:
+    def _get_source_metadata_path(self, source_hash: str) -> aPath:
+        """Get the source metadata"""
         return self.source_dir / source_hash
 
-    def _save_source_metadata(self, source_hash: str):
+    async def _save_source_metadata(self, source_hash: str):
         """Save the source metadata to disk"""
         metadata = self._get_source_metadata_path(source_hash)
-        metadata.write_text("True")
+        await metadata.write_text("True")
 
-    def _source_exist_locally(self, source_hash: str):
+    async def _source_exist_locally(self, source_hash: str):
         """Returns whether the given source exist or not"""
-        return self._get_source_metadata_path(source_hash).exists()
+        return await self._get_source_metadata_path(source_hash).exists()
 
     def _get_source_hash(self, source_type: str, name: str) -> str:
         """Generate a hash for a given source"""
         return f"{source_type}-{self._get_hash(name.lower())}.source"
 
-    def _append_to_refresh_list(
+    async def _append_to_refresh_list(
         self, source_type: str, identifier: str, identifier_key: str
     ):
         """Add source to the refresh list"""
         source_hash = self._get_source_hash(source_type, identifier)
-        if not self._source_exist_locally(source_hash):
+        if not await self._source_exist_locally(source_hash):
             self.source_refresh_list.append(
                 {
                     "hash": source_hash,
@@ -580,7 +583,7 @@ class Source:
                 }
             )
 
-    def _check_source(
+    async def _check_source(
         self,
         source_type: str,
         source_data: ConfluenceModel | GitlabModel | Web,
@@ -588,30 +591,31 @@ class Source:
     ):
         """Check if a source exist otherwise add to the refresh list"""
         for identifier in getattr(source_data, identifier_key, []):
-            self._append_to_refresh_list(source_type, identifier, identifier_key)
+            await self._append_to_refresh_list(source_type, identifier, identifier_key)
 
-    def check_sources_exist(self):
+    async def check_sources_exist(self):
         """Checks if sources in the config file exists locally"""
+        await self.source_dir.mkdir(exist_ok=True)
         for source_type, source_data in vars(sources_config).items():
             if not source_data:
                 continue
 
             if isinstance(source_data, ConfluenceModel):
-                self._check_source(source_type, source_data, "spaces")
+                await self._check_source(source_type, source_data, "spaces")
             elif isinstance(source_data, GitlabModel):
-                self._check_source(source_type, source_data, "groups")
-                self._check_source(source_type, source_data, "projects")
+                await self._check_source(source_type, source_data, "groups")
+                await self._check_source(source_type, source_data, "projects")
             elif isinstance(source_data, Web):
-                self._check_source(source_type, source_data, "links")
+                await self._check_source(source_type, source_data, "links")
 
-    def _create_and_save_db(
+    async def _create_and_save_db(
         self, source_hash: str, documents: List[Document], save_db: bool = True
     ) -> FAISS | None:
         """Creates and save a vector store index DB to file"""
         logger.debug(f"Creating a vector store for source with hash - {source_hash}")
 
         # Create vector index
-        db = FAISS.from_documents(documents=documents, embedding=EMBEDDING_MODEL)
+        db = await FAISS.afrom_documents(documents=documents, embedding=EMBEDDING_MODEL)
 
         if save_db:
             # Save DB to source directory
@@ -632,7 +636,7 @@ class Source:
             chunk_size=1500, chunk_overlap=300, length_function=len
         )
 
-    def _add_confluence(self, hash: str, source: ConfluenceModel, space: str):
+    async def _add_confluence(self, hash: str, source: ConfluenceModel, space: str):
         """
         Adds and saves a confluence data source
 
@@ -667,12 +671,12 @@ class Source:
                 f"An error has occured while loading confluence source: {str(error)}"
             )
 
-        self._create_and_save_db(
+        await self._create_and_save_db(
             source_hash=hash,
             documents=self.splitter().split_documents(confluence_documents),
         )
 
-    def _add_gitlab_source(
+    async def _add_gitlab_source(
         self,
         hash: str,
         source: GitlabModel,
@@ -702,12 +706,12 @@ class Source:
                 f"An error has occured while loading gitlab source: {str(error)}"
             )
 
-        self._create_and_save_db(
+        await self._create_and_save_db(
             source_hash=hash,
             documents=self.splitter().split_documents(gitlab_documents),
         )
 
-    def _add_web_source(self, hash: str, source: Web, link: str):
+    async def _add_web_source(self, hash: str, source: Web, link: str):
         """
         Adds and saves a web data source
 
@@ -739,11 +743,11 @@ class Source:
                 f"An error has occured while loading web source: {str(error)}"
             )
 
-        self._create_and_save_db(
+        await self._create_and_save_db(
             source_hash=hash, documents=self.splitter().split_documents(web_documents)
         )
 
-    def _add_files_source(
+    async def _add_files_source(
         self, hash: str, path: str, source: Files = None, save_db: bool = True
     ) -> FAISS | None:
         """
@@ -774,14 +778,14 @@ class Source:
                 f"An error has occured while loading file source: {str(error)}"
             )
 
-        db = self._create_and_save_db(
+        db = await self._create_and_save_db(
             source_hash=hash,
             documents=self.splitter().split_documents(file_documents),
             save_db=save_db,
         )
         return db
 
-    def add_source(
+    async def add_source(
         self, hash: str, source_type: str, identifier: str, identifier_type: str
     ) -> None:
         """
@@ -801,20 +805,20 @@ class Source:
         logger.info(f"Processing source {source_ref} ...")
         try:
             if source_type == "confluence":
-                self._add_confluence(
+                await self._add_confluence(
                     hash=hash, source=sources_config.confluence, space=identifier
                 )
             elif source_type == "web":
-                self._add_web_source(
+                await self._add_web_source(
                     hash=hash, source=sources_config.web, link=identifier
                 )
             elif source_type == "gitlab":
                 if identifier_type == "groups":
-                    self._add_gitlab_source(
+                    await self._add_gitlab_source(
                         hash=hash, source=sources_config.gitlab, groups=[identifier]
                     )
                 else:
-                    self._add_gitlab_source(
+                    await self._add_gitlab_source(
                         hash=hash, source=sources_config.gitlab, projects=[identifier]
                     )
             else:
@@ -824,46 +828,30 @@ class Source:
             logger.error(str(e))
             logger.error("Source will retry next re-run")
         else:
-            self._save_source_metadata(hash)
+            await self._save_source_metadata(hash)
             logger.info(f"Done with source {source_ref}")
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """
-        Starts a new thread for processing each source in self.source_refresh_list.
+        Process each source in the self.source_refresh_list.
         """
-        self.check_sources_exist()
+        await self.check_sources_exist()
 
         if len(self.source_refresh_list) == 0:
             logger.info("No changes to sources")
             return
 
-        threads = []
-        for source in self.source_refresh_list:
-            thread = Thread(target=self.add_source, kwargs=source)
-            thread.start()
-            threads.append(thread)
-
-        for thread in threads:
-            thread.join()
+        await aexecute_concurrently(
+            func=self.add_source, items=self.source_refresh_list, input_type="dict"
+        )
 
     async def _aget_faiss_indexes(self) -> str | List[str]:
         """Returns a list of all available faiss indexes"""
-        dir_path = aPath(self.source_dir / "faiss")
+        dir_path = self.source_dir / "faiss"
 
         indexes: List[str] = []
 
         async for file in dir_path.glob("*.faiss"):
-            indexes.append(file.stem)
-
-        return str(dir_path), indexes
-
-    def _get_faiss_indexes(self) -> str | List[str]:
-        """Returns a list of all available faiss indexes"""
-        dir_path = Path(self.source_dir / "faiss")
-
-        indexes: List[str] = []
-
-        for file in dir_path.glob("*.faiss"):
             indexes.append(file.stem)
 
         return str(dir_path), indexes
@@ -939,46 +927,48 @@ class Source:
         """
 
         ## TODO: Remove when chainlit set the file path to match the exact file name
-        def rename_file_path(file: AskFileResponse) -> AskFileResponse:
+        async def rename_file_path(file: AskFileResponse) -> AskFileResponse:
             """Extract the base path and file extension from the current file path"""
-            file_path = Path(file.path)
+            file_path = aPath(file.path)
             new_path = file_path.with_name(file.name)
 
             try:
-                file_path.rename(new_path)
+                await file_path.rename(new_path)
                 file.path = str(new_path)
                 return file
             except OSError as e:
                 logger.warning(f"Error: {e.strerror}")
                 return file
 
-        def process_file(file: AskFileResponse) -> FAISS:
+        async def process_file(file: AskFileResponse) -> FAISS:
             """Simple helper to process the files"""
-            file = rename_file_path(file)
+            file = await rename_file_path(file)
             file_source = Files(paths=[file.path])
-            db = self._add_files_source(
+            db = await self._add_files_source(
                 hash=file.id, source=file_source, path=file.path, save_db=False
             )
             return db
 
-        def cleanup_files(files: List[AskFileResponse]):
+        async def cleanup_files(files: List[AskFileResponse]):
             """Deletes a list of files from the filesystem."""
             for file_obj in files:
                 try:
-                    file_path = Path(file_obj.path)
-                    if file_path.is_file():
-                        file_path.unlink()
+                    file_path = aPath(file_obj.path)
+                    if await file_path.is_file():
+                        await file_path.unlink()
                         logger.debug(f"Deleted file: {file_path}")
                     else:
                         logger.warning(f"File not found: {file_path}")
                 except OSError as e:
                     logger.error(f"Error deleting file {file_path}: {e.strerror}")
 
-        dbs: List[FAISS] = execute_concurrently(process_file, files, max_workers=10)
+        dbs: List[FAISS] = await aexecute_concurrently(
+            process_file, files, max_workers=10
+        )
         faiss_db = self._combine_dbs(dbs)
         retriever = faiss_db.as_retriever(search_kwargs=self._retriever_args)
 
-        cleanup_files(files)
+        await cleanup_files(files)
 
         if not validated_config.reranker:
             return retriever
@@ -986,7 +976,7 @@ class Source:
             return self._compression_retriever(retriever)
 
     def _load_retriever(self, db_path: str, indexes: List[str]):
-        # Loads retriever
+        """Loads a retriever"""
         if not indexes:
             return None
 
@@ -1009,25 +999,9 @@ class Source:
         Returns either a retriever model from the FAISS vector indexes or compression based retriever model
         """
 
-        self.run()
+        await self.run()
 
         db_path, indexes = await self._aget_faiss_indexes()
-
-        _retriever = self._load_retriever(db_path, indexes)
-
-        if not validated_config.reranker:
-            return _retriever
-        else:
-            return self._compression_retriever(_retriever)
-
-    def load(self) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
-        """
-        Returns either a retriever model from the FAISS vector indexes or compression based retriever model
-        """
-
-        self.run()
-
-        db_path, indexes = self._get_faiss_indexes()
 
         _retriever = self._load_retriever(db_path, indexes)
 
