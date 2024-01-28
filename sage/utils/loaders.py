@@ -1,5 +1,7 @@
 
 # loaders.py
+## TODO: Move towards an async operation instead of the current threading approach for concurrency
+## Basically replacing execute_concurrently with aexecute_concurrently
 from functools import lru_cache
 import os
 import tempfile
