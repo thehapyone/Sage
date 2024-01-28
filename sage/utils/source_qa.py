@@ -1,6 +1,5 @@
 # source_qa.py
 
-from functools import cached_property
 from operator import itemgetter
 from typing import List, Sequence
 from datetime import datetime
@@ -8,7 +7,6 @@ from datetime import datetime
 from langchain.schema.document import Document
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.schema.runnable import (
-    RunnablePassthrough,
     RunnableSequence,
     RunnableConfig,
     RunnableMap,
@@ -18,7 +16,6 @@ from langchain.schema.runnable import (
 )
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.output_parser import StrOutputParser
-from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.tools import Tool
 from langchain.agents import AgentExecutor
@@ -268,16 +265,10 @@ class SourceQAService:
             formatted_sources.append(metadata)
         return formatted_sources
 
-    async def _aget_retriever(self):
+    async def _get_retriever(self):
         """Loads a retrieval model from the source engine"""
         if not self._retriever:
-            self._retriever = await Source().aload()
-        return self._retriever
-
-    def _get_retriever(self):
-        """Loads a retrieval model from the source engine"""
-        if not self._retriever:
-            self._retriever = Source().load()
+            self._retriever = await Source().load()
         return self._retriever
 
     @property
@@ -384,15 +375,7 @@ class SourceQAService:
 
     async def asetup_runnable(self, profile: str = "chat only"):
         """Setup the runnable model for the chat"""
-        retriever = await self._aget_retriever()
-        if not retriever:
-            raise SourceException("No source retriever found")
-
-        self._setup_runnable(retriever, profile)
-
-    def setup_runnable(self, profile: str = "chat only"):
-        """Setup the runnable model for the chat"""
-        retriever = self._get_retriever()
+        retriever = await self._get_retriever()
         if not retriever:
             raise SourceException("No source retriever found")
 
@@ -469,12 +452,12 @@ class SourceQAService:
                 "The following files are now processed and ready to be used!\n"
                 f"  {file_names}"
             )
-            await cl.sleep(5)
+            await cl.sleep(1)
             await msg.update()
 
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()
-            retriever = await self._aget_retriever()
+            retriever = await self._get_retriever()
             if not retriever:
                 raise SourceException("No source retriever found")
 
@@ -540,25 +523,20 @@ class SourceQAService:
         memory.chat_memory.add_ai_message(msg.content)
         memory.chat_memory.add_user_message(message.content)
 
-    async def _arun(self, query: str) -> str:
+    async def _run(self, query: str) -> str:
         """Answer the question in the query"""
         if not self._runnable:
             await self.asetup_runnable()
         return self._runnable.ainvoke({"question": query}).get("answer")
 
-    def _run(self, query: str) -> str:
-        """Answer the question in the query"""
-        if not self._runnable:
-            self.setup_runnable()
-        return self._runnable.invoke({"question": query}).get("answer")
-
     def setup_tool(self) -> Tool:
         """Create a tool object"""
+        from chainlit import run_sync
 
         _tool = Tool(
             name=self.tool_name,
             description=self.tool_description,
-            func=self._run,
-            coroutine=self._arun,
+            func=run_sync(self._run),
+            coroutine=self._run,
         )
         return _tool
