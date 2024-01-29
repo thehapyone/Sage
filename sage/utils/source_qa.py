@@ -227,7 +227,7 @@ class SourceQAService:
                 "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
                 "I can answer questions about the contents of the files you upload. To get started:\n\n"
                 "  1. Upload one or more documents\n"
-                "  2. Ask questions about the files and will I try to answer as best as I can\n\n"
+                "  2. Ask questions about the files and I will try to answer as best as I can\n\n"
                 "Supported file types: Word Documents, PDFs, Text files, Excel files, JSON, and YAML files.\n"
                 "Looking forward to our conversation!"
             )
