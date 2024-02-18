@@ -520,7 +520,6 @@ class SourceQAService:
                 text_elements.append(
                     cl.Text(
                         content=source_content,
-                        url=source_doc["source"],
                         name=source_name,
                     )
                 )
