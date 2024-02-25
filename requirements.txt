@@ -24,7 +24,7 @@ cryptography==41.0.7
 curl-cffi==0.5.10
 cycler==0.12.1
 dataclasses==0.6
-dataclasses-json==0.5.14
+dataclasses-json
 defusedxml==0.7.1
 Deprecated==1.2.14
 distro==1.9.0

@@ -1,66 +1,78 @@
 [core]
-data_dir = "/home/ayo/Desktop/codes/codesage-ai/data"
+data_dir = "/path/to/data/directory"
+logging_level = "INFO"
+user_agent = "codesage.ai"
 
 [upload]
-max_size_mb = 100
-max_files = 10
+max_size_mb = 10
+max_files = 5
 timeout = 300
 
 [jira]
-url = "https://example.atlassian.net/"
-username = "jira-user@example.com"
+url = "https://yourcompany.atlassian.net/"
+username = "your_jira_username"
+password = "your_jira_password"
 polling_interval = 300
-project = "JIRAPROJECT"
+project = "YOURPROJECT"
 status_todo = "To Do"
-
-[llm]
-type = "azure"
-
-[llm.azure]
-name = "gpt4"
-endpoint = "https://instance.openai.azure.com"
-revision = "2023-12-01-preview"
-
-[llm.ollama]
-name = "llama2:13b"
-endpoint = "http://localhost:11434"
-
-[reranker]
-type = "cohere"
-top_n = 5
-
-[reranker.cohere]
-name = "rerank-english-v2.0"
-
-[reranker.huggingface]
-name = "BAAI/bge-reranker-large"
-revision = "708e6d1fff4ba9c97540a97c23dba46b26d87764"
-
-[embedding]
-type = "jina"
-
-[embedding.openai]
-name = "ada-embeddings"
-revision = "2023-07-01-preview"
-
-[embedding.jina]
-name = "jinaai/jina-embeddings-v2-base-en"
-revision = "7302ac470bed880590f9344bfeee32ff8722d0e5"
 
 [source]
 top_k = 20
 
 [source.confluence]
-username = "jira-user@example.com"
-server = "https://example.atlassian.net/wiki"
-spaces = ["MYSPACE1", "MYSPACE2"]
+username = "your_confluence_username"
+password = "your_confluence_password"
+server = "https://yourcompany.atlassian.net/wiki"
+spaces = ["SPACE1", "SPACE2"]
 
 [source.gitlab]
+username = "your_gitlab_username"
+password = "your_gitlab_password"
 server = "https://gitlab.com"
-groups = ["group1/subgroup2"]
+groups = ["group1", "group2"]
+projects = ["project1", "project2"]
 
 [source.web]
-links = [
-    "https://docs.gitlab.com/ee/ci/"
-]
+links = ["https://example.com", "https://anotherexample.com"]
 nested = true
+ssl_verify = true
+
+[source.files]
+paths = ["/path/to/file1", "/path/to/file2"]
+
+[reranker]
+type = "huggingface"
+top_n = 5
+
+[reranker.cohere]
+name = "your_cohere_reranker_name"
+password = "your_cohere_password"
+
+[reranker.huggingface]
+name = "your_huggingface_reranker_name"
+revision = "your_huggingface_revision"
+
+[embedding]
+type = "openai"
+
+[embedding.openai]
+name = "your_openai_embedding_name"
+revision = "your_openai_embedding_revision"
+
+[embedding.jina]
+name = "your_jina_embedding_name"
+revision = "your_jina_embedding_revision"
+
+[llm]
+type = "azure"
+
+[llm.azure]
+name = "your_azure_llm_name"
+endpoint = "https://your_azure_endpoint"
+revision = "your_azure_revision"
+password = "your_azure_password"
+
+[llm.ollama]
+name = "your_ollama_llm_name"
+endpoint = "https://your_ollama_endpoint"
+revision = "your_ollama_revision"
