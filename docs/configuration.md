@@ -6,6 +6,8 @@ This document provides detailed instructions on how to configure the CodeSage ap
 
 The primary way to configure CodeSage is through a `config.toml` file located in the root directory of the application. This file contains various sections that correspond to different parts of the application, such as core settings, source connections, and model configurations.
 
+Path to the configuration file `config.toml` can be set via the environment variable `SAGE_CONFIG_PATH=/path/to/config.toml`
+
 ### Core Configuration
 
 The `[core]` section of the configuration file specifies the fundamental settings of the application, such as the data directory and logging level.

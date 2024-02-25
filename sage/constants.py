@@ -86,7 +86,6 @@ elif validated_config.embedding.type == "azure":
         azure_deployment=validated_config.embedding.azure.name,
         azure_endpoint=validated_config.azure.endpoint,
         api_version=validated_config.azure.revision,
-        azure_deployment=validated_config.llm.azure.name,
         api_key=validated_config.azure.password.get_secret_value(),
     )
 elif validated_config.embedding.type == "openai":
