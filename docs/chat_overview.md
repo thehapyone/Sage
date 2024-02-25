@@ -4,9 +4,17 @@ Sage Chat is an AI Assistant designed to interact with various data sources and 
 
 *The Chat UI interface is powered by Chainlit. For more details, refer to the [Chainlit Documentation](https://docs.chainlit.io).* 📚
 
-## Chat Architecture
+## Architecture
 
 Sage Chat employs the [Retrieval-Augmented Generation (RAG)](https://blogs.nvidia.com/blog/what-is-retrieval-augmented-generation/) system, a technique that combines generative AI models with external data sources to enhance response accuracy.
+
+CodeSage is built on various components that power its functionality. Some components are mode-specific, while others are utilized across different modes:
+
+- Config file
+- Sources
+- Embeddings
+- LLMs
+- Tools
 
 The core components of Sage Chat include:
 

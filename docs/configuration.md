@@ -27,6 +27,25 @@ max_files = 5
 timeout = 300
 ```
 
+## Azure Configuration
+
+The [azure] section defines the settings related to azure configuration, such as endpoint and versions.
+```toml
+[azure]
+endpoint = "https://your_azure_endpoint"
+password = "your_azure_password"
+revision = "your_azure_api_version"
+```
+
+## OpenAI Configuration
+
+The [openai] section defines the settings for common openai settings.
+```toml
+[openai]
+password = "your_openai_token"
+organization = "your_organization"
+```
+
 ## Jira Configuration
 
 The [jira] section configures the connection to your Jira instance, including the URL, user credentials, and polling interval.

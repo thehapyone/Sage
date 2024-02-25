@@ -1,105 +1,73 @@
-# CodeSage: AI Agent for Your Workplace
+# Sage: Your AI-Powered Data Assistant
 
-## What is CodeSage?
+## Simplify Your Data Interactions with Sage
+
+Sage is a versatile AI assistant designed to enhance your data interaction experience within a container environment. It provides a user-friendly conversational interface for accessing and manipulating data from various sources, all through a simple configuration file.
+
+## The Gateway to Your Data
+
+Sage Chat is the user-friendly interface that connects you to the vast capabilities of Sage. It's where conversations turn into actions, allowing you to seamlessly interact with your entire digital ecosystem.
+
+![Sage Chat Overview](sage/assets/sage_chat_overview.gif "Experience Sage Chat")
+
+Sage enables you to communicate with your data in a natural and intuitive way. Whether you're looking up information, summarizing content, or integrating with external tools, Sage is your personal data assistant, ready to help.
+
+## Key Features
 
 CodeSage aims to be a fully-fledged Artificial General Intelligence (AGI) capable of autonomously working in a software development capacity. While the ultimate goal is ambitious, the current objectives of CodeSage are to:
 
-- Analyze, generate, and debug code, perform static and dynamic analysis, detect faults, generate documentation, evaluate CI/CD, and more.
-- Minimize the need for human code reviewers.
-- Act as an action agent for issue management systems like Jira, effectively resolving tickets.
+- **Natural Language Processing**: Engage with Sage in everyday language to perform data-related tasks.
+- **Configuration Simplicity**: Set up Sage quickly by specifying your desired tools and sources in a configuration file.
+- **Diverse Tool Integration**: Leverage a suite of integrated tools for a variety of functions, from calculations to web searches.
+- **Agent Capabilities**: Utilize Sage in agent mode for advanced tasks, including code assistance and debugging.
 
-## Behavior
-
-CodeSage is designed to:
-
-- Provide professional and courteous interactions, offering insightful and constructive feedback to help users improve their coding skills.
-- Identify potential bugs, errors, performance issues, and other code quality concerns.
-- Be highly customizable and adaptable to user needs.
-
-## Modes of Operation
-
-CodeSage currently operates in three primary modes:
-
-- **Sage Chat:** Engage in natural language conversations with users about code, data sources, and more.
-- **Sage Reviewer:** Serve as an expert code reviewer, providing recommendations based on code changes and configurations.
-- **Sage Jira:** Act as an autonomous Jira agent, managing and resolving tickets.
-
-### Sage Reviewer
-
-In the default deployment mode, Sage Reviewer, CodeSage functions as an expert code guru, analyzing code changes and suggesting improvements.
-
-### Sage Chat
-
-Sage Chat enables CodeSage to have natural conversations with users. The core technology behind Sage Chat is Retrieval Augmented Generation (RAG).
-
-Learn more about Sage Chat [here](chainlit.md).
-
-#### What is RAG?
-
-RAG is a technique that enhances Large Language Models (LLMs) with additional data, enriching their responses.
-
-#### RAG Architecture
-
-A typical RAG setup includes:
-
-- **Indexing:** A pipeline for ingesting and indexing data from various sources, usually performed offline.
-- **Retrieval and Generation:** The real-time RAG process retrieves relevant data based on user queries and feeds it to the model for response generation.
-
-## Sage Agent
-
-In Agent mode, CodeSage performs specific actions autonomously, such as:
+In Agent mode, sage could perform specific actions autonomously, such as:
 
 - Creating Merge Requests (MRs) to fix bugs.
 - Managing Jira tickets by analyzing content and determining appropriate actions.
 
-## Architecture
+## Current Implementation
 
-CodeSage is built on various components that power its functionality. Some components are mode-specific, while others are utilized across different modes:
+Sage currently offers the following functionalities:
 
-- Config file
-- Sources
-- Embeddings
-- LLMs
-- Tools
-
-### Configuration File
-
-At the core of CodeSage is a TOML configuration file, which is used to configure various parts of the system. A Pydantic-based validator ensures the syntax and data values meet expected standards.
-
-View a sample configuration [here](sage/config.toml).
+- **Data Source Queries**: Interact with multiple data sources directly through conversational prompts.
+- **Integrated Tools**: Access tools like calculators, search engines, and Jira issue summarizers within the chat.
+- **Autonomous Agent Mode**: Activate Sage as an AI agent to handle complex queries and perform autonomous actions.
 
 
-### Embeddings
+## Getting Started with Sage
 
-CodeSage utilizes various embedding engines to transform text inputs into vector representations for different functionalities. Both open-source and proprietary models are supported.
+Begin your journey with Sage in just a few steps:
 
-> **Note:** It is advisable to consistently use the same embedding model throughout the application runtime. Changing embeddings can lead to dimensionality mismatches and potentially cause errors. To switch embeddings, you may need to clear previously indexed data.
+1. **Installation**: Install Sage following our straightforward installation guide.
+2. **Configuration**: Define your tools and sources in the configuration file to tailor Sage to your needs.
+3. **Interaction**: Start using Sage Chat to explore the full range of its data interaction capabilities.
 
+For complete guidance, refer to our [Installation Guide](docs/installation.md) and [Configuration Guide](docs/configuration.md)
 
+## Documentation
 
-## Getting Started
+For more detailed information about Sage's capabilities and how to use it, please refer to the following resources:
 
-To begin using CodeSage, you'll need to follow these setup steps:
+- [Tools Overview](docs/tools.md) - Learn about the tools available in Sage and how to use them.
+- [LLMs Overview](docs/llms.md) - Understand the Large Language Models supported by Sage.
+- [Data Sources](docs/sources.md) - Discover the data sources Sage can interact with and how to configure them.
+- [Quick Start Guide](docs/quick_start.md) - Get started with Sage quickly with this simple guide.
 
-1. **Installation:** Instructions for installing CodeSage and its dependencies.
-2. **Configuration:** Guidelines for configuring CodeSage to suit your environment and use cases.
-3. **Running CodeSage:** Step-by-step guide to starting CodeSage in one of its modes.
+## Sage Chat Overview
 
-For detailed instructions, please refer to the [Installation Guide](installation.md), [Configuration Guide](configuration.md), and [Usage Guide](usage.md).
+For an in-depth look at Sage Chat, including its architecture, how it leverages Large Language Models, and tips for getting the best results, please refer to our [Sage Chat Documentation](docs/sage_chat_overview.md).
 
-## Contributing
+## Join the Sage Community
 
-We welcome contributions from the community. If you're interested in contributing, please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+Sage is a collaborative project that welcomes contributions from developers and enthusiasts alike. Your input can help us refine and expand Sage's functionality.
 
-## License
+Ready to contribute? Please see our [Contributing Guidelines](CONTRIBUTING.md) for more information.
 
-CodeSage is licensed under the ...
+## Support and Feedback
 
-## Support
+Your feedback is crucial to Sage's development. For assistance, to suggest new features, or to report bugs, please visit our [GitHub Issues](https://github.com/thehapyone/sage/issues) page.
 
-If you need assistance or want to report an issue, please file an issue on our [GitHub Issues](https://github.com/thehapyone/codesage/issues) page.
+## Appreciation
 
-## Acknowledgments
-
-We would like to thank all the contributors who have helped make CodeSage a reality, as well as the open-source projects that have provided inspiration and foundational technologies.
-
+We extend our gratitude to all the contributors, community members, and open-source projects that have played a role in Sage's development. Your support is what makes Sage a valuable tool for data interaction.

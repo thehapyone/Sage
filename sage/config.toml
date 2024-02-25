@@ -22,9 +22,7 @@ password = "your_azure_password"
 revision = "your_azure_api_version"
 
 [openai]
-endpoint = "https://your_azure_endpoint"
-password = "your_azure_password"
-revision = "your_azure_api_version"
+password = "your_openai_token"
 organization = "your_organization"
 
 [source]
