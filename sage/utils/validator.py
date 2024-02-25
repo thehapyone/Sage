@@ -1,6 +1,5 @@
 from pydantic import (
     BaseModel,
-    model_validator,
     root_validator,
     validator,
     SecretStr,

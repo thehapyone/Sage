@@ -24,7 +24,7 @@ try:
     core_config = validated_config.core
     jira_config = validated_config.jira
     sources_config = validated_config.source
-except ValidationError as error:
+except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(1)
 except (FileNotFoundError, KeyError) as error:
