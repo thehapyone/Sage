@@ -5,6 +5,7 @@ from pydantic import (
     validator,
     SecretStr,
     field_serializer,
+    Field,
 )
 from typing import Literal, Optional, List
 from pathlib import Path
@@ -14,6 +15,14 @@ from logging import getLevelName
 from utils.exceptions import ConfigException
 
 sage_base = ".sage"
+
+
+class UploadConfig(BaseModel):
+    """The configuration for the Chat upload mode"""
+
+    max_size_mb: Optional[int] = 10
+    max_files: Optional[int] = 5
+    timeout: Optional[int] = 300
 
 
 class Password(BaseModel):
@@ -26,6 +35,29 @@ class Password(BaseModel):
     @field_serializer("password", when_used="json")
     def dump_secret(self, v):
         return v.get_secret_value() if v else None
+
+
+class AzureConfig(Password):
+    """Common Azure Configurations"""
+
+    endpoint: str
+    revision: str
+
+    @validator("endpoint", pre=True, always=True)
+    def add_https_to_endpoint(cls, v):
+        if not v.startswith("https://"):
+            return f"https://{v}"
+        return v
+
+    @validator("password", pre=True, always=True)
+    def set_password(cls, v):
+        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
+        if password is None:
+            raise ConfigException(
+                "The AZURE_OPENAI_API_KEY or password is missing. \
+                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
+            )
+        return password
 
 
 class SourceData(Password):
@@ -160,13 +192,13 @@ class EmbeddingCore(BaseModel):
     """The Embedding Model schema"""
 
     name: str
-    revision: str
+    revision: Optional[str] = None
 
 
 class EmbeddingsConfig(BaseModel):
-    openai: Optional[EmbeddingCore]
-    jina: Optional[EmbeddingCore]
-    type: Literal["jina", "openai"]
+    azure: Optional[EmbeddingCore] = None
+    jina: Optional[EmbeddingCore] = None
+    type: Literal["jina", "azure"]
 
 
 class CohereReRanker(Password):
@@ -205,38 +237,16 @@ class LLMCore(Password):
     """The LLM Core Model schema"""
 
     name: str
-    endpoint: str
+    endpoint: Optional[str] = None
     revision: Optional[str] = None
-
-
-class AzureLLM(LLMCore):
-    """The LLM Core Model schema"""
-
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
-        if password is None:
-            raise ConfigException(
-                "The AZURE_OPENAI_API_KEY or password is missing. \
-                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
-            )
-        return password
 
 
 class LLMConfig(BaseModel):
     """The configuration for LLM models"""
 
-    azure: Optional[AzureLLM]
+    azure: Optional[LLMCore]
     ollama: Optional[LLMCore]
     type: Literal["azure", "ollama"]
-
-
-class UploadConfig(BaseModel):
-    """The configuration for the Chat upload mode"""
-
-    max_size_mb: Optional[int] = 10
-    max_files: Optional[int] = 5
-    timeout: Optional[int] = 300
 
 
 class Config(BaseModel):
@@ -244,10 +254,29 @@ class Config(BaseModel):
     Config Model.
     """
 
-    core: Core
+    core: Optional[Core] = Field(
+        default=Core(), description="Sage's main configuration"
+    )
     upload: Optional[UploadConfig] = UploadConfig()
     jira: Jira_Config
     source: Source
     reranker: Optional[ReRankerConfig] = None
     embedding: EmbeddingsConfig
     llm: LLMConfig
+    azure: AzureConfig = Field(default=None, description="Shared Azure configuration")
+
+    @root_validator(pre=True)
+    def check_azure_config(cls, values):
+        """Ensure the azure field is not empty when using azure providers"""
+        embedding = values.get("embedding")
+        llm = values.get("llm")
+        azure = values.get("azure")
+
+        # Check if either embedding or llm type is 'azure' and if so, ensure azure config is provided
+        if (
+            (embedding and embedding.type == "azure") or (llm and llm.type == "azure")
+        ) and not azure:
+            raise ConfigException(
+                "Azure configuration must be provided when embedding or llm type is 'azure'"
+            )
+        return values

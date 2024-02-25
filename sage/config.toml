@@ -16,6 +16,11 @@ polling_interval = 300
 project = "YOURPROJECT"
 status_todo = "To Do"
 
+[azure]
+endpoint = "https://your_azure_endpoint"
+password = "your_azure_password"
+revision = "your_azure_api_version"
+
 [source]
 top_k = 20
 
@@ -55,9 +60,8 @@ revision = "your_huggingface_revision"
 [embedding]
 type = "openai"
 
-[embedding.openai]
-name = "your_openai_embedding_name"
-revision = "your_openai_embedding_revision"
+[embedding.azure]
+name = "your_azure_embedding_name"
 
 [embedding.jina]
 name = "your_jina_embedding_name"
@@ -68,9 +72,6 @@ type = "azure"
 
 [llm.azure]
 name = "your_azure_llm_name"
-endpoint = "https://your_azure_endpoint"
-revision = "your_azure_revision"
-password = "your_azure_password"
 
 [llm.ollama]
 name = "your_ollama_llm_name"
