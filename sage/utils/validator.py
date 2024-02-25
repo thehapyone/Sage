@@ -60,6 +60,22 @@ class AzureConfig(Password):
         return password
 
 
+class OpenAIConfig(Password):
+    """Common OpenAI Configurations"""
+
+    organization: Optional[str] = None
+
+    @validator("password", pre=True, always=True)
+    def set_password(cls, v):
+        password = v or os.getenv("OPENAI_PASSWORD") or os.getenv("OPENAI_API_KEY")
+        if password is None:
+            raise ConfigException(
+                "The OPENAI_API_KEY or password is missing. \
+                    Please add it via an env variable or to the config password field - 'OPENAI_API_KEY'"
+            )
+        return password
+
+
 class SourceData(Password):
     """
     Source Data Model. Inherits Password.
@@ -197,8 +213,9 @@ class EmbeddingCore(BaseModel):
 
 class EmbeddingsConfig(BaseModel):
     azure: Optional[EmbeddingCore] = None
+    openai: Optional[EmbeddingCore] = None
     jina: Optional[EmbeddingCore] = None
-    type: Literal["jina", "azure"]
+    type: Literal["jina", "azure", "openai"]
 
 
 class CohereReRanker(Password):
@@ -245,8 +262,9 @@ class LLMConfig(BaseModel):
     """The configuration for LLM models"""
 
     azure: Optional[LLMCore]
+    openai: Optional[LLMCore]
     ollama: Optional[LLMCore]
-    type: Literal["azure", "ollama"]
+    type: Literal["azure", "ollama", "openai"]
 
 
 class Config(BaseModel):
@@ -259,24 +277,38 @@ class Config(BaseModel):
     )
     upload: Optional[UploadConfig] = UploadConfig()
     jira: Jira_Config
+    azure: AzureConfig = Field(default=None, description="Shared Azure configuration")
+    openai: OpenAIConfig = Field(
+        default=None, description="Shared OpenAI configuration"
+    )
     source: Source
     reranker: Optional[ReRankerConfig] = None
     embedding: EmbeddingsConfig
     llm: LLMConfig
-    azure: AzureConfig = Field(default=None, description="Shared Azure configuration")
 
     @root_validator(pre=True)
-    def check_azure_config(cls, values):
-        """Ensure the azure field is not empty when using azure providers"""
+    def check_provider_configs(cls, values):
+        """Ensure the appropriate provider field is not empty when using specific providers"""
         embedding = values.get("embedding")
         llm = values.get("llm")
-        azure = values.get("azure")
 
-        # Check if either embedding or llm type is 'azure' and if so, ensure azure config is provided
-        if (
-            (embedding and embedding.type == "azure") or (llm and llm.type == "azure")
-        ) and not azure:
-            raise ConfigException(
-                "Azure configuration must be provided when embedding or llm type is 'azure'"
-            )
+        # Define a list of providers to validate
+        providers = [
+            {"type": "azure", "config": "azure"},
+            {"type": "openai", "config": "openai"},
+        ]
+
+        for provider in providers:
+            provider_type = provider["type"]
+            provider_config = provider["config"]
+
+            # Check if embedding or llm type matches the provider type and ensure the corresponding config is provided
+            if (
+                (embedding and embedding.type == provider_type)
+                or (llm and llm.type == provider_type)
+            ) and not values.get(provider_config):
+                raise ConfigException(
+                    f"{provider_type.capitalize()} configuration must be provided when embedding or llm type is '{provider_type}'"
+                )
+
         return values

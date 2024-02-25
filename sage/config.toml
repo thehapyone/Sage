@@ -21,6 +21,12 @@ endpoint = "https://your_azure_endpoint"
 password = "your_azure_password"
 revision = "your_azure_api_version"
 
+[openai]
+endpoint = "https://your_azure_endpoint"
+password = "your_azure_password"
+revision = "your_azure_api_version"
+organization = "your_organization"
+
 [source]
 top_k = 20
 

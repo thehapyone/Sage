@@ -2,8 +2,8 @@ import os
 import sys
 import toml
 from langchain_community.chat_models import ChatOllama
-from langchain_openai.chat_models import AzureChatOpenAI
-from langchain_openai.embeddings import AzureOpenAIEmbeddings
+from langchain_openai.chat_models import ChatOpenAI, AzureChatOpenAI
+from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from pydantic import ValidationError
 from pathlib import Path
 from utils.exceptions import ConfigException
@@ -61,6 +61,16 @@ elif validated_config.llm.type == "ollama":
         base_url=ollama_config.endpoint, model=ollama_config.name, streaming=True
     )
 
+elif validated_config.llm.type == "openai":
+    ollama_config = validated_config.llm.openai
+
+    LLM_MODEL = ChatOpenAI(
+        model=validated_config.llm.openai.name,
+        api_key=validated_config.openai.password.get_secret_value(),
+        organization=validated_config.openai.organization,
+        streaming=True,
+    )
+
 # Load the Embeddings model
 if validated_config.embedding.type == "jina":
     jina_config = validated_config.embedding.jina
@@ -78,5 +88,11 @@ elif validated_config.embedding.type == "azure":
         api_version=validated_config.azure.revision,
         azure_deployment=validated_config.llm.azure.name,
         api_key=validated_config.azure.password.get_secret_value(),
-        streaming=True,
+    )
+elif validated_config.embedding.type == "openai":
+
+    EMBEDDING_MODEL = OpenAIEmbeddings(
+        model=validated_config.embedding.openai.name,
+        api_key=validated_config.openai.password.get_secret_value(),
+        organization=validated_config.openai.organization,
     )
