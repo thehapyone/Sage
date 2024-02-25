@@ -1,6 +1,21 @@
 # Tools Overview for Sage
 
-Sage integrates with a variety of tools to enhance your data interaction experience. Below is an overview of the tools currently supported by Sage.
+CodeSage utilizes tools to perform actions beyond the capabilities of LLMs alone. These tools enhance CodeSage's functionality and help to address some of the limitations inherent in LLMs. Configuration files dictate which tools CodeSage can employ to accomplish specific tasks.
+
+Integration with a variety of tools helps to enhance the data interaction experience. 
+
+Some of the functionalities enabled by tools include:
+
+- Retrieving real-time weather forecasts.
+- Accessing the latest information available on the internet.
+- Checking the status of tickets in issue management systems.
+- Querying databases for specific data.
+- Publishing content to Confluence.
+- Creating or commenting on pull requests in GitLab/GitHub.
+- Summarizing Jira issues.
+- And many more...
+
+Below is an overview of the tools currently supported by Sage.
 
 ## List of Tools
 
@@ -21,18 +36,6 @@ To add a new tool to Sage:
 
 1. Define the tool in the `config.toml` file with the necessary parameters.
 2. Restart Sage to apply the changes.
-
-For more detailed instructions on configuring and using each tool, please refer to the specific sections below.
-
-## Calculator
-
-...
-
-## Search Engine
-
-...
-
-## Jira Issue Summarizer
 
 ...
 

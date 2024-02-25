@@ -68,27 +68,6 @@ At the core of CodeSage is a TOML configuration file, which is used to configure
 
 View a sample configuration [here](sage/config.toml).
 
-### Sources
-
-The Sources module is the entry point for configuring access to external data sources, allowing CodeSage to interact with and index data.
-
-Supported sources include:
-
-- Confluence
-- GitLab
-- Websites (via nested web crawling functionality)
-
-#### Confluence Source
-
-CodeSage can index content from Atlassian Confluence spaces or individual pages.
-
-#### GitLab
-
-CodeSage can connect to GitLab to index content from specified projects or groups.
-
-#### Websites / Web Links
-
-CodeSage can crawl and index content from external web links, including nested page structures.
 
 ### Embeddings
 
@@ -96,24 +75,7 @@ CodeSage utilizes various embedding engines to transform text inputs into vector
 
 > **Note:** It is advisable to consistently use the same embedding model throughout the application runtime. Changing embeddings can lead to dimensionality mismatches and potentially cause errors. To switch embeddings, you may need to clear previously indexed data.
 
-### LLMs (Large Language Models)
 
-Large Language Models are fundamental to CodeSage's operation. The system can leverage various LLMs thanks to the integration with the LangChain framework, which provides the flexibility to use different models as required.
-
-### Tools
-
-CodeSage utilizes tools to perform actions beyond the capabilities of LLMs alone. These tools enhance CodeSage's functionality and help to address some of the limitations inherent in LLMs. Configuration files dictate which tools CodeSage can employ to accomplish specific tasks.
-
-Some of the functionalities enabled by tools include:
-
-- Retrieving real-time weather forecasts.
-- Accessing the latest information available on the internet.
-- Checking the status of tickets in issue management systems.
-- Querying databases for specific data.
-- Publishing content to Confluence.
-- Creating or commenting on pull requests in GitLab/GitHub.
-- Summarizing Jira issues.
-- And many more...
 
 ## Getting Started
 
