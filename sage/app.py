@@ -4,6 +4,8 @@ from utils.sources import Source
 from constants import sources_config
 from utils.source_qa import SourceQAService
 
+import asyncio
+
 # myjira = Jira()
 
 # key = "ANTHEA-906"
@@ -14,9 +16,10 @@ from utils.source_qa import SourceQAService
 # print(agent.generate_issue_template(issue))
 
 # # agent.planner(issue)
-# #source_list = Source()
-# #source_list.run()
+source_list = Source()
 
-qa_tool = SourceQAService(mode="tool")
-res = qa_tool._run("Hello, how are you?")
-print(res)
+#qa_tool = SourceQAService(mode="tool")
+#res = qa_tool._run("Hello, how are you?")
+#print(res)
+
+asyncio.run(source_list.run())

@@ -334,12 +334,14 @@ class Source:
                 hash=hash, source=sources_config.web, link=identifier
             )
         elif source_type == "gitlab":
-            await self._add_gitlab_source(
-                hash=hash,
-                source=sources_config.gitlab,
-                identifier=identifier,
-                identifier_type=identifier_type,
-            )
+            if identifier_type == "groups":
+                await self._add_gitlab_source(
+                    hash=hash, source=sources_config.gitlab, groups=[identifier]
+                )
+            else:
+                await self._add_gitlab_source(
+                    hash=hash, source=sources_config.gitlab, projects=[identifier]
+                )
         else:
             raise SourceException(f"Unknown source type: {source_type}")
 
@@ -362,7 +364,9 @@ class Source:
         source_ref = f"{source_type}: {identifier_type}={identifier}"
         logger.info(f"Processing source {source_ref} ...")
         try:
-            await self._process_source_type(hash, source_type, identifier, identifier_type)
+            await self._process_source_type(
+                hash, source_type, identifier, identifier_type
+            )
         except Exception as e:
             logger.error(f"An error has occurred processing source {source_ref}")
             logger.error(str(e))
