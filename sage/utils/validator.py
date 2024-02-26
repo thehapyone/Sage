@@ -75,6 +75,18 @@ class OpenAIConfig(Password):
         return password
 
 
+class LLMEmbeddingsValidateType(BaseModel):
+    """Base Model for validating the type data"""
+
+    @root_validator(skip_on_failure=True)
+    def validate_config_is_available_for_type(values):
+        """A validator that raises an error the config data for the type is missing"""
+        llm_type = values["type"]
+        if not values.get(llm_type):
+            raise ConfigException(f"The Config data for type '{llm_type}' is missing.")
+        return values
+
+
 class SourceData(Password):
     """
     Source Data Model. Inherits Password.
@@ -210,7 +222,7 @@ class EmbeddingCore(BaseModel):
     revision: Optional[str] = None
 
 
-class EmbeddingsConfig(BaseModel):
+class EmbeddingsConfig(LLMEmbeddingsValidateType):
     azure: Optional[EmbeddingCore] = None
     openai: Optional[EmbeddingCore] = None
     jina: Optional[EmbeddingCore] = None
@@ -257,12 +269,12 @@ class LLMCore(Password):
     revision: Optional[str] = None
 
 
-class LLMConfig(BaseModel):
+class LLMConfig(LLMEmbeddingsValidateType):
     """The configuration for LLM models"""
 
-    azure: Optional[LLMCore]
-    openai: Optional[LLMCore]
-    ollama: Optional[LLMCore]
+    azure: Optional[LLMCore] = None
+    openai: Optional[LLMCore] = None
+    ollama: Optional[LLMCore] = None
     type: Literal["azure", "ollama", "openai"]
 
 
@@ -303,8 +315,8 @@ class Config(BaseModel):
 
             # Check if embedding or llm type matches the provider type and ensure the corresponding config is provided
             if (
-                (embedding and embedding.type == provider_type)
-                or (llm and llm.type == provider_type)
+                (embedding and embedding["type"] == provider_type)
+                or (llm and llm["type"] == provider_type)
             ) and not values.get(provider_config):
                 raise ConfigException(
                     f"{provider_type.capitalize()} configuration must be provided when embedding or llm type is '{provider_type}'"
