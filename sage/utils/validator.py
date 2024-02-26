@@ -1,10 +1,10 @@
 from pydantic import (
     BaseModel,
-    model_validator,
     root_validator,
     validator,
     SecretStr,
     field_serializer,
+    Field,
 )
 from typing import Literal, Optional, List
 from pathlib import Path
@@ -14,6 +14,14 @@ from logging import getLevelName
 from utils.exceptions import ConfigException
 
 sage_base = ".sage"
+
+
+class UploadConfig(BaseModel):
+    """The configuration for the Chat upload mode"""
+
+    max_size_mb: Optional[int] = 10
+    max_files: Optional[int] = 5
+    timeout: Optional[int] = 300
 
 
 class Password(BaseModel):
@@ -26,6 +34,57 @@ class Password(BaseModel):
     @field_serializer("password", when_used="json")
     def dump_secret(self, v):
         return v.get_secret_value() if v else None
+
+
+class AzureConfig(Password):
+    """Common Azure Configurations"""
+
+    endpoint: str
+    revision: str
+
+    @validator("endpoint", pre=True, always=True)
+    def add_https_to_endpoint(cls, v):
+        if not v.startswith("https://"):
+            return f"https://{v}"
+        return v
+
+    @validator("password", pre=True, always=True)
+    def set_password(cls, v):
+        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
+        if password is None:
+            raise ConfigException(
+                "The AZURE_OPENAI_API_KEY or password is missing. \
+                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
+            )
+        return password
+
+
+class OpenAIConfig(Password):
+    """Common OpenAI Configurations"""
+
+    organization: Optional[str] = None
+
+    @validator("password", pre=True, always=True)
+    def set_password(cls, v):
+        password = v or os.getenv("OPENAI_PASSWORD") or os.getenv("OPENAI_API_KEY")
+        if password is None:
+            raise ConfigException(
+                "The OPENAI_API_KEY or password is missing. \
+                    Please add it via an env variable or to the config password field - 'OPENAI_API_KEY'"
+            )
+        return password
+
+
+class LLMEmbeddingsValidateType(BaseModel):
+    """Base Model for validating the type data"""
+
+    @root_validator(skip_on_failure=True)
+    def validate_config_is_available_for_type(values):
+        """A validator that raises an error the config data for the type is missing"""
+        llm_type = values["type"]
+        if not values.get(llm_type):
+            raise ConfigException(f"The Config data for type '{llm_type}' is missing.")
+        return values
 
 
 class SourceData(Password):
@@ -160,13 +219,14 @@ class EmbeddingCore(BaseModel):
     """The Embedding Model schema"""
 
     name: str
-    revision: str
+    revision: Optional[str] = None
 
 
-class EmbeddingsConfig(BaseModel):
-    openai: Optional[EmbeddingCore]
-    jina: Optional[EmbeddingCore]
-    type: Literal["jina", "openai"]
+class EmbeddingsConfig(LLMEmbeddingsValidateType):
+    azure: Optional[EmbeddingCore] = None
+    openai: Optional[EmbeddingCore] = None
+    jina: Optional[EmbeddingCore] = None
+    type: Literal["jina", "azure", "openai"]
 
 
 class CohereReRanker(Password):
@@ -205,38 +265,17 @@ class LLMCore(Password):
     """The LLM Core Model schema"""
 
     name: str
-    endpoint: str
+    endpoint: Optional[str] = None
     revision: Optional[str] = None
 
 
-class AzureLLM(LLMCore):
-    """The LLM Core Model schema"""
-
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
-        if password is None:
-            raise ConfigException(
-                "The AZURE_OPENAI_API_KEY or password is missing. \
-                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
-            )
-        return password
-
-
-class LLMConfig(BaseModel):
+class LLMConfig(LLMEmbeddingsValidateType):
     """The configuration for LLM models"""
 
-    azure: Optional[AzureLLM]
-    ollama: Optional[LLMCore]
-    type: Literal["azure", "ollama"]
-
-
-class UploadConfig(BaseModel):
-    """The configuration for the Chat upload mode"""
-
-    max_size_mb: Optional[int] = 10
-    max_files: Optional[int] = 5
-    timeout: Optional[int] = 300
+    azure: Optional[LLMCore] = None
+    openai: Optional[LLMCore] = None
+    ollama: Optional[LLMCore] = None
+    type: Literal["azure", "ollama", "openai"]
 
 
 class Config(BaseModel):
@@ -244,10 +283,43 @@ class Config(BaseModel):
     Config Model.
     """
 
-    core: Core
+    core: Optional[Core] = Field(
+        default=Core(), description="Sage's main configuration"
+    )
     upload: Optional[UploadConfig] = UploadConfig()
     jira: Jira_Config
+    azure: AzureConfig = Field(default=None, description="Shared Azure configuration")
+    openai: OpenAIConfig = Field(
+        default=None, description="Shared OpenAI configuration"
+    )
     source: Source
     reranker: Optional[ReRankerConfig] = None
     embedding: EmbeddingsConfig
     llm: LLMConfig
+
+    @root_validator(pre=True)
+    def check_provider_configs(cls, values):
+        """Ensure the appropriate provider field is not empty when using specific providers"""
+        embedding = values.get("embedding")
+        llm = values.get("llm")
+
+        # Define a list of providers to validate
+        providers = [
+            {"type": "azure", "config": "azure"},
+            {"type": "openai", "config": "openai"},
+        ]
+
+        for provider in providers:
+            provider_type = provider["type"]
+            provider_config = provider["config"]
+
+            # Check if embedding or llm type matches the provider type and ensure the corresponding config is provided
+            if (
+                (embedding and embedding["type"] == provider_type)
+                or (llm and llm["type"] == provider_type)
+            ) and not values.get(provider_config):
+                raise ConfigException(
+                    f"{provider_type.capitalize()} configuration must be provided when embedding or llm type is '{provider_type}'"
+                )
+
+        return values

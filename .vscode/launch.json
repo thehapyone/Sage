@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Chainlit",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "chainlit",
+            "args": "run -w ${workspaceFolder}/sage/chat.py",
+            "envFile": "${workspaceFolder}/sandbox/sage.env"
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/sandbox/sage.env"
+        }
+    ]
+}

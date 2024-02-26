@@ -2,9 +2,8 @@ import os
 import sys
 import toml
 from langchain_community.chat_models import ChatOllama
-from langchain_openai.chat_models import AzureChatOpenAI
+from langchain_openai.chat_models import ChatOpenAI, AzureChatOpenAI
 from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
-from langchain_community.embeddings import OpenAIEmbeddings
 from pydantic import ValidationError
 from pathlib import Path
 from utils.exceptions import ConfigException
@@ -25,7 +24,7 @@ try:
     core_config = validated_config.core
     jira_config = validated_config.jira
     sources_config = validated_config.source
-except ValidationError as error:
+except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(1)
 except (FileNotFoundError, KeyError) as error:
@@ -48,10 +47,10 @@ if validated_config.llm.type == "azure":
     azure_config = validated_config.llm.azure
 
     LLM_MODEL = AzureChatOpenAI(
-        azure_endpoint=azure_config.endpoint,
-        api_version=azure_config.revision,
-        azure_deployment=azure_config.name,
-        api_key=azure_config.password.get_secret_value(),
+        azure_endpoint=validated_config.azure.endpoint,
+        api_version=validated_config.azure.revision,
+        azure_deployment=validated_config.llm.azure.name,
+        api_key=validated_config.azure.password.get_secret_value(),
         streaming=True,
     )
 
@@ -60,6 +59,16 @@ elif validated_config.llm.type == "ollama":
 
     LLM_MODEL = ChatOllama(
         base_url=ollama_config.endpoint, model=ollama_config.name, streaming=True
+    )
+
+elif validated_config.llm.type == "openai":
+    ollama_config = validated_config.llm.openai
+
+    LLM_MODEL = ChatOpenAI(
+        model=validated_config.llm.openai.name,
+        api_key=validated_config.openai.password.get_secret_value(),
+        organization=validated_config.openai.organization,
+        streaming=True,
     )
 
 # Load the Embeddings model
@@ -71,9 +80,18 @@ if validated_config.embedding.type == "jina":
         jina_model=jina_config.name,
         revision=jina_config.revision,
     )
+elif validated_config.embedding.type == "azure":
+
+    EMBEDDING_MODEL = AzureOpenAIEmbeddings(
+        azure_deployment=validated_config.embedding.azure.name,
+        azure_endpoint=validated_config.azure.endpoint,
+        api_version=validated_config.azure.revision,
+        api_key=validated_config.azure.password.get_secret_value(),
+    )
 elif validated_config.embedding.type == "openai":
-    openai_config = validated_config.embedding.openai
 
     EMBEDDING_MODEL = OpenAIEmbeddings(
-        deployment=openai_config.name, openai_api_version=openai_config.revision
+        model=validated_config.embedding.openai.name,
+        api_key=validated_config.openai.password.get_secret_value(),
+        organization=validated_config.openai.organization,
     )
