@@ -6,6 +6,7 @@
 .gitignore
 README.md
 docs
+tests
 
 # Ignore all log files and temporary files
 *.log

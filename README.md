@@ -1,5 +1,7 @@
 # Sage: Your AI-Powered Data Assistant
 
+Sage: A conversational AI assistant simplifying data interactions with intuitive ease
+
 ## Simplify Your Data Interactions with Sage
 
 Sage is a versatile AI assistant designed to enhance your data interaction experience within a container environment. It provides a user-friendly conversational interface for accessing and manipulating data from various sources, all through a simple configuration file.
