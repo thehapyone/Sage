@@ -1,21 +1,30 @@
 #!/bin/bash
 
 # custom certificate authority path
-CA_CERTIFICATES_PATH=/home/appuser/certs/ca.crt
-LOCAL_CA_PATH="/usr/local/share/ca-certificates/ca.crt"
+CA_CERTIFICATES_PATH=/home/appuser/certs/ca-bundle.crt
+LOCAL_CA_PATH="/usr/local/share/ca-certificates"
 
 update_ca() {
   echo "Updating CA certificates..."
-  cp "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}"
+  mkdir -p "${LOCAL_CA_PATH}"
+  # Split the CA bundle into individual files
+  csplit -sz "${CA_CERTIFICATES_PATH}" '/-----BEGIN CERTIFICATE-----/' '{*}' >/dev/null 2>&1
+  # Move and rename the split files
+  COUNT=1
+  for CERT in xx*; do
+    mv "$CERT" "${LOCAL_CA_PATH}/ca_${COUNT}.crt"
+    COUNT=$((COUNT + 1))
+  done
+
+  # Update the CA certificates
   update-ca-certificates --fresh >/dev/null
 }
 
 if [ -f "${CA_CERTIFICATES_PATH}" ]; then
-  # update the ca if the custom ca is different than the current
-  cmp --silent "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}" || update_ca
+  update_ca
 fi
 
-chown -R appuser:appuser /home/appuser  
+chown -R appuser:appuser /home/appuser
 
-# Drop privileges to 'appuser' before executing the main application  
+# Drop privileges to 'appuser' before executing the main application
 exec su -s /bin/bash -c "exec $*" appuser

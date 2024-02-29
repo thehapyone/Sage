@@ -19,7 +19,7 @@ services:
     volumes:
       - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
       - sage_data:/home/appuser/data
-      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca.crt:ro
+      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt:ro
 
 volumes:
   sage_data:

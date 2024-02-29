@@ -5,6 +5,7 @@
 .vscode/
 .gitignore
 README.md
+docs
 
 # Ignore all log files and temporary files
 *.log
