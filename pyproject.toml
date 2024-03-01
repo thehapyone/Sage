@@ -43,6 +43,11 @@ optional = true
 [tool.poetry.group.tests.dependencies]
 pytest = "^8.0.2"
 
+[tool.pytest.ini_options]
+testpaths = [
+    "tests/unit_tests"
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

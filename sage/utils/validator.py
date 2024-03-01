@@ -1,17 +1,20 @@
 from pydantic import (
     BaseModel,
+    field_validator,
+    model_validator,
     root_validator,
     validator,
     SecretStr,
     field_serializer,
     Field,
+    PositiveInt,
 )
 from typing import Literal, Optional, List
 from pathlib import Path
 import os
 from logging import getLevelName
 
-from utils.exceptions import ConfigException
+from sage.utils.exceptions import ConfigException
 
 sage_base = ".sage"
 
@@ -19,9 +22,9 @@ sage_base = ".sage"
 class UploadConfig(BaseModel):
     """The configuration for the Chat upload mode"""
 
-    max_size_mb: Optional[int] = 10
-    max_files: Optional[int] = 5
-    timeout: Optional[int] = 300
+    max_size_mb: Optional[PositiveInt] = 10
+    max_files: Optional[PositiveInt] = 5
+    timeout: Optional[PositiveInt] = 300
 
 
 class Password(BaseModel):
@@ -42,21 +45,27 @@ class AzureConfig(Password):
     endpoint: str
     revision: str
 
-    @validator("endpoint", pre=True, always=True)
-    def add_https_to_endpoint(cls, v):
+    @field_validator("endpoint")
+    @classmethod
+    def add_https_to_endpoint(cls, v: str):
         if not v.startswith("https://"):
             return f"https://{v}"
         return v
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
-        if password is None:
-            raise ConfigException(
-                "The AZURE_OPENAI_API_KEY or password is missing. \
-                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self):
+        if self.password is None:
+            if password_env := os.getenv("AZURE_PASSWORD") or os.getenv(
+                "AZURE_OPENAI_API_KEY"
+            ):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The AZURE_OPENAI_API_KEY | AZURE_PASSWORD | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
 
 
 class OpenAIConfig(Password):
