@@ -6,10 +6,10 @@ from langchain_openai.chat_models import ChatOpenAI, AzureChatOpenAI
 from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from pydantic import ValidationError
 from pathlib import Path
-from utils.exceptions import ConfigException
-from utils.validator import Config
-from utils.logger import CustomLogger
-from utils.supports import JinaAIEmebeddings
+from sage.utils.exceptions import ConfigException
+from sage.utils.validator import Config
+from sage.utils.logger import CustomLogger
+from sage.utils.supports import JinaAIEmbeddings
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
@@ -75,7 +75,7 @@ elif validated_config.llm.type == "openai":
 if validated_config.embedding.type == "jina":
     jina_config = validated_config.embedding.jina
 
-    EMBEDDING_MODEL = JinaAIEmebeddings(
+    EMBEDDING_MODEL = JinaAIEmbeddings(
         cache_dir=str(core_config.data_dir) + "/models",
         jina_model=jina_config.name,
         revision=jina_config.revision,

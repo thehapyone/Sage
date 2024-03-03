@@ -71,6 +71,9 @@ name = "your_azure_embedding_name"
 name = "your_jina_embedding_name"
 revision = "your_jina_embedding_revision"
 
+[embedding.openai]
+name = "ada_embeddings"
+
 [llm]
 type = "azure"
 
@@ -81,3 +84,6 @@ name = "your_azure_llm_name"
 name = "your_ollama_llm_name"
 endpoint = "https://your_ollama_endpoint"
 revision = "your_ollama_revision"
+
+[llm.openai]
+name = "GPT3.5"

@@ -24,7 +24,7 @@ text_maker.ignore_images = True
 text_maker.ignore_emphasis = True
 
 
-class JinaAIEmebeddings(Embeddings):
+class JinaAIEmbeddings(Embeddings):
     """Am embedding class powered by hugging face jinaAI"""
 
     def __init__(
