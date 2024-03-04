@@ -246,7 +246,7 @@ class Source:
         """
         try:
             loader = WebLoader(
-                nested=source.nested, ssl_verify=source.ssl_verify, urls=[link]
+                nested=source.nested, ssl_verify=source.ssl_verify, urls=[link], headers=source.headers
             )
 
             web_documents = loader.load()
