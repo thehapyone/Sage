@@ -94,7 +94,7 @@ AI:
   Response: "Estimating the timeline for AGI is speculative, but considering the pace of recent advancements, a rough estimate might be within the next few decades."
 ```
 
-For instance - To force the condense question chain from not rephraseing the orginial question you can add some quidance
+For instance - To force the condense question chain from not rephraseing the original question you can add some quidance
 ```yaml
 # -------Before--------------
 HUMAN:

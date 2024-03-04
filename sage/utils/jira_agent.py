@@ -1,18 +1,15 @@
-from langchain.chains.llm import LLMChain
 from typing import Any
-from jira import Issue, JIRAError
 
-from langchain.prompts import PromptTemplate, ChatPromptTemplate
-from langchain.callbacks.manager import CallbackManager
+from constants import LLM_MODEL, logger
+from jira import Issue, JIRAError
+from langchain.chains.llm import LLMChain
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
 
 # from langchain_experimental.plan_and_execute.planners.base import LLMPlanner
 # from langchain_experimental.plan_and_execute.planners.chat_planner import (
 #     PlanningOutputParser,
 # )
-from langchain.schema.messages import SystemMessage
-
 from utils.jira_helper import Jira
-from constants import LLM_MODEL, logger
 
 issue_template = """
 **Title**: {title}
@@ -189,7 +186,7 @@ class IssueAgent:
     def summarize(self, issue: str | Issue) -> str:
         """
         Given an Issue, this method helps to provide a detail summary of a Jira issue and then publish the issue
-        in the commnents field of the Jira ticket
+        in the comments field of the Jira ticket
 
         Args:
             issue (Issue): A Jira Issue object or Issue key
@@ -214,7 +211,7 @@ class IssueAgent:
     async def asummarize(self, issue: str | Issue) -> str:
         """
         Given an Issue, this method helps to provide a detail summary of a Jira issue and then publish the issue
-        in the commnents field of the Jira ticket
+        in the comments field of the Jira ticket
 
         Args:
             issue (Issue): A Jira Issue object or Issue key

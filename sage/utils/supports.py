@@ -1,22 +1,20 @@
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence, Tuple, Coroutine
-import asyncio
+from typing import Callable, Coroutine, List, Optional, Sequence, Tuple
 
-from transformers import AutoModel
-from langchain.schema.embeddings import Embeddings
-from langchain.prompts import ChatPromptTemplate, AIMessagePromptTemplate
-from langchain.tools import Tool
-from langchain.agents.output_parsers import XMLAgentOutputParser
-from langchain.schema import AgentAction, AgentFinish
-from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
-from langchain.schema import Document
-from langchain.callbacks.manager import Callbacks
 from asyncer import asyncify
-
-from sentence_transformers import CrossEncoder
-from markdown import markdown
 from html2text import HTML2Text
+from langchain.agents.output_parsers import XMLAgentOutputParser
+from langchain.callbacks.manager import Callbacks
+from langchain.prompts import AIMessagePromptTemplate, ChatPromptTemplate
+from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain.schema import AgentAction, AgentFinish, Document
+from langchain.schema.embeddings import Embeddings
+from langchain.tools import Tool
+from markdown import markdown
+from sentence_transformers import CrossEncoder
+from transformers import AutoModel
 
 text_maker = HTML2Text()
 text_maker.ignore_links = False
@@ -24,7 +22,7 @@ text_maker.ignore_images = True
 text_maker.ignore_emphasis = True
 
 
-class JinaAIEmebeddings(Embeddings):
+class JinaAIEmbeddings(Embeddings):
     """Am embedding class powered by hugging face jinaAI"""
 
     def __init__(

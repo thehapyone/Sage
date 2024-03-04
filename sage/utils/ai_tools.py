@@ -1,11 +1,8 @@
 # Helps to initialize various tools that can be used by AI agents
 from typing import List
-from langchain.tools import Tool
-from constants import LLM_MODEL as llm
-from langchain.agents import AgentType, initialize_agent
-from langchain.agents.agent_toolkits.jira.toolkit import JiraToolkit
 
-from utils.jira_agent import SummaryChain
+from constants import LLM_MODEL as llm
+from langchain.tools import Tool
 
 
 def load_duck_search() -> List[Tool]:
@@ -35,7 +32,7 @@ def load_calculator() -> Tool:
 
 def load_jira_tools() -> List[Tool]:
     """A toolbox for various Jira issue functionality"""
-    from utils.jira_agent import IssueAgent
+    from sage.utils.jira_agent import IssueAgent
 
     summarize_tool = Tool(
         name="summarize_jira_issue",

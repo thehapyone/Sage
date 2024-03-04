@@ -1,0 +1,57 @@
+[tool.poetry]
+name = "sage"
+version = "0.0.2"
+description = "Sage: A conversational AI assistant simplifying data interactions with intuitive ease"
+authors = ["Ayo Ayibiowu <charles.ayibiowu@hotmail.com>"]
+license = "Apache-2.0 license"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+anyio = "3.7.1"
+asyncer = "0.0.2"
+chainlit = "1.0.301"
+cohere = "4.40"
+duckduckgo-search = "4.1.1"
+aiohttp = "3.9.1"
+faiss-cpu = "1.7.4"
+gitpython = "3.1.40"
+html2text = "2020.1.16"
+huggingface-hub = "0.20.2"
+jira = "3.6.0"
+langchain = "0.1.0"
+langchain-community = "0.0.10"
+langchain-core = "0.1.8"
+langchain-openai = "0.0.2"
+markdownify = "0.11.6"
+openai = "1.6.1"
+pdf2image = "1.17.0"
+pydantic = "2.5.3"
+python-docx = "1.1.0"
+pyyaml = "6.0.1"
+requests = "2.31.0"
+sentence-transformers = "2.2.2"
+toml = "0.10.2"
+transformers = "4.36.2"
+unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.12.5" }
+xlsxwriter = "3.1.9"
+python-gitlab = "4.3.0"
+markdown = "^3.5.2"
+
+[tool.poetry.group.tests]
+optional = true
+
+[tool.poetry.group.tests.dependencies]
+pytest = "^8.0.2"
+pytest-cov = "^4.1.0"
+
+[tool.poetry.group.dev.dependencies]
+codespell = { version = "^2.2.6" }
+ruff = { version = "^0.3.0" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit_tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -6,6 +6,10 @@ __pycache__
 docker/
 .files
 translations
+.coverage
 
 ## Sage data dir
 data
+
+## Python Deps
+*_cache

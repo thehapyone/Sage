@@ -16,6 +16,13 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/sandbox/sage.env"
-        }
+        },
+        {
+            "name": "Pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": "-v ${file}",
+        },
     ]
 }

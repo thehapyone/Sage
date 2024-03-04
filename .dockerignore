@@ -6,6 +6,10 @@
 .gitignore
 README.md
 docs
+tests
+.Makefile
+LICENSE
+requirements.txt
 
 # Ignore all log files and temporary files
 *.log
@@ -17,6 +21,9 @@ sandbox
 *.tmp
 tmp/
 .files
+*_cache
+.coverage
+.env.sample
 
 ## Sage data dir
 data

@@ -1,15 +1,17 @@
 import os
 import sys
+from pathlib import Path
+
 import toml
 from langchain_community.chat_models import ChatOllama
-from langchain_openai.chat_models import ChatOpenAI, AzureChatOpenAI
+from langchain_openai.chat_models import AzureChatOpenAI, ChatOpenAI
 from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from pydantic import ValidationError
-from pathlib import Path
-from utils.exceptions import ConfigException
-from utils.validator import Config
-from utils.logger import CustomLogger
-from utils.supports import JinaAIEmebeddings
+
+from sage.utils.exceptions import ConfigException
+from sage.utils.logger import CustomLogger
+from sage.utils.supports import JinaAIEmbeddings
+from sage.utils.validator import Config
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
@@ -75,13 +77,12 @@ elif validated_config.llm.type == "openai":
 if validated_config.embedding.type == "jina":
     jina_config = validated_config.embedding.jina
 
-    EMBEDDING_MODEL = JinaAIEmebeddings(
+    EMBEDDING_MODEL = JinaAIEmbeddings(
         cache_dir=str(core_config.data_dir) + "/models",
         jina_model=jina_config.name,
         revision=jina_config.revision,
     )
 elif validated_config.embedding.type == "azure":
-
     EMBEDDING_MODEL = AzureOpenAIEmbeddings(
         azure_deployment=validated_config.embedding.azure.name,
         azure_endpoint=validated_config.azure.endpoint,
@@ -89,7 +90,6 @@ elif validated_config.embedding.type == "azure":
         api_key=validated_config.azure.password.get_secret_value(),
     )
 elif validated_config.embedding.type == "openai":
-
     EMBEDDING_MODEL = OpenAIEmbeddings(
         model=validated_config.embedding.openai.name,
         api_key=validated_config.openai.password.get_secret_value(),

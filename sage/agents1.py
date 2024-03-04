@@ -1,31 +1,21 @@
-from langchain.agents import AgentExecutor, XMLAgent, tool
+
 from constants import LLM_MODEL as model
+from langchain.agents import (
+    AgentExecutor,
+    AgentType,
+    XMLAgent,
+    initialize_agent,
+    tool,
+)
+from langchain.chains.llm_math.base import LLMMathChain
+from langchain.prompts import (
+    AIMessagePromptTemplate,
+    ChatPromptTemplate,
+)
 from langchain.tools import DuckDuckGoSearchRun, Tool
 from langchain.tools.tavily_search import TavilySearchResults
 from langchain.utilities.tavily_search import TavilySearchAPIWrapper
-from typing import Union
-
-from langchain.agents import AgentOutputParser
-from langchain.schema import AgentAction, AgentFinish
-
-
-from langchain.schema.document import Document
-from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
-from langchain.schema.runnable import (
-    RunnablePassthrough,
-    RunnableSequence,
-    RunnableConfig,
-    RunnableMap,
-    RunnableLambda,
-)
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
-from langchain.schema.output_parser import StrOutputParser
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.prompts import ChatPromptTemplate, AIMessagePromptTemplate
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType
-from langchain.chains.llm_math.base import LLMMathChain
-from utils.source_qa import SourceQAService
+from sage.utils.source_qa import SourceQAService
 
 agent_instructions_bak = """
 You are a helpful assistant named Sage. Your goal is to assist the user in answering any questions or performing any actions they may have.
@@ -204,13 +194,11 @@ agent = (
 
 agent_executor = AgentExecutor(agent=agent, tools=tool_list, verbose=True)
 for chunk in agent_executor.stream(
-    {
-        "question": "What is this link of https://dadsa.sdasdads.com/demo?"
-    }
+    {"question": "What is this link of https://dadsa.sdasdads.com/demo?"}
 ):
     print(chunk)
 
-# print(agent_executor.invoke({"question": "whats the weather in New york?"}))
+# print(agent_executor.invoke({"question": "what's the weather in New york?"}))
 
 
 ##

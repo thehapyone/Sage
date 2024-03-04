@@ -1,17 +1,19 @@
-from pydantic import (
-    BaseModel,
-    root_validator,
-    validator,
-    SecretStr,
-    field_serializer,
-    Field,
-)
-from typing import Literal, Optional, List
-from pathlib import Path
 import os
 from logging import getLevelName
+from pathlib import Path
+from typing import List, Literal, Optional
 
-from utils.exceptions import ConfigException
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveInt,
+    SecretStr,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
+
+from sage.utils.exceptions import ConfigException
 
 sage_base = ".sage"
 
@@ -19,9 +21,9 @@ sage_base = ".sage"
 class UploadConfig(BaseModel):
     """The configuration for the Chat upload mode"""
 
-    max_size_mb: Optional[int] = 10
-    max_files: Optional[int] = 5
-    timeout: Optional[int] = 300
+    max_size_mb: Optional[PositiveInt] = 10
+    max_files: Optional[PositiveInt] = 5
+    timeout: Optional[PositiveInt] = 300
 
 
 class Password(BaseModel):
@@ -42,21 +44,28 @@ class AzureConfig(Password):
     endpoint: str
     revision: str
 
-    @validator("endpoint", pre=True, always=True)
-    def add_https_to_endpoint(cls, v):
+    @field_validator("endpoint")
+    @classmethod
+    def add_https_to_endpoint(cls, v: str):
         if not v.startswith("https://"):
             return f"https://{v}"
         return v
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("AZURE_PASSWORD") or os.getenv("AZURE_OPENAI_API_KEY")
-        if password is None:
-            raise ConfigException(
-                "The AZURE_OPENAI_API_KEY or password is missing. \
-                    Please add it via an env variable or to the config password field - 'AZURE_OPENAI_API_KEY'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self) -> "Password":
+        if self.password is None:
+            if password_env := os.getenv("AZURE_PASSWORD") or os.getenv(
+                "AZURE_OPENAI_API_KEY"
+            ):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The AZURE_OPENAI_API_KEY | AZURE_PASSWORD | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
+        return self
 
 
 class OpenAIConfig(Password):
@@ -64,27 +73,36 @@ class OpenAIConfig(Password):
 
     organization: Optional[str] = None
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("OPENAI_PASSWORD") or os.getenv("OPENAI_API_KEY")
-        if password is None:
-            raise ConfigException(
-                "The OPENAI_API_KEY or password is missing. \
-                    Please add it via an env variable or to the config password field - 'OPENAI_API_KEY'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self) -> "Password":
+        if self.password is None:
+            if password_env := os.getenv("OPENAI_PASSWORD") or os.getenv(
+                "OPENAI_API_KEY"
+            ):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The OPENAI_API_KEY | OPENAI_PASSWORD | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
+        return self
 
 
-class LLMEmbeddingsValidateType(BaseModel):
+class ModelValidateType(BaseModel):
     """Base Model for validating the type data"""
 
-    @root_validator(skip_on_failure=True)
-    def validate_config_is_available_for_type(values):
+    @model_validator(mode="before")
+    @classmethod
+    def validate_config_is_available_for_type(cls, data: dict) -> dict:
         """A validator that raises an error the config data for the type is missing"""
-        llm_type = values["type"]
-        if not values.get(llm_type):
-            raise ConfigException(f"The Config data for type '{llm_type}' is missing.")
-        return values
+        model_type = data["type"]
+        if not data.get(model_type):
+            raise ConfigException(
+                f"The Config data for type '{model_type}' is missing."
+            )
+        return data
 
 
 class SourceData(Password):
@@ -95,11 +113,12 @@ class SourceData(Password):
     username: str
     server: str
 
-    @validator("server", pre=True, always=True)
-    def add_https_to_server(cls, server):
-        if not server.startswith("https://"):
-            server = "https://" + server
-        return server
+    @field_validator("server")
+    @classmethod
+    def add_https_to_server(cls, v: str):
+        if not v.startswith("https://"):
+            return f"https://{v}"
+        return v
 
 
 class ConfluenceModel(SourceData):
@@ -109,15 +128,21 @@ class ConfluenceModel(SourceData):
 
     spaces: List[str]
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("CONFLUENCE_PASSWORD") or os.getenv("JIRA_PASSWORD")
-        if password is None:
-            raise ConfigException(
-                "The Confluence password is missing. \
-                    Please add it via an env variable or to the config - 'CONFLUENCE_PASSWORD'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self) -> "Password":
+        if self.password is None:
+            if password_env := os.getenv("CONFLUENCE_PASSWORD") or os.getenv(
+                "JIRA_PASSWORD"
+            ):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The CONFLUENCE_PASSWORD | JIRA_PASSWORD | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
+        return self
 
 
 class GitlabModel(SourceData):
@@ -129,8 +154,9 @@ class GitlabModel(SourceData):
     groups: List[str] = []
     projects: List[str] = []
 
-    @root_validator(skip_on_failure=True)
-    def validate_projects_groups(values):
+    @model_validator(mode="before")
+    @classmethod
+    def validate_projects_groups(cls, values: dict) -> dict:
         """A validator that raises an error if both variable "projects" and "groups" are empty after initialization"""
         if not values.get("projects") and not values.get("groups"):
             raise ConfigException(
@@ -138,14 +164,19 @@ class GitlabModel(SourceData):
             )
         return values
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("GITLAB_PASSWORD")
-        if password is None:
-            raise ConfigException(
-                "The Gitlab password is missing. Please add it via an env variable or to the config - 'GITLAB_PASSWORD'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self) -> "Password":
+        if self.password is None:
+            if password_env := os.getenv("GITLAB_PASSWORD"):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The GITLAB_PASSWORD | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
+        return self
 
 
 class Web(BaseModel):
@@ -190,15 +221,19 @@ class Jira_Config(Password):
     project: str
     status_todo: str
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("JIRA_PASSWORD")
-        if password is None:
-            raise ConfigException(
-                "The JIRA password is missing. \
-                    Please add it via an env variable or to the config - 'JIRA_PASSWORD'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self) -> "Password":
+        if self.password is None:
+            if password_env := os.getenv("JIRA_PASSWORD"):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The JIRA_PASSWORD | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
+        return self
 
 
 class Core(BaseModel):
@@ -210,8 +245,9 @@ class Core(BaseModel):
     logging_level: str | int = "INFO"
     user_agent: str = "codesage.ai"
 
-    @validator("logging_level", pre=True, always=True)
-    def set_logging_level(cls, v):
+    @field_validator("logging_level")
+    @classmethod
+    def set_logging_level(cls, v: str | int):
         return getLevelName(v)
 
 
@@ -222,7 +258,7 @@ class EmbeddingCore(BaseModel):
     revision: Optional[str] = None
 
 
-class EmbeddingsConfig(LLMEmbeddingsValidateType):
+class EmbeddingsConfig(ModelValidateType):
     azure: Optional[EmbeddingCore] = None
     openai: Optional[EmbeddingCore] = None
     jina: Optional[EmbeddingCore] = None
@@ -234,15 +270,19 @@ class CohereReRanker(Password):
 
     name: str
 
-    @validator("password", pre=True, always=True)
-    def set_password(cls, v):
-        password = v or os.getenv("COHERE_PASSWORD") or os.getenv("COHERE_API_KEY")
-        if password is None:
-            raise ConfigException(
-                "The COHERE API KEY or password is missing. \
-                    Please add it via an env variable or to the config - 'COHERE_PASSWORD'"
-            )
-        return password
+    @model_validator(mode="after")
+    def set_password(self) -> "Password":
+        if self.password is None:
+            if password_env := os.getenv("COHERE_API_KEY"):
+                self.password = SecretStr(password_env)
+            else:
+                raise ConfigException(
+                    (
+                        "The COHERE_API_KEY | config password is missing. "
+                        "Please add it via an env variable or to the config password field."
+                    )
+                )
+        return self
 
 
 class HuggingFaceReRanker(BaseModel):
@@ -252,11 +292,11 @@ class HuggingFaceReRanker(BaseModel):
     revision: str
 
 
-class ReRankerConfig(BaseModel):
+class ReRankerConfig(ModelValidateType):
     """Reranker config schema"""
 
-    cohere: Optional[CohereReRanker]
-    huggingface: Optional[HuggingFaceReRanker]
+    cohere: Optional[CohereReRanker] = None
+    huggingface: Optional[HuggingFaceReRanker] = None
     type: Literal["cohere", "huggingface"]
     top_n: int = 5
 
@@ -269,7 +309,7 @@ class LLMCore(Password):
     revision: Optional[str] = None
 
 
-class LLMConfig(LLMEmbeddingsValidateType):
+class LLMConfig(ModelValidateType):
     """The configuration for LLM models"""
 
     azure: Optional[LLMCore] = None
@@ -287,7 +327,7 @@ class Config(BaseModel):
         default=Core(), description="Sage's main configuration"
     )
     upload: Optional[UploadConfig] = UploadConfig()
-    jira: Jira_Config
+    jira: Optional[Jira_Config] = Field(default=None, description="Jira configuration")
     azure: AzureConfig = Field(default=None, description="Shared Azure configuration")
     openai: OpenAIConfig = Field(
         default=None, description="Shared OpenAI configuration"
@@ -297,8 +337,9 @@ class Config(BaseModel):
     embedding: EmbeddingsConfig
     llm: LLMConfig
 
-    @root_validator(pre=True)
-    def check_provider_configs(cls, values):
+    @model_validator(mode="before")
+    @classmethod
+    def check_provider_configs(cls, values: dict) -> dict:
         """Ensure the appropriate provider field is not empty when using specific providers"""
         embedding = values.get("embedding")
         llm = values.get("llm")
