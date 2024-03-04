@@ -77,7 +77,7 @@ This final stage varies based on the user-selected mode in the chat interface:
 
 If Sage is unable to answer a question, even with the correct information in the sources, users can improve the response by providing more detailed questions or guidance, which can significantly enhance the results.
 
-For instance - To force the condense question chain from not rephraseing the orginial question you can add some quidance
+For instance - To force the condense question chain from not rephraseing the original question you can add some quidance
 ```yaml
 # -------Before--------------
 HUMAN:

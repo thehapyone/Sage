@@ -1,7 +1,7 @@
 import logging
 
-class CustomFormatter(logging.Formatter):
 
+class CustomFormatter(logging.Formatter):
     grey = "\x1b[42;20m"
     yellow = "\x1b[33;20m"
     red = "\x1b[31;20m"
@@ -14,7 +14,7 @@ class CustomFormatter(logging.Formatter):
         logging.INFO: grey + format + reset,
         logging.WARNING: yellow + format + reset,
         logging.ERROR: bold_red + format + reset,
-        logging.CRITICAL: bold_red + format + reset
+        logging.CRITICAL: bold_red + format + reset,
     }
 
     def format(self, record):
@@ -47,9 +47,7 @@ class CustomLogger(logging.Logger):
         self.name = name
         self.setLevel(level)
         self.addHandler(self._log_handler)
-        
+
     def setLevel(self, level) -> None:
         self._log_handler.setLevel(level)
         super().setLevel(level)
-
-

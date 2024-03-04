@@ -1,45 +1,41 @@
-
 # loaders.py
 ## TODO: Move towards an async operation instead of the current threading approach for concurrency
 ## Basically replacing execute_concurrently with aexecute_concurrently
-from functools import lru_cache
 import os
 import tempfile
-from typing import List
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock, Thread
-from urllib.parse import urljoin, urldefrag, urlparse
+from functools import lru_cache
 from queue import Queue
-from pydantic import BaseModel, SecretStr
-import requests
+from threading import Lock, Thread
 from time import sleep
+from typing import List
+from urllib.parse import urldefrag, urljoin, urlparse
 
+import requests
 from bs4 import BeautifulSoup
+from constants import (
+    app_name,
+    logger,
+)
+from git import Blob, Repo
+from gitlab import Gitlab, GitlabGetError
+from gitlab.v4.objects import Group, Project
+from langchain.schema import Document
+from langchain_community.document_loaders import ConfluenceLoader, UnstructuredURLLoader
+from langchain_community.document_loaders.base import BaseLoader
 from langchain_community.document_loaders.confluence import (
     ConfluenceLoader,
 )
-from langchain_community.document_loaders import ConfluenceLoader
-from langchain.schema import Document
-from langchain_community.document_loaders import UnstructuredURLLoader
-from langchain_community.document_loaders.base import BaseLoader
-
-from gitlab import Gitlab, GitlabGetError
-from gitlab.v4.objects import Project
-from gitlab.v4.objects import Group
-from git import Blob, Repo
-
-from constants import (
-    logger,
-    app_name,
-)
+from pydantic import BaseModel, SecretStr
 from utils.exceptions import SourceException
 from utils.supports import (
-    markdown_to_text_using_html2text,
     execute_concurrently,
+    markdown_to_text_using_html2text,
 )
 
+
 class CustomConfluenceLoader(ConfluenceLoader):
-    """Confluence loader with an overide function"""
+    """Confluence loader with an override function"""
 
     def process_page(self, *args, **kwargs) -> Document:
         response = super().process_page(*args, **kwargs)
@@ -490,4 +486,3 @@ class WebLoader(UnstructuredURLLoader):
             for url in self.urls:
                 docs.extend(self._load(url))
         return docs
-

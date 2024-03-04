@@ -1,10 +1,11 @@
-from typing import List
 from functools import cached_property
-from jira import JIRA, Issue, JIRAError
-from jira.resources import Comment, Resource
 from queue import Queue
 from time import sleep
-from constants import jira_config, JIRA_QUERY
+from typing import List
+
+from constants import JIRA_QUERY, jira_config
+from jira import JIRA, Issue, JIRAError
+from jira.resources import Comment, Resource
 
 issue_fields = [
     "summary",
@@ -20,7 +21,6 @@ issue_fields = [
 
 
 class Jira:
-
     _instance = None
     _run_session = False
 
@@ -32,7 +32,7 @@ class Jira:
     def __init__(self) -> None:
         self._jira = JIRA(
             server=jira_config.url,
-            basic_auth=(jira_config.username, jira_config.password.get_secret_value())
+            basic_auth=(jira_config.username, jira_config.password.get_secret_value()),
         )
         self._tracked_issues = list()  # type: List[Issue]
 
@@ -55,7 +55,7 @@ class Jira:
         return JIRA_QUERY.format(
             project=jira_config.project,
             status=jira_config.status_todo,
-            assignee=jira_config.username
+            assignee=jira_config.username,
         )
 
     def get_issue(self, issue_key: str) -> Issue:
@@ -69,16 +69,15 @@ class Jira:
         if response:
             return
 
-        raise Exception(
-            f"Error adding comment. key: {issue_key} and body: {body}")
+        raise Exception(f"Error adding comment. key: {issue_key} and body: {body}")
 
     def search_issues(self):
         """
         Search issues matching the configured query and adds them to the queue.
         """
-        issues = self._jira.search_issues(self.query,
-                                          startAt=self._tracked_ids[-1],
-                                          fields=issue_fields)
+        issues = self._jira.search_issues(
+            self.query, startAt=self._tracked_ids[-1], fields=issue_fields
+        )
 
         for issue in issues:
             comments = issue.get_field("comment")
@@ -96,7 +95,7 @@ class Jira:
         -- Query Jira for all Issues that matches a given Query
         -- Check if found issues are not already tracked
         -- Add issue to the Issue Queue
-        -- Wait till the polling interval is over        
+        -- Wait till the polling interval is over
 
         """
 
@@ -114,5 +113,5 @@ class Jira:
                 print("keyboard interrupt")
                 break
             except Exception as error:
-                print("AN error has occured")
+                print("AN error has occurred")
                 raise error

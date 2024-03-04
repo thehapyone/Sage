@@ -1,35 +1,37 @@
 # test_validator.py
 
-import pytest
-from unittest.mock import Mock
-from pathlib import Path
+import os
 from logging import getLevelName
-from pydantic import ValidationError, SecretStr
+from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
+from pydantic import SecretStr, ValidationError
+
+from sage.utils.exceptions import ConfigException
 from sage.utils.validator import (
-    Source,
-    Files,
-    HuggingFaceReRanker,
-    LLMConfig,
-    LLMCore,
-    ReRankerConfig,
-    UploadConfig,
-    Password,
     AzureConfig,
-    OpenAIConfig,
-    ModelValidateType,
-    SourceData,
-    ConfluenceModel,
-    GitlabModel,
-    Jira_Config,
-    Core,
-    EmbeddingsConfig,
-    EmbeddingCore,
     CohereReRanker,
     Config,
+    ConfluenceModel,
+    Core,
+    EmbeddingCore,
+    EmbeddingsConfig,
+    Files,
+    GitlabModel,
+    HuggingFaceReRanker,
+    Jira_Config,
+    LLMConfig,
+    LLMCore,
+    ModelValidateType,
+    OpenAIConfig,
+    Password,
+    ReRankerConfig,
+    Source,
+    SourceData,
+    UploadConfig,
     Web,
 )
-from sage.utils.exceptions import ConfigException
-import os
 
 
 ################## Unit Tests for the UploadConfig ########################
@@ -679,7 +681,6 @@ def test_config_creation_with_all_fields(setup_env_vars):
 
 
 def test_config_default_optional_fields(setup_env_vars):
-
     config = Config(
         jira=Jira_Config(
             url="https://jira.example.com",

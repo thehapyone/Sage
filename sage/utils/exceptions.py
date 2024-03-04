@@ -1,7 +1,7 @@
 """
 Custom exception modules.
 
-Classes:  
+Classes:
     ConfigException: An exception class for handling schema/config validation exceptions or error
     SourceException: An exception class for handling apps related validation errors
 """
@@ -11,7 +11,9 @@ class ConfigException(Exception):
     """
     An exception for configuration related errors
     """
+
     pass
+
 
 class SourceException(Exception):
     """

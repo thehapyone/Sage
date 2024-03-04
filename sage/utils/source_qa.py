@@ -1,29 +1,28 @@
 # source_qa.py
 
+from datetime import datetime
 from operator import itemgetter
 from typing import List, Sequence
-from datetime import datetime
 
-from langchain.schema.document import Document
-from langchain.schema.vectorstore import VectorStoreRetriever
-from langchain.schema.runnable import (
-    RunnableSequence,
-    RunnableConfig,
-    RunnableMap,
-    RunnableLambda,
-    RunnableSerializable,
-    RunnableBranch,
-)
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
-from langchain.schema.output_parser import StrOutputParser
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.tools import Tool
-from langchain.agents import AgentExecutor
 import chainlit as cl
-
-from utils.sources import Source
-from utils.exceptions import SourceException
 from constants import LLM_MODEL, assets_dir, validated_config
+from langchain.agents import AgentExecutor
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain.schema.document import Document
+from langchain.schema.output_parser import StrOutputParser
+from langchain.schema.runnable import (
+    RunnableBranch,
+    RunnableConfig,
+    RunnableLambda,
+    RunnableMap,
+    RunnableSequence,
+    RunnableSerializable,
+)
+from langchain.schema.vectorstore import VectorStoreRetriever
+from langchain.tools import Tool
+from utils.exceptions import SourceException
+from utils.sources import Source
 from utils.supports import (
     CustomXMLAgentOutputParser,
     agent_prompt,
@@ -68,7 +67,7 @@ class SourceQAService:
 
     PLEASE don't overdo it and return ONLY the standalone question.
     
-    REMEBER:
+    REMEMBER:
      - The inquiry is not meant for you at all. Don't refer new meanings or distort the original inquiry.
      - Always keep the original language. Not all inquires are questions.
      
@@ -87,7 +86,7 @@ class SourceQAService:
     Your responses should adhere to a journalistic style, characterized by neutrality and reliance on factual, verifiable information.
     When formulating answers, you are to:
     - Be creative when applicable.
-    - Don't assume you know the meaning of abbreviations unless you have explict context about the abbreviation.
+    - Don't assume you know the meaning of abbreviations unless you have explicit context about the abbreviation.
     - Integrate information from the 'context' into a coherent response, avoiding assumptions without clear context.
     - Avoid redundancy and repetition, ensuring each response adds substantive value.
     - Maintain an unbiased tone, presenting facts without personal opinions or biases.
@@ -186,7 +185,7 @@ class SourceQAService:
 
     @staticmethod
     def _format_docs(docs: Sequence[Document]) -> str:
-        """Format the output of the retriever by inluding html tags"""
+        """Format the output of the retriever by including html tags"""
         formatted_docs = []
         for i, doc in enumerate(docs):
             doc_string = f"<doc id='{i}'>{doc.page_content}</doc>"
@@ -195,7 +194,7 @@ class SourceQAService:
 
     @staticmethod
     def _get_git_source(metadata: dict) -> str:
-        """Formate and extract out the git source from the source metadata"""
+        """Format and extract out the git source from the source metadata"""
         try:
             url_without_git: str = metadata["url"].removesuffix(".git")
             source = (
@@ -250,7 +249,7 @@ class SourceQAService:
         return description
 
     def _format_sources(self, docs: Sequence[Document]):
-        """Helper for formating sources. Used in citiation display"""
+        """Helper for formatting sources. Used in citiation display"""
         formatted_sources = []
         for i, doc in enumerate(docs):
             if "url" in doc.metadata.keys() and ".git" in doc.metadata["url"]:

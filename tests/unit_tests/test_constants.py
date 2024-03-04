@@ -1,11 +1,13 @@
 # test_constants.py
 
-import pytest
 from importlib import reload
-from unittest.mock import patch, MagicMock, Mock
 from logging import getLevelName
-from sage.utils.exceptions import ConfigException
 from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from sage.utils.exceptions import ConfigException
 
 # Sample configuration data as a dictionary
 sample_config_data = {
@@ -78,6 +80,7 @@ def test_successful_config_load(
     # Import the constants module to apply the mocks
     # reload(constants)
     import sage.constants as constants
+
     reload(constants)
 
     core_config = constants.core_config
@@ -91,15 +94,20 @@ def test_successful_config_load(
     assert mock_openai_llm.assert_called_once
     assert mock_openai_embedding.assert_called_once
 
-@pytest.mark.parametrize("exception, mock_patch_target", [
-    (FileNotFoundError, "toml.load"),
-    (ConfigException("validator error"), "sage.utils.validator.Config"),
-    (KeyError("key is not found"), "sage.utils.validator.Config"),
-])
-def test_config_load_exceptions(exception, mock_patch_target, mock_logger, mock_path, mock_common):
+
+@pytest.mark.parametrize(
+    "exception, mock_patch_target",
+    [
+        (FileNotFoundError, "toml.load"),
+        (ConfigException("validator error"), "sage.utils.validator.Config"),
+        (KeyError("key is not found"), "sage.utils.validator.Config"),
+    ],
+)
+def test_config_load_exceptions(
+    exception, mock_patch_target, mock_logger, mock_path, mock_common
+):
     with patch(mock_patch_target, side_effect=exception), pytest.raises(SystemExit):
         import sage.constants
 
         reload(sage.constants)
     mock_logger_spec.error.assert_called_once
-

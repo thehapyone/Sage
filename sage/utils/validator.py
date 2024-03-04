@@ -1,16 +1,17 @@
-from pydantic import (
-    BaseModel,
-    field_validator,
-    model_validator,
-    SecretStr,
-    field_serializer,
-    Field,
-    PositiveInt,
-)
-from typing import Literal, Optional, List
-from pathlib import Path
 import os
 from logging import getLevelName
+from pathlib import Path
+from typing import List, Literal, Optional
+
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveInt,
+    SecretStr,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from sage.utils.exceptions import ConfigException
 
@@ -277,7 +278,7 @@ class CohereReRanker(Password):
             else:
                 raise ConfigException(
                     (
-                        "The COHERE_PASSWORD | config password is missing. "
+                        "The COHERE_API_KEY | config password is missing. "
                         "Please add it via an env variable or to the config password field."
                     )
                 )

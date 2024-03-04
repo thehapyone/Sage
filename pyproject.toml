@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "codesage"
+name = "sage"
 version = "0.0.2"
 description = "Sage: A conversational AI assistant simplifying data interactions with intuitive ease"
 authors = ["Ayo Ayibiowu <charles.ayibiowu@hotmail.com>"]
@@ -33,9 +33,10 @@ requests = "2.31.0"
 sentence-transformers = "2.2.2"
 toml = "0.10.2"
 transformers = "4.36.2"
-unstructured = "0.12.2"
+unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.12.5" }
 xlsxwriter = "3.1.9"
 python-gitlab = "4.3.0"
+markdown = "^3.5.2"
 
 [tool.poetry.group.tests]
 optional = true
@@ -44,11 +45,12 @@ optional = true
 pytest = "^8.0.2"
 pytest-cov = "^4.1.0"
 
+[tool.poetry.group.dev.dependencies]
+codespell = { version = "^2.2.6" }
+ruff = { version = "^0.3.0" }
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests/unit_tests"
-]
+testpaths = ["tests/unit_tests"]
 
 [build-system]
 requires = ["poetry-core"]

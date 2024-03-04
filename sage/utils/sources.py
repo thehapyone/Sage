@@ -1,33 +1,30 @@
-from anyio import Path as aPath
-from typing import List, Optional
 from hashlib import md5
+from typing import List, Optional
 
+from anyio import Path as aPath
+from chainlit.types import AskFileResponse
+from constants import (
+    EMBEDDING_MODEL,
+    core_config,
+    logger,
+    sources_config,
+    validated_config,
+)
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.schema import Document
+from langchain.schema.vectorstore import VectorStoreRetriever
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
 from langchain_community.vectorstores.faiss import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema.vectorstore import VectorStoreRetriever
-from langchain.schema import Document
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain_community.document_loaders import UnstructuredFileLoader
-
-from chainlit.types import AskFileResponse
-
-
-from constants import (
-    validated_config,
-    sources_config,
-    core_config,
-    EMBEDDING_MODEL,
-    logger,
-)
 from utils.exceptions import SourceException
-from utils.validator import ConfluenceModel, GitlabModel, Web, Files
+from utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
 from utils.supports import (
     aexecute_concurrently,
 )
-from utils.loaders import GitlabLoader, CustomConfluenceLoader, WebLoader
+from utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 
 class Source:
@@ -147,11 +144,11 @@ class Source:
             dir_path = self.source_dir / "faiss"
             db.save_local(str(dir_path), source_hash)
             logger.debug(
-                f"Succesfully created and saved vector store for source with hash - {source_hash}"
+                f"Successfully created and saved vector store for source with hash - {source_hash}"
             )
             return
         logger.debug(
-            f"Succesfully created the vector store for source with hash - {source_hash}"
+            f"Successfully created the vector store for source with hash - {source_hash}"
         )
         return db
 
@@ -193,7 +190,7 @@ class Source:
 
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading confluence source: {str(error)}"
+                f"An error has occurred while loading confluence source: {str(error)}"
             )
 
         await self._create_and_save_db(
@@ -228,7 +225,7 @@ class Source:
 
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading gitlab source: {str(error)}"
+                f"An error has occurred while loading gitlab source: {str(error)}"
             )
 
         await self._create_and_save_db(
@@ -246,7 +243,7 @@ class Source:
             link (str): The source link value
 
         Raises:
-            SourceException: Exception rasied interating with web links
+            SourceException: Exception raised interacting with web links
         """
         try:
             loader = WebLoader(
@@ -265,7 +262,7 @@ class Source:
 
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading web source: {str(error)}"
+                f"An error has occurred while loading web source: {str(error)}"
             )
 
         await self._create_and_save_db(
@@ -283,7 +280,7 @@ class Source:
             source (Files): Files data model
 
         Raises:
-            SourceException: Exception rasied interating with the files
+            SourceException: Exception raised interacting with the files
         """
         try:
             loader = UnstructuredFileLoader(file_path=path, mode="single")
@@ -300,7 +297,7 @@ class Source:
 
         except Exception as error:
             raise SourceException(
-                f"An error has occured while loading file source: {str(error)}"
+                f"An error has occurred while loading file source: {str(error)}"
             )
 
         db = await self._create_and_save_db(
@@ -418,7 +415,7 @@ class Source:
     def _compression_retriever(
         self, retriever: VectorStoreRetriever
     ) -> ContextualCompressionRetriever:
-        """Loads a compresion retriever"""
+        """Loads a compression retriever"""
 
         ranker_config = validated_config.reranker
 

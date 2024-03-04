@@ -1,10 +1,10 @@
-from utils.jira_helper import Jira
-from utils.jira_agent import IssueAgent, SummaryChain
-from utils.sources import Source
-from constants import sources_config
-from utils.source_qa import SourceQAService
-
 import asyncio
+
+from constants import sources_config
+from utils.jira_agent import IssueAgent, SummaryChain
+from utils.jira_helper import Jira
+from utils.source_qa import SourceQAService
+from utils.sources import Source
 
 # myjira = Jira()
 
@@ -18,8 +18,8 @@ import asyncio
 # # agent.planner(issue)
 source_list = Source()
 
-#qa_tool = SourceQAService(mode="tool")
-#res = qa_tool._run("Hello, how are you?")
-#print(res)
+# qa_tool = SourceQAService(mode="tool")
+# res = qa_tool._run("Hello, how are you?")
+# print(res)
 
 asyncio.run(source_list.run())

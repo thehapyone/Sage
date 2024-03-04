@@ -1,12 +1,12 @@
 # LLM Linqua Document Compressor
 
 import re
-from typing import TYPE_CHECKING, Sequence, Optional, List, Tuple, Dict
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple
 
-from langchain_core.pydantic_v1 import root_validator
-from langchain.schema import Document
-from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
 from langchain.callbacks.manager import Callbacks
+from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain.schema import Document
+from langchain_core.pydantic_v1 import root_validator
 from langchain_core.utils import get_from_dict_or_env
 
 if TYPE_CHECKING:
