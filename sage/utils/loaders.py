@@ -24,8 +24,8 @@ from langchain.schema import Document
 from langchain_community.document_loaders import ConfluenceLoader, UnstructuredURLLoader
 from langchain_community.document_loaders.base import BaseLoader
 from pydantic import BaseModel, SecretStr
-from utils.exceptions import SourceException
-from utils.supports import (
+from sage.utils.exceptions import SourceException
+from sage.utils.supports import (
     execute_concurrently,
     markdown_to_text_using_html2text,
 )

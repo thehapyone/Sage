@@ -3,13 +3,6 @@ from typing import List, Optional
 
 from anyio import Path as aPath
 from chainlit.types import AskFileResponse
-from constants import (
-    EMBEDDING_MODEL,
-    core_config,
-    logger,
-    sources_config,
-    validated_config,
-)
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.schema import Document
 from langchain.schema.vectorstore import VectorStoreRetriever
@@ -19,13 +12,19 @@ from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
 from langchain_community.vectorstores.faiss import FAISS
-from utils.exceptions import SourceException
-from utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
-from utils.supports import (
+from sage.utils.exceptions import SourceException
+from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
+from sage.utils.supports import (
     aexecute_concurrently,
 )
-from utils.validator import ConfluenceModel, Files, GitlabModel, Web
-
+from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
+from sage.constants import (
+    EMBEDDING_MODEL,
+    core_config,
+    logger,
+    sources_config,
+    validated_config,
+)
 
 class Source:
     # TODO: Adds support for batching loading of the documents when generating the Faiss index. As it's easy to reach API throttle limits with OPENAI

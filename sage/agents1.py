@@ -15,7 +15,7 @@ from langchain.prompts import (
 from langchain.tools import DuckDuckGoSearchRun, Tool
 from langchain.tools.tavily_search import TavilySearchResults
 from langchain.utilities.tavily_search import TavilySearchAPIWrapper
-from utils.source_qa import SourceQAService
+from sage.utils.source_qa import SourceQAService
 
 agent_instructions_bak = """
 You are a helpful assistant named Sage. Your goal is to assist the user in answering any questions or performing any actions they may have.

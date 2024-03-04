@@ -18,6 +18,7 @@ sandbox
 *.tmp
 tmp/
 .files
+*_cache
 
 ## Sage data dir
 data

@@ -5,7 +5,6 @@ from operator import itemgetter
 from typing import List, Sequence
 
 import chainlit as cl
-from constants import LLM_MODEL, assets_dir, validated_config
 from langchain.agents import AgentExecutor
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
@@ -21,9 +20,10 @@ from langchain.schema.runnable import (
 )
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.tools import Tool
-from utils.exceptions import SourceException
-from utils.sources import Source
-from utils.supports import (
+from sage.constants import LLM_MODEL, assets_dir, validated_config
+from sage.utils.exceptions import SourceException
+from sage.utils.sources import Source
+from sage.utils.supports import (
     CustomXMLAgentOutputParser,
     agent_prompt,
     convert_intermediate_steps,

@@ -10,3 +10,6 @@ translations
 
 ## Sage data dir
 data
+
+## Python Deps
+*_cache

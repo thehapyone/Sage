@@ -1,6 +1,6 @@
 import asyncio
 
-from utils.sources import Source
+from sage.utils.sources import Source
 
 # myjira = Jira()
 
