@@ -23,9 +23,6 @@ from gitlab.v4.objects import Group, Project
 from langchain.schema import Document
 from langchain_community.document_loaders import ConfluenceLoader, UnstructuredURLLoader
 from langchain_community.document_loaders.base import BaseLoader
-from langchain_community.document_loaders.confluence import (
-    ConfluenceLoader,
-)
 from pydantic import BaseModel, SecretStr
 from utils.exceptions import SourceException
 from utils.supports import (

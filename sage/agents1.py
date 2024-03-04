@@ -1,31 +1,16 @@
-from typing import Union
 
 from constants import LLM_MODEL as model
 from langchain.agents import (
     AgentExecutor,
-    AgentOutputParser,
     AgentType,
     XMLAgent,
     initialize_agent,
     tool,
 )
-from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.chains.llm_math.base import LLMMathChain
-from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import (
     AIMessagePromptTemplate,
     ChatPromptTemplate,
-    PromptTemplate,
-)
-from langchain.schema import AgentAction, AgentFinish
-from langchain.schema.document import Document
-from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import (
-    RunnableConfig,
-    RunnableLambda,
-    RunnableMap,
-    RunnablePassthrough,
-    RunnableSequence,
 )
 from langchain.tools import DuckDuckGoSearchRun, Tool
 from langchain.tools.tavily_search import TavilySearchResults

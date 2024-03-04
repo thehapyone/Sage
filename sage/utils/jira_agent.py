@@ -2,7 +2,6 @@ from typing import Any
 
 from constants import LLM_MODEL, logger
 from jira import Issue, JIRAError
-from langchain.callbacks.manager import CallbackManager
 from langchain.chains.llm import LLMChain
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 
@@ -10,7 +9,6 @@ from langchain.prompts import ChatPromptTemplate, PromptTemplate
 # from langchain_experimental.plan_and_execute.planners.chat_planner import (
 #     PlanningOutputParser,
 # )
-from langchain.schema.messages import SystemMessage
 from utils.jira_helper import Jira
 
 issue_template = """

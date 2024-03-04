@@ -1,9 +1,5 @@
 import asyncio
 
-from constants import sources_config
-from utils.jira_agent import IssueAgent, SummaryChain
-from utils.jira_helper import Jira
-from utils.source_qa import SourceQAService
 from utils.sources import Source
 
 # myjira = Jira()

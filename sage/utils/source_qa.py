@@ -420,7 +420,7 @@ class SourceQAService:
         if chat_profile == "File Mode":
             files = None
             # Wait for the user to upload a file
-            while files == None:
+            while files is None:
                 files = await cl.AskFileMessage(
                     content=intro_message,
                     disable_feedback=True,

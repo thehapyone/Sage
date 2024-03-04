@@ -4,8 +4,8 @@ from time import sleep
 from typing import List
 
 from constants import JIRA_QUERY, jira_config
-from jira import JIRA, Issue, JIRAError
-from jira.resources import Comment, Resource
+from jira import JIRA, Issue
+from jira.resources import Comment
 
 issue_fields = [
     "summary",

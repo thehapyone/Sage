@@ -7,7 +7,6 @@ from langchain.callbacks.manager import Callbacks
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
 from langchain.schema import Document
 from langchain_core.pydantic_v1 import root_validator
-from langchain_core.utils import get_from_dict_or_env
 
 if TYPE_CHECKING:
     from llmlingua import PromptCompressor
@@ -64,7 +63,7 @@ class LLMLinguaCompressor(BaseDocumentCompressor):
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that the python package exists in environment."""
         try:
-            import llmlingua
+            import llmlingua # noqa: F401
         except ImportError:
             raise ImportError(
                 "Could not import llmlingua python package. "

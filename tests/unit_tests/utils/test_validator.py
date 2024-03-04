@@ -3,7 +3,6 @@
 import os
 from logging import getLevelName
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
 from pydantic import SecretStr, ValidationError
@@ -160,7 +159,7 @@ def test_azure_config_password_validation():
         "The AZURE_OPENAI_API_KEY | AZURE_PASSWORD | config password is missing. "
         "Please add it via an env variable or to the config password field."
     )
-    with pytest.raises(ConfigException, match=error_mgs) as exc_info:
+    with pytest.raises(ConfigException, match=error_mgs) as _:
         AzureConfig(endpoint="example.com", revision="1")
 
 
@@ -191,14 +190,14 @@ def test_openai_config_password_validation(monkeypatch):
         "The OPENAI_API_KEY | OPENAI_PASSWORD | config password is missing. "
         "Please add it via an env variable or to the config password field."
     )
-    with pytest.raises(ConfigException, match=error_mgs) as exc_info:
+    with pytest.raises(ConfigException, match=error_mgs) as _:
         OpenAIConfig()
 
 
 def test_openai_config_organization_optional():
     """Test OpenAI config organization is optional"""
     config = OpenAIConfig(password="custom_password")
-    assert config.organization == None
+    assert config.organization is None
 
     # Test organization value can be set
     config = OpenAIConfig(organization="cool_org", password="custom_password")

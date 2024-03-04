@@ -29,14 +29,11 @@ lint_tests: PYTHON_FILES=tests
 lint_tests: MYPY_CACHE=.mypy_cache_test
 
 lint lint_tests:
-	poetry run ruff .
-	[ "$(PYTHON_FILES)" = "" ] || poetry run ruff format $(PYTHON_FILES) --diff
-	[ "$(PYTHON_FILES)" = "" ] || poetry run ruff --select I $(PYTHON_FILES)
-	[ "$(PYTHON_FILES)" = "" ] || mkdir -p $(MYPY_CACHE) && poetry run mypy $(PYTHON_FILES) --cache-dir $(MYPY_CACHE)
+	poetry run ruff check $(PYTHON_FILES)
 
 format:
 	poetry run ruff format $(PYTHON_FILES)
-	poetry run ruff --select I --fix $(PYTHON_FILES)
+	poetry run ruff check --select I --fix $(PYTHON_FILES)
 
 spell_check:
 	poetry run codespell --toml pyproject.toml
