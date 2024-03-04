@@ -8,7 +8,6 @@ services:
       - "8080:8000"
     environment:
       SAGE_CONFIG_PATH: "/home/appuser/sage/config.toml"
-      REQUESTS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
       JIRA_PASSWORD: ${JIRA_PASSWORD}
       AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
       GITLAB_PASSWORD: ${GITLAB_PASSWORD}
@@ -19,7 +18,7 @@ services:
     volumes:
       - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
       - sage_data:/home/appuser/data
-      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt:ro
+      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt
 
 volumes:
   sage_data:

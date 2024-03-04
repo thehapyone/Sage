@@ -5,6 +5,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV POETRY_VERSION 1.7.1
+ENV REQUESTS_CA_BUNDLE "/etc/ssl/certs/ca-certificates.crt"
+ENV CURL_CA_BUNDLE "/etc/ssl/certs/ca-certificates.crt"
 
 # install basic dependencies
 RUN apt-get update && \
