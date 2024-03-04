@@ -32,7 +32,7 @@ def load_calculator() -> Tool:
 
 def load_jira_tools() -> List[Tool]:
     """A toolbox for various Jira issue functionality"""
-    from utils.jira_agent import IssueAgent
+    from sage.utils.jira_agent import IssueAgent
 
     summarize_tool = Tool(
         name="summarize_jira_issue",
