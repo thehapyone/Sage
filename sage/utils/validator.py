@@ -195,11 +195,7 @@ class Web(Password):
     def generate_header(self) -> "Web":
         if not self.username and not self.password:
             return self
-        elif self.username and not self.password:
-            raise ConfigException(
-                "Both a Username and Password are required for the Web Source"
-            )
-        elif self.password and not self.username:
+        elif (self.username and not self.password) or (self.password and not self.username):
             raise ConfigException(
                 "Both a Username and Password are required for the Web Source"
             )

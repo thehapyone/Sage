@@ -1,5 +1,6 @@
 # test_validator.py
 
+import base64
 import os
 from logging import getLevelName
 from pathlib import Path
@@ -306,12 +307,48 @@ def test_gitlab_model_password_validation(monkeypatch):
 ################################################################################
 ##################### Unit Tests for the Web Model ############################
 
+def test_web_model_creation_with_credentials():
+    username = "user"
+    password = "pass"
+    encoded_credentials = base64.b64encode(
+        f"{username}:{password}".encode("utf-8")
+    ).decode("utf-8")
+    web = Web(
+        links=["https://example.com"],
+        nested=True,
+        username=username,
+        password=SecretStr(password),
+    )
+    assert web.links == ["https://example.com"]
+    assert web.nested is True
+    assert web.ssl_verify is True
+    assert web.headers == {"Authorization": f"Basic {encoded_credentials}"}
 
-def test_web_model_creation():
+
+def test_web_model_creation_without_credentials():
     web = Web(links=["https://example.com"], nested=True)
     assert web.links == ["https://example.com"]
     assert web.nested is True
     assert web.ssl_verify is True
+    assert web.headers == {}
+    assert web.username is None
+    assert web.password is None
+
+
+def test_web_model_creation_with_username_only():
+    with pytest.raises(ConfigException) as excinfo:
+        Web(links=["https://example.com"], nested=True, username="user")
+    assert "Both a Username and Password are required for the Web Source" in str(
+        excinfo.value
+    )
+
+
+def test_web_model_creation_with_password_only():
+    with pytest.raises(ConfigException) as excinfo:
+        Web(links=["https://example.com"], nested=True, password=SecretStr("pass"))
+    assert "Both a Username and Password are required for the Web Source" in str(
+        excinfo.value
+    )
 
 
 def test_web_model_ssl_verify():
