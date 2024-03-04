@@ -9,7 +9,7 @@ from queue import Queue
 from threading import Lock, Thread
 from time import sleep
 from typing import List
-from urllib.parse import urldefrag, urljoin, urlparse
+from urllib.parse import quote, urldefrag, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -432,11 +432,12 @@ class WebLoader(UnstructuredURLLoader):
                 AppleWebKit/537.36 (KHTML, like Gecko) \
                     Chrome/89.0.4389.82 Safari/537.36"
         }
+        session.headers.update(self.headers)
 
         visited_links = set()
         to_visit_links = Queue()
         lock = Lock()
-        base_url = self.normalize_url(base_url)
+        base_url = quote(self.normalize_url(base_url), safe="/:")
         to_visit_links.put((base_url, 0))
 
         threads = []

@@ -80,6 +80,9 @@ projects = ["project1", "project2"]
 links = ["https://example.com", "https://anotherexample.com"]
 nested = true
 ssl_verify = true
+# Adds an optional Basic Auth for the web links. E.g Directory listing servers
+username = "username"
+password = "password"
 
 [source.files]
 paths = ["/path/to/file1", "/path/to/file2"]

@@ -1,3 +1,4 @@
+import base64
 import os
 from logging import getLevelName
 from pathlib import Path
@@ -179,14 +180,32 @@ class GitlabModel(SourceData):
         return self
 
 
-class Web(BaseModel):
+class Web(Password):
     """
     Web Model.
     """
 
+    username: Optional[str] = None
     links: List[str]
     nested: bool
     ssl_verify: bool = True
+    headers: Optional[dict] = {}
+
+    @model_validator(mode="after")
+    def generate_header(self) -> "Web":
+        if not self.username and not self.password:
+            return self
+        elif (self.username and not self.password) or (self.password and not self.username):
+            raise ConfigException(
+                "Both a Username and Password are required for the Web Source"
+            )
+        else:
+            credentials = f"{self.username}:{self.password.get_secret_value()}"
+            encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode(
+                "utf-8"
+            )
+            self.headers.update({"Authorization": f"Basic {encoded_credentials}"})
+        return self
 
 
 class Files(BaseModel):

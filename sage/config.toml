@@ -45,6 +45,8 @@ projects = ["project1", "project2"]
 links = ["https://example.com", "https://anotherexample.com"]
 nested = true
 ssl_verify = true
+username = "your_web_username"
+password = "your_web_password"
 
 [source.files]
 paths = ["/path/to/file1", "/path/to/file2"]

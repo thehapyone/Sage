@@ -24,6 +24,7 @@ tmp/
 *_cache
 .coverage
 .env.sample
+coverage.xml
 
 ## Sage data dir
 data
