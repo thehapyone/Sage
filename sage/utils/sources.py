@@ -26,6 +26,7 @@ from sage.constants import (
     validated_config,
 )
 
+
 class Source:
     # TODO: Adds support for batching loading of the documents when generating the Faiss index. As it's easy to reach API throttle limits with OPENAI
     # TODO: Old sources metadata are not removed when the source change causing issue if old sources are used again as the source will not loaded because the metadata still exists
@@ -216,7 +217,7 @@ class Source:
                 ssl_verify=True,
             )
 
-            gitlab_documents = loader.load()
+            gitlab_documents = await loader.load()
 
             logger.debug(
                 f"Processed {len(gitlab_documents)} documents from the Gitlab source"
@@ -246,7 +247,10 @@ class Source:
         """
         try:
             loader = WebLoader(
-                nested=source.nested, ssl_verify=source.ssl_verify, urls=[link], headers=source.headers
+                nested=source.nested,
+                ssl_verify=source.ssl_verify,
+                urls=[link],
+                headers=source.headers,
             )
 
             web_documents = loader.load()

@@ -1,6 +1,7 @@
 # loaders.py
-## TODO: Move towards an async operation instead of the current threading approach for concurrency
+## TODO: Move towards an async operation instead of the current threading approach for concurrency for the web loader
 ## Basically replacing execute_concurrently with aexecute_concurrently
+import asyncio
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -10,6 +11,8 @@ from threading import Lock, Thread
 from time import sleep
 from typing import List
 from urllib.parse import quote, urldefrag, urljoin, urlparse
+import aiofiles
+from asyncer import asyncify
 
 import requests
 from bs4 import BeautifulSoup
@@ -26,7 +29,7 @@ from langchain_community.document_loaders.base import BaseLoader
 from pydantic import BaseModel, SecretStr
 from sage.utils.exceptions import SourceException
 from sage.utils.supports import (
-    execute_concurrently,
+    aexecute_concurrently,
     markdown_to_text_using_html2text,
 )
 
@@ -143,7 +146,7 @@ class GitlabLoader(BaseLoader):
 
         return projects
 
-    def _clone_project(self, project: Project) -> RepoHandler | None:
+    async def _clone_project(self, project: Project) -> RepoHandler | None:
         """
         Clone the project to a temporary directory.
         Returns the RepoHandler object
@@ -156,7 +159,9 @@ class GitlabLoader(BaseLoader):
 
         try:
             repo_path = tempfile.mkdtemp()
-            repo = Repo.clone_from(git_url, repo_path, branch=project.default_branch)
+            repo = await asyncify(Repo.clone_from)(
+                git_url, repo_path, branch=project.default_branch
+            )
             handler = RepoHandler(git_url=project.http_url_to_repo, repo=repo)
             return handler
         except Exception as e:
@@ -164,11 +169,10 @@ class GitlabLoader(BaseLoader):
             return None
 
     @staticmethod
-    def _load(repo_data: RepoHandler | None):
+    async def _load(repo_data: RepoHandler | None):
         """
-        Parse and load a repo as a document object and return a list of documents
+        Asynchronously parse and load a repo as a document object and return a list of documents
         """
-
         docs: List[Document] = []
 
         if repo_data is None:
@@ -184,17 +188,17 @@ class GitlabLoader(BaseLoader):
 
             file_path = os.path.join(repo.working_dir, item.path)
 
-            ignored_files = repo.ignored([file_path])  # type: ignore
+            ignored_files = await asyncify(repo.ignored)([file_path])
             if len(ignored_files):
                 continue
 
             rel_file_path = os.path.relpath(file_path, repo.working_dir)
+
             try:
-                with open(file_path, "rb") as f:
-                    content = f.read()
+                async with aiofiles.open(file_path, "rb") as f:
+                    content = await f.read()
                     file_type = os.path.splitext(item.name)[1]
 
-                    # loads only text files
                     try:
                         text_content = content.decode("utf-8")
                     except UnicodeDecodeError:
@@ -211,20 +215,21 @@ class GitlabLoader(BaseLoader):
                     docs.append(doc)
             except Exception as e:
                 logger.warning(f"Error reading file {file_path}: {e}")
+
         return docs
 
-    def _build_documents(
+    async def _build_documents(
         self, repo_data_list: List[RepoHandler | None]
     ) -> List[Document]:
         """
         Function that helps to process the git repos and generate the required documents
         """
-        documents: List[Document] = execute_concurrently(
+        documents: List[Document] = await aexecute_concurrently(
             self._load, repo_data_list, result_type="extends", max_workers=10
         )
         return documents
 
-    def process_groups(self, group: Group) -> List[Document]:
+    async def process_groups(self, group: Group) -> List[Document]:
         """
         Helper to find all projects in a group and generate the corresponding documents
         """
@@ -236,13 +241,13 @@ class GitlabLoader(BaseLoader):
             f"Fetched a total of {len(projects)} projects from gitlab group {group.name}"
         )
 
-        repo_data_list = execute_concurrently(
+        repo_data_list = await aexecute_concurrently(
             self._clone_project, projects, max_workers=50
         )
 
-        return self._build_documents(repo_data_list)
+        return await self._build_documents(repo_data_list)
 
-    def load(self) -> List[Document]:
+    async def load(self) -> List[Document]:
         """
         Loads documents for groups or projects
 
@@ -252,14 +257,16 @@ class GitlabLoader(BaseLoader):
         documents: List[Document] = []
         # process groups
         if self.groups:
-            group_docs = execute_concurrently(
+            group_docs = await aexecute_concurrently(
                 self.process_groups, self.groups, result_type="extends"
             )
             documents.extend(group_docs)
         # process projects
         if self.projects:
-            project_repos = execute_concurrently(self._clone_project, self.projects)
-            documents.extend(self._build_documents(project_repos))
+            project_repos = await aexecute_concurrently(
+                self._clone_project, self.projects
+            )
+            documents.extend(await self._build_documents(project_repos))
         return documents
 
 
