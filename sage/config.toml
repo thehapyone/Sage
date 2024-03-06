@@ -27,6 +27,9 @@ organization = "your_organization"
 
 [source]
 top_k = 20
+# Schedule in cron format: minute, hour, day (month), month, day (week)  
+# Example: "0 * * * *" means every hour at the 0th minute  
+refresh_schedule = "0 0 * * SUN" # Every Sunday at midnight  
 
 [source.confluence]
 username = "your_confluence_username"

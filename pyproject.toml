@@ -37,6 +37,8 @@ unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.12.5" }
 xlsxwriter = "3.1.9"
 python-gitlab = "4.3.0"
 markdown = "^3.5.2"
+apscheduler = "^3.10.4"
+croniter = "^2.0.2"
 
 [tool.poetry.group.tests]
 optional = true

@@ -542,7 +542,6 @@ class Source:
         """
         Returns either a retriever model from the FAISS vector indexes or compression based retriever model
         """
-
         db_path, indexes = await self._get_faiss_indexes()
 
         _retriever = self._load_retriever(db_path, indexes)

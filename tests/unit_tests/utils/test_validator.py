@@ -307,6 +307,7 @@ def test_gitlab_model_password_validation(monkeypatch):
 ################################################################################
 ##################### Unit Tests for the Web Model ############################
 
+
 def test_web_model_creation_with_credentials():
     username = "user"
     password = "pass"
@@ -392,11 +393,13 @@ def test_source_model_optional_fields(monkeypatch):
         ),
         web=Web(links=["https://example.com"], nested=True),
         files=Files(paths=["/path/to/file1"]),
+        refresh_schedule="1 * * * *",
     )
     assert source.confluence is not None
     assert source.gitlab is not None
     assert source.web is not None
     assert source.files is not None
+    assert source.refresh_schedule == "1 * * * *"
 
 
 def test_source_model_missing_optional_fields():
@@ -405,6 +408,15 @@ def test_source_model_missing_optional_fields():
     assert source.gitlab is None
     assert source.web is None
     assert source.files is None
+    assert source.refresh_schedule is not None
+
+
+def test_source_model_invalid_cron_syntax():
+    with pytest.raises(ValueError) as excinfo:
+        Source(refresh_schedule="invalid_cron_syntax")
+    assert "The value of refresh_schedule is not a valid cron syntax" in str(
+        excinfo.value
+    )
 
 
 ################################################################################

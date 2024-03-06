@@ -3,6 +3,7 @@ import os
 from logging import getLevelName
 from pathlib import Path
 from typing import List, Literal, Optional
+from croniter import croniter
 
 from pydantic import (
     BaseModel,
@@ -195,7 +196,9 @@ class Web(Password):
     def generate_header(self) -> "Web":
         if not self.username and not self.password:
             return self
-        elif (self.username and not self.password) or (self.password and not self.username):
+        elif (self.username and not self.password) or (
+            self.password and not self.username
+        ):
             raise ConfigException(
                 "Both a Username and Password are required for the Web Source"
             )
@@ -223,10 +226,18 @@ class Source(BaseModel):
 
     top_k: Optional[int] = 20
     """The number of vector queries to return in the retriever"""
+    refresh_schedule: Optional[str] = None
     confluence: Optional[ConfluenceModel] = None
     gitlab: Optional[GitlabModel] = None
     web: Optional[Web] = None
     files: Optional[Files] = None
+
+    @field_validator("refresh_schedule")
+    @classmethod
+    def validate_refresh_value(cls, v: str):
+        if v is not None and not croniter.is_valid(v):
+            raise ValueError("The value of refresh_schedule is not a valid cron syntax")
+        return v
 
 
 class Jira_Config(Password):
