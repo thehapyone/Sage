@@ -1,7 +1,7 @@
 from hashlib import md5
 from typing import List, Optional
 
-from anyio import Path as aPath
+from anyio import Path
 from chainlit.types import AskFileResponse
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.schema import Document
@@ -12,12 +12,7 @@ from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
 from langchain_community.vectorstores.faiss import FAISS
-from sage.utils.exceptions import SourceException
-from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
-from sage.utils.supports import (
-    aexecute_concurrently,
-)
-from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
+
 from sage.constants import (
     EMBEDDING_MODEL,
     core_config,
@@ -25,6 +20,12 @@ from sage.constants import (
     sources_config,
     validated_config,
 )
+from sage.utils.exceptions import SourceException
+from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
+from sage.utils.supports import (
+    aexecute_concurrently,
+)
+from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 
 class Source:
@@ -32,7 +33,7 @@ class Source:
     # TODO: Old sources metadata are not removed when the source change causing issue if old sources are used again as the source will not loaded because the metadata still exists
 
     _instance = None
-    source_dir = aPath(core_config.data_dir) / "sources"
+    source_dir = core_config.data_dir / "sources"
     _retriever_args = {"k": sources_config.top_k}
     """Custom retriever search args"""
 
@@ -73,7 +74,7 @@ class Source:
     def _get_hash(input: str) -> str:
         return md5(input.encode()).hexdigest()
 
-    def _get_source_metadata_path(self, source_hash: str) -> aPath:
+    def _get_source_metadata_path(self, source_hash: str) -> Path:
         """Get the source metadata"""
         return self.source_dir / source_hash
 
@@ -473,7 +474,7 @@ class Source:
         ## TODO: Remove when chainlit set the file path to match the exact file name
         async def rename_file_path(file: AskFileResponse) -> AskFileResponse:
             """Extract the base path and file extension from the current file path"""
-            file_path = aPath(file.path)
+            file_path = Path(file.path)
             new_path = file_path.with_name(file.name)
 
             try:
@@ -497,7 +498,7 @@ class Source:
             """Deletes a list of files from the filesystem."""
             for file_obj in files:
                 try:
-                    file_path = aPath(file_obj.path)
+                    file_path = Path(file_obj.path)
                     if await file_path.is_file():
                         await file_path.unlink()
                         logger.debug(f"Deleted file: {file_path}")

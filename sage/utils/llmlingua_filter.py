@@ -63,7 +63,7 @@ class LLMLinguaCompressor(BaseDocumentCompressor):
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that the python package exists in environment."""
         try:
-            import llmlingua # noqa: F401
+            import llmlingua  # noqa: F401
         except ImportError:
             raise ImportError(
                 "Could not import llmlingua python package. "

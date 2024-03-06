@@ -67,7 +67,7 @@ The [source] section allows you to configure various data sources that CodeSage 
 
 ```toml
 [source]
-# The number of documents to retrieve from the retreiver system
+# The number of documents to retrieve from the retriever system
 top_k = 10
 # Schedule in cron format: minute, hour, day (month), month, day (week)  
 # Example: "0 * * * *" means every hour at the 0th minute  

@@ -1,12 +1,14 @@
+import asyncio
 import base64
 import os
 from logging import getLevelName
-from pathlib import Path
 from typing import List, Literal, Optional
-from croniter import croniter
 
+from anyio import Path
+from croniter import croniter
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     PositiveInt,
     SecretStr,
@@ -271,7 +273,9 @@ class Core(BaseModel):
     Core Model.
     """
 
-    data_dir: Optional[str | Path] = Path.home() / sage_base
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    data_dir: Path
     logging_level: str | int = "INFO"
     user_agent: str = "codesage.ai"
 
@@ -279,6 +283,18 @@ class Core(BaseModel):
     @classmethod
     def set_logging_level(cls, v: str | int):
         return getLevelName(v)
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_data_dir(cls, values: dict) -> dict:
+        """Sets the default data dir if not set and convert to Path"""
+        _data_dir = values.get("data_dir")
+        if _data_dir is None:
+            default_data_dir = asyncio.run(Path.home()) / sage_base
+            values["data_dir"] = default_data_dir
+            return values
+        values["data_dir"] = Path(_data_dir)
+        return values
 
 
 class EmbeddingCore(BaseModel):

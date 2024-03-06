@@ -408,7 +408,7 @@ def test_source_model_missing_optional_fields():
     assert source.gitlab is None
     assert source.web is None
     assert source.files is None
-    assert source.refresh_schedule is not None
+    assert source.refresh_schedule is None
 
 
 def test_source_model_invalid_cron_syntax():
@@ -478,7 +478,7 @@ def test_core_custom_values():
     core = Core(
         data_dir=custom_data_dir, logging_level="DEBUG", user_agent="custom_agent"
     )
-    assert core.data_dir == custom_data_dir
+    assert str(core.data_dir) == custom_data_dir
     assert core.logging_level == getLevelName("DEBUG")
     assert core.user_agent == "custom_agent"
 

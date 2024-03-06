@@ -1,8 +1,9 @@
+import asyncio
 import os
 import sys
-from pathlib import Path
 
 import toml
+from anyio import Path
 from langchain_community.chat_models import ChatOllama
 from langchain_openai.chat_models import AzureChatOpenAI, ChatOpenAI
 from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
@@ -20,6 +21,7 @@ assets_dir = Path(__file__).parent / "assets"
 app_name = "codesage.ai"
 logger = CustomLogger(name=app_name)
 
+# Validate the configuration file
 try:
     config = toml.load(config_path)
     validated_config = Config(**config)
@@ -36,8 +38,13 @@ except (FileNotFoundError, KeyError) as error:
     )
     sys.exit(1)
 
+
 # Create the main data directory
-Path(core_config.data_dir).mkdir(exist_ok=True)
+async def create_data_dir() -> None:
+    await core_config.data_dir.mkdir(exist_ok=True)
+
+
+asyncio.run(create_data_dir())
 
 # Update the logging level
 logger.setLevel(core_config.logging_level)
@@ -95,3 +102,6 @@ elif validated_config.embedding.type == "openai":
         api_key=validated_config.openai.password.get_secret_value(),
         organization=validated_config.openai.organization,
     )
+
+# Define the path for the sentinel file
+SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"
