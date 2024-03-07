@@ -2,10 +2,10 @@
 
 from importlib import reload
 from logging import getLevelName
-from anyio import Path
-from unittest.mock import MagicMock, Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from anyio import Path
 
 from sage.utils.exceptions import ConfigException
 

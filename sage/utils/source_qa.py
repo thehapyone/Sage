@@ -355,6 +355,7 @@ class SourceQAService:
             "context": lambda x: self._format_docs(x["docs"]),
             "question": lambda x: x["question"],
         }
+
         if "agent" in profile.lower():
             agent_qa_prompt = agent_prompt(self.qa_template_agent)
             # create the agent engine
@@ -491,8 +492,6 @@ class SourceQAService:
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()
             retriever = await self._get_retriever()
-            if not retriever:
-                raise SourceException("No source retriever found")
 
         self._setup_runnable(retriever, chat_profile)
 
