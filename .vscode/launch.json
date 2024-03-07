@@ -15,6 +15,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            "justMyCode": false,
             "envFile": "${workspaceFolder}/sandbox/sage.env"
         },
         {

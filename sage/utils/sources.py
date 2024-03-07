@@ -13,10 +13,12 @@ from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
-from langchain_community.vectorstores.faiss import FAISS
+from faiss import IndexFlatL2
+from langchain_community.docstore.in_memory import InMemoryDocstore
 
 from sage.constants import (
     EMBEDDING_MODEL,
+    EMBED_DIMENSION,
     core_config,
     logger,
     sources_config,
@@ -24,9 +26,7 @@ from sage.constants import (
 )
 from sage.utils.exceptions import SourceException
 from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
-from sage.utils.supports import (
-    aexecute_concurrently,
-)
+from sage.utils.supports import aexecute_concurrently, CustomFAISS as FAISS
 from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 
@@ -139,10 +139,16 @@ class Source:
     async def _get_or_create_faiss_db(self, source_hash: str) -> FAISS:
         """Create or return any existing FAISS Database if available on the local disk"""
         faiss_dbs_paths = await self._get_faiss_indexes()
-        if source_hash in faiss_dbs_paths:
+        if source_hash not in faiss_dbs_paths:
             # create an empty db and return it
-            db = await FAISS.afrom_documents(documents=[], embedding=EMBEDDING_MODEL)
+            db = FAISS(
+                embedding_function=EMBEDDING_MODEL,
+                index=IndexFlatL2(EMBED_DIMENSION),
+                docstore=InMemoryDocstore(),
+                index_to_docstore_id={},
+            )
             return db
+        # Load an existing db
         db = FAISS.load_local(
             folder_path=str(self._faiss_dir),
             index_name=source_hash,
@@ -154,7 +160,9 @@ class Source:
         """Return a Record Manager connected to a give source"""
 
         record_manager = SQLRecordManager(
-            namespace=source_hash, db_url=f"sqlite:///{self._record_manager_file}"
+            namespace=source_hash,
+            async_mode=True,
+            db_url=f"sqlite+aiosqlite:///{self._record_manager_file}",
         )
         await record_manager.acreate_schema()
         return record_manager

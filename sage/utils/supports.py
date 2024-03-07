@@ -1,11 +1,12 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable, Coroutine, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Coroutine, List, Optional, Sequence, Tuple
 
 from asyncer import asyncify
 from html2text import HTML2Text
 from langchain.agents.output_parsers import XMLAgentOutputParser
+from langchain_community.vectorstores.faiss import FAISS
 from langchain.callbacks.manager import Callbacks
 from langchain.prompts import AIMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
@@ -67,6 +68,15 @@ class JinaAIEmbeddings(Embeddings):
     async def aembed_query(self, text: str) -> List[float]:
         """An async version of the query embedding"""
         return await asyncify(self.embed_query)(text)
+
+
+class CustomFAISS(FAISS):
+
+    async def adelete(
+        self, ids: Optional[List[str]] = None, **kwargs: Any
+    ) -> Optional[bool]:
+        """An async version of the delete method"""
+        return await asyncify(self.delete)(ids, **kwargs)
 
 
 class BgeRerank(BaseDocumentCompressor):

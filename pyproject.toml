@@ -39,6 +39,8 @@ python-gitlab = "4.3.0"
 markdown = "^3.5.2"
 apscheduler = "^3.10.4"
 croniter = "^2.0.2"
+atlassian-python-api = "^3.41.11"
+aiosqlite = "^0.20.0"
 
 [tool.poetry.group.tests]
 optional = true

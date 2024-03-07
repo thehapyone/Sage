@@ -103,5 +103,8 @@ elif validated_config.embedding.type == "openai":
         organization=validated_config.openai.organization,
     )
 
+# Embedding Dimension
+#EMBED_DIMENSION: int = len(EMBEDDING_MODEL.embed_query("dummy"))
+EMBED_DIMENSION = 768
 # Define the path for the sentinel file
 SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"
