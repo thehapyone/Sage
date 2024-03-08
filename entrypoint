@@ -27,7 +27,7 @@ run_app() {
     exec su -s /bin/bash -c "exec python /home/appuser/sage/data_loader.py" appuser
   else
     echo "Starting the chat service..."
-    exec su -s /bin/bash -c "exec chainlit run -h --p=8000 /home/appuser/sage/chat.py" appuser
+    exec su -s /bin/bash -c "exec chainlit run -h --port=8000 /home/appuser/sage/chat.py" appuser
   fi
 
 }
