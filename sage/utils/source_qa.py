@@ -426,6 +426,13 @@ class SourceQAService:
             ),
         ]
 
+    @cl.action_callback("action_button")
+    async def on_action(action: cl.Action):
+        print("The user clicked on the action button!")
+        logger.debug(action)
+
+        return "Thank you for clicking on the action button!"
+
     @cl.on_chat_start
     async def on_chat_start(self):
         """Initialize a new chat environment"""
@@ -492,6 +499,37 @@ class SourceQAService:
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()
             retriever = await self._get_retriever()
+            
+        # Sending an action button within a chatbot message
+        actions = [
+            cl.Action(name="action_button", value="example_value", label="Source 1"),
+            cl.Action(name="action_button", value="example_value2", label="Source 2"),
+            cl.Action(name="action_button", value="example_value3", label="Source 3"),
+            cl.Action(name="action_button", value="example_value4", label="Source 4"),
+            cl.Action(name="action_button", value="example_valu5", label="Source 5"),
+            cl.Action(name="action_button", value="example_value6", label="Source 1"),
+            cl.Action(name="action_button", value="example_value7", label="Source 2"),
+            cl.Action(name="action_button", value="example_value8", label="Source 3"),
+            cl.Action(name="action_button", value="example_value9", label="Source 4", collapsed=True),
+            cl.Action(name="action_button", value="example_valu10", label="Source 5", collapsed=True),
+        ]
+
+        #await cl.Message(content="Interact with this action button:", actions=actions).send()
+        
+        res = await cl.AskActionMessage(
+            content="Pick an action!",
+            disable_feedback=True,
+            actions=[
+                cl.Action(name="continue", value="continue", label="✅ Continue"),
+                cl.Action(name="cancel", value="cancel", label="❌ Cancel"),
+                *actions
+            ],
+        ).send()
+
+        if res and res.get("value") == "continue":
+            await cl.Message(
+                content="Continue!",
+            ).send()
 
         self._setup_runnable(retriever, chat_profile)
 
