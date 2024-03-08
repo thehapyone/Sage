@@ -20,11 +20,22 @@ update_ca() {
   update-ca-certificates --fresh >/dev/null
 }
 
+run_app() {
+  # Check the MODE environment variable to determine which process to start
+  if [ "$MODE" == "DATA_LOADER" ]; then
+    echo "Starting the data loader..."
+    exec su -s /bin/bash -c "exec python /home/appuser/sage/data_loader.py" appuser
+  else
+    echo "Starting the chat service..."
+    exec su -s /bin/bash -c "exec chainlit run -h --port=8000 /home/appuser/sage/chat.py" appuser
+  fi
+
+}
+
 if [ -f "${CA_CERTIFICATES_PATH}" ]; then
   update_ca
 fi
 
 chown -R appuser:appuser /home/appuser
 
-# Drop privileges to 'appuser' before executing the main application
-exec su -s /bin/bash -c "exec $*" appuser
+run_app

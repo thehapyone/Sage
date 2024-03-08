@@ -1,30 +1,34 @@
 from hashlib import md5
 from typing import List, Optional
 
-from anyio import Path as aPath
+from anyio import Path
 from chainlit.types import AskFileResponse
+from faiss import IndexFlatL2
+from langchain.indexes import SQLRecordManager, aindex
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.schema import Document
+from langchain.schema.runnable import RunnableLambda
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
-from langchain_community.vectorstores.faiss import FAISS
-from sage.utils.exceptions import SourceException
-from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
-from sage.utils.supports import (
-    aexecute_concurrently,
-)
-from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
+
 from sage.constants import (
+    EMBED_DIMENSION,
     EMBEDDING_MODEL,
     core_config,
     logger,
     sources_config,
     validated_config,
 )
+from sage.utils.exceptions import SourceException
+from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
+from sage.utils.supports import CustomFAISS as FAISS
+from sage.utils.supports import aexecute_concurrently
+from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 
 class Source:
@@ -32,7 +36,10 @@ class Source:
     # TODO: Old sources metadata are not removed when the source change causing issue if old sources are used again as the source will not loaded because the metadata still exists
 
     _instance = None
-    source_dir = aPath(core_config.data_dir) / "sources"
+    source_dir = core_config.data_dir / "sources"
+    _faiss_dir = source_dir / "faiss"
+    """Directory where the Faiss DBs are saved"""
+    _record_manager_file = source_dir / "dbs_record_manager.sql"
     _retriever_args = {"k": sources_config.top_k}
     """Custom retriever search args"""
 
@@ -73,7 +80,7 @@ class Source:
     def _get_hash(input: str) -> str:
         return md5(input.encode()).hexdigest()
 
-    def _get_source_metadata_path(self, source_hash: str) -> aPath:
+    def _get_source_metadata_path(self, source_hash: str) -> Path:
         """Get the source metadata"""
         return self.source_dir / source_hash
 
@@ -130,19 +137,61 @@ class Source:
             elif isinstance(source_data, Web):
                 await self._check_source(source_type, source_data, "links")
 
+    async def _get_or_create_faiss_db(self, source_hash: str) -> FAISS:
+        """Create or return any existing FAISS Database if available on the local disk"""
+        faiss_dbs_paths = await self._get_faiss_indexes()
+        if source_hash not in faiss_dbs_paths:
+            # create an empty db and return it
+            db = FAISS(
+                embedding_function=EMBEDDING_MODEL,
+                index=IndexFlatL2(EMBED_DIMENSION),
+                docstore=InMemoryDocstore(),
+                index_to_docstore_id={},
+            )
+            return db
+        # Load an existing db
+        db = FAISS.load_local(
+            folder_path=str(self._faiss_dir),
+            index_name=source_hash,
+            embeddings=EMBEDDING_MODEL,
+        )
+        return db
+
+    async def _get_record_manager(self, source_hash: str) -> SQLRecordManager:
+        """Return a Record Manager connected to a give source"""
+
+        record_manager = SQLRecordManager(
+            namespace=source_hash,
+            async_mode=True,
+            db_url=f"sqlite+aiosqlite:///{self._record_manager_file}",
+        )
+        await record_manager.acreate_schema()
+        return record_manager
+
     async def _create_and_save_db(
         self, source_hash: str, documents: List[Document], save_db: bool = True
     ) -> FAISS | None:
         """Creates and save a vector store index DB to file"""
         logger.debug(f"Creating a vector store for source with hash - {source_hash}")
 
-        # Create vector index
-        db = await FAISS.afrom_documents(documents=documents, embedding=EMBEDDING_MODEL)
-
         if save_db:
+            # Get vector store
+            db = await self._get_or_create_faiss_db(source_hash)
+
+            # Get record manager
+            record_manager = await self._get_record_manager(source_hash)
+
+            # Update the DBs via the Index API
+            await aindex(
+                docs_source=documents,
+                record_manager=record_manager,
+                vector_store=db,
+                cleanup="full",
+                source_id_key="source",
+            )
+
             # Save DB to source directory
-            dir_path = self.source_dir / "faiss"
-            db.save_local(str(dir_path), source_hash)
+            db.save_local(str(self._faiss_dir), source_hash)
             logger.debug(
                 f"Successfully created and saved vector store for source with hash - {source_hash}"
             )
@@ -150,6 +199,9 @@ class Source:
         logger.debug(
             f"Successfully created the vector store for source with hash - {source_hash}"
         )
+        # Create vector index without any indexing api
+        db = await FAISS.afrom_documents(documents=documents, embedding=EMBEDDING_MODEL)
+
         return db
 
     @staticmethod
@@ -389,16 +441,14 @@ class Source:
             func=self.add_source, items=self.source_refresh_list, input_type="dict"
         )
 
-    async def _get_faiss_indexes(self) -> str | List[str]:
+    async def _get_faiss_indexes(self) -> List[str]:
         """Returns a list of all available faiss indexes"""
-        dir_path = self.source_dir / "faiss"
-
         indexes: List[str] = []
 
-        async for file in dir_path.glob("*.faiss"):
+        async for file in self._faiss_dir.glob("*.faiss"):
             indexes.append(file.stem)
 
-        return str(dir_path), indexes
+        return indexes
 
     @staticmethod
     def _combine_dbs(dbs: List[FAISS]) -> FAISS:
@@ -473,7 +523,7 @@ class Source:
         ## TODO: Remove when chainlit set the file path to match the exact file name
         async def rename_file_path(file: AskFileResponse) -> AskFileResponse:
             """Extract the base path and file extension from the current file path"""
-            file_path = aPath(file.path)
+            file_path = Path(file.path)
             new_path = file_path.with_name(file.name)
 
             try:
@@ -497,7 +547,7 @@ class Source:
             """Deletes a list of files from the filesystem."""
             for file_obj in files:
                 try:
-                    file_path = aPath(file_obj.path)
+                    file_path = Path(file_obj.path)
                     if await file_path.is_file():
                         await file_path.unlink()
                         logger.debug(f"Deleted file: {file_path}")
@@ -519,10 +569,12 @@ class Source:
         else:
             return self._compression_retriever(retriever)
 
-    def _load_retriever(self, db_path: str, indexes: List[str]):
+    def _load_retriever(self, indexes: List[str]):
         """Loads a retriever"""
         if not indexes:
             return None
+
+        db_path = str(self._faiss_dir)
 
         dbs: List[FAISS] = []
 
@@ -542,10 +594,12 @@ class Source:
         """
         Returns either a retriever model from the FAISS vector indexes or compression based retriever model
         """
+        indexes = await self._get_faiss_indexes()
 
-        db_path, indexes = await self._get_faiss_indexes()
+        _retriever = self._load_retriever(indexes)
 
-        _retriever = self._load_retriever(db_path, indexes)
+        if _retriever is None:
+            return RunnableLambda(lambda x: [])
 
         if not validated_config.reranker:
             return _retriever

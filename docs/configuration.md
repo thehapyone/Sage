@@ -66,6 +66,13 @@ status_todo = "To Do"
 The [source] section allows you to configure various data sources that CodeSage can interact with, such as Confluence, GitLab, web links, and files.
 
 ```toml
+[source]
+# The number of documents to retrieve from the retriever system
+top_k = 10
+# Schedule in cron format: minute, hour, day (month), month, day (week)  
+# Example: "0 * * * *" means every hour at the 0th minute  
+refresh_schedule = "0 0 * * SUN" # Every Sunday at midnight  
+
 [source.confluence]
 username = "your_confluence_username"
 server = "https://yourcompany.atlassian.net/wiki"

@@ -1,11 +1,14 @@
+import asyncio
 import base64
 import os
 from logging import getLevelName
-from pathlib import Path
 from typing import List, Literal, Optional
 
+from anyio import Path
+from croniter import croniter
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     PositiveInt,
     SecretStr,
@@ -195,7 +198,9 @@ class Web(Password):
     def generate_header(self) -> "Web":
         if not self.username and not self.password:
             return self
-        elif (self.username and not self.password) or (self.password and not self.username):
+        elif (self.username and not self.password) or (
+            self.password and not self.username
+        ):
             raise ConfigException(
                 "Both a Username and Password are required for the Web Source"
             )
@@ -223,10 +228,18 @@ class Source(BaseModel):
 
     top_k: Optional[int] = 20
     """The number of vector queries to return in the retriever"""
+    refresh_schedule: Optional[str] = None
     confluence: Optional[ConfluenceModel] = None
     gitlab: Optional[GitlabModel] = None
     web: Optional[Web] = None
     files: Optional[Files] = None
+
+    @field_validator("refresh_schedule")
+    @classmethod
+    def validate_refresh_value(cls, v: str):
+        if v is not None and not croniter.is_valid(v):
+            raise ValueError("The value of refresh_schedule is not a valid cron syntax")
+        return v
 
 
 class Jira_Config(Password):
@@ -260,7 +273,9 @@ class Core(BaseModel):
     Core Model.
     """
 
-    data_dir: Optional[str | Path] = Path.home() / sage_base
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    data_dir: Path
     logging_level: str | int = "INFO"
     user_agent: str = "codesage.ai"
 
@@ -268,6 +283,18 @@ class Core(BaseModel):
     @classmethod
     def set_logging_level(cls, v: str | int):
         return getLevelName(v)
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_data_dir(cls, values: dict) -> dict:
+        """Sets the default data dir if not set and convert to Path"""
+        _data_dir = values.get("data_dir")
+        if _data_dir is None:
+            default_data_dir = asyncio.run(Path.home()) / sage_base
+            values["data_dir"] = default_data_dir
+            return values
+        values["data_dir"] = Path(_data_dir)
+        return values
 
 
 class EmbeddingCore(BaseModel):

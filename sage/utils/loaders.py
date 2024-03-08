@@ -1,7 +1,6 @@
 # loaders.py
 ## TODO: Move towards an async operation instead of the current threading approach for concurrency for the web loader
 ## Basically replacing execute_concurrently with aexecute_concurrently
-import asyncio
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -11,10 +10,10 @@ from threading import Lock, Thread
 from time import sleep
 from typing import List
 from urllib.parse import quote, urldefrag, urljoin, urlparse
-import aiofiles
-from asyncer import asyncify
 
+import aiofiles
 import requests
+from asyncer import asyncify
 from bs4 import BeautifulSoup
 from constants import (
     app_name,
@@ -27,6 +26,7 @@ from langchain.schema import Document
 from langchain_community.document_loaders import ConfluenceLoader, UnstructuredURLLoader
 from langchain_community.document_loaders.base import BaseLoader
 from pydantic import BaseModel, SecretStr
+
 from sage.utils.exceptions import SourceException
 from sage.utils.supports import (
     aexecute_concurrently,

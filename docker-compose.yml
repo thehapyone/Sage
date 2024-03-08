@@ -1,17 +1,35 @@
 version: "3.8"
 
 services:
-  codesage:
+  chat:
     image: thehapyone/codesage:latest
-    container_name: codesage
+    container_name: sage_chat
     ports:
       - "8080:8000"
     environment:
+      MODE: CHAT
       SAGE_CONFIG_PATH: "/home/appuser/sage/config.toml"
       JIRA_PASSWORD: ${JIRA_PASSWORD}
       AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
       GITLAB_PASSWORD: ${GITLAB_PASSWORD}
       CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET}
+      COHERE_API_KEY: ${COHERE_API_KEY}
+      HF_HOME: /home/appuser/data/huggingface
+      HF_TOKEN: ${HF_TOKEN}
+    volumes:
+      - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
+      - sage_data:/home/appuser/data
+      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt
+
+  data_loader:  
+    image: thehapyone/codesage:latest  
+    container_name: data_loader  
+    environment:
+      MODE: DATA_LOADER
+      SAGE_CONFIG_PATH: "/home/appuser/sage/config.toml"
+      JIRA_PASSWORD: ${JIRA_PASSWORD}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
+      GITLAB_PASSWORD: ${GITLAB_PASSWORD}
       COHERE_API_KEY: ${COHERE_API_KEY}
       HF_HOME: /home/appuser/data/huggingface
       HF_TOKEN: ${HF_TOKEN}

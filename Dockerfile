@@ -46,4 +46,3 @@ RUN chown -R appuser:appuser /home/appuser
 
 # Run the application
 ENTRYPOINT ["/bin/bash", "/entrypoint"]
-CMD ["chainlit", "run", "-h", "--port=8000", "/home/appuser/sage/chat.py"]

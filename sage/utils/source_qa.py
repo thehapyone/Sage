@@ -20,7 +20,14 @@ from langchain.schema.runnable import (
 )
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.tools import Tool
-from sage.constants import LLM_MODEL, assets_dir, validated_config
+
+from sage.constants import (
+    LLM_MODEL,
+    SENTINEL_PATH,
+    assets_dir,
+    logger,
+    validated_config,
+)
 from sage.utils.exceptions import SourceException
 from sage.utils.sources import Source
 from sage.utils.supports import (
@@ -29,6 +36,19 @@ from sage.utils.supports import (
     convert_intermediate_steps,
     convert_tools,
 )
+
+
+async def check_for_data_updates() -> bool:
+    """Check the data loader for any update"""
+    if await SENTINEL_PATH.exists():
+        # Read the sentinel file
+        content = await SENTINEL_PATH.read_text()
+        if content == "updated":
+            logger.info("Data update detected, reloading the retriever database")
+            # reset the file
+            await SENTINEL_PATH.write_text("")
+            return True
+    return False
 
 
 class SourceQAService:
@@ -266,6 +286,11 @@ class SourceQAService:
 
     async def _get_retriever(self):
         """Loads a retrieval model from the source engine"""
+        # First check if there has been an update from the data loader
+        if await check_for_data_updates():
+            self._retriever = await Source().load()
+            return self._retriever
+
         if not self._retriever:
             self._retriever = await Source().load()
         return self._retriever
@@ -330,6 +355,7 @@ class SourceQAService:
             "context": lambda x: self._format_docs(x["docs"]),
             "question": lambda x: x["question"],
         }
+
         if "agent" in profile.lower():
             agent_qa_prompt = agent_prompt(self.qa_template_agent)
             # create the agent engine
@@ -466,8 +492,6 @@ class SourceQAService:
         else:
             await cl.Message(content=intro_message, disable_feedback=True).send()
             retriever = await self._get_retriever()
-            if not retriever:
-                raise SourceException("No source retriever found")
 
         self._setup_runnable(retriever, chat_profile)
 

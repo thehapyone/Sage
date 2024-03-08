@@ -1,4 +1,3 @@
-
 from constants import LLM_MODEL as model
 from langchain.agents import (
     AgentExecutor,
@@ -15,6 +14,7 @@ from langchain.prompts import (
 from langchain.tools import DuckDuckGoSearchRun, Tool
 from langchain.tools.tavily_search import TavilySearchResults
 from langchain.utilities.tavily_search import TavilySearchAPIWrapper
+
 from sage.utils.source_qa import SourceQAService
 
 agent_instructions_bak = """

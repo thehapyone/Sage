@@ -2,10 +2,10 @@
 
 from importlib import reload
 from logging import getLevelName
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from anyio import Path
 
 from sage.utils.exceptions import ConfigException
 
@@ -36,16 +36,17 @@ sample_config_data = {
     "llm": {"type": "openai", "openai": {"name": "gpt3.5"}},
 }
 
-mock_path_mkdir = Mock(name="path.mkdir", return_value=True)
+mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
 mock_openai_llm = Mock(name="ChatOpenAI")
 mock_openai_embedding = Mock(name="OpenAIEmbeddings")
+mock_openai_embedding.return_value.embed_query.return_value = [0] * 768
 mock_logger_spec = Mock(name="logger")
 
 
 @pytest.fixture
 def mock_path(monkeypatch):
     # Mock the Path class to avoid actual filesystem operations
-    monkeypatch.setattr("pathlib.Path.mkdir", mock_path_mkdir)
+    monkeypatch.setattr("anyio.Path.mkdir", mock_path_mkdir)
 
 
 @pytest.fixture
@@ -85,7 +86,7 @@ def test_successful_config_load(
 
     core_config = constants.core_config
 
-    assert core_config.data_dir == "/fake/path"
+    assert core_config.data_dir == Path("/fake/path")
     assert core_config.logging_level == getLevelName("WARNING")
     assert isinstance(constants.assets_dir, Path)
 
