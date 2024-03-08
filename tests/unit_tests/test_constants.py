@@ -39,6 +39,7 @@ sample_config_data = {
 mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
 mock_openai_llm = Mock(name="ChatOpenAI")
 mock_openai_embedding = Mock(name="OpenAIEmbeddings")
+mock_openai_embedding.return_value.embed_query.return_value = [0] * 768
 mock_logger_spec = Mock(name="logger")
 
 
