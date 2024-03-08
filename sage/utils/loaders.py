@@ -1,7 +1,6 @@
 # loaders.py
 ## TODO: Move towards an async operation instead of the current threading approach for concurrency for the web loader
 ## Basically replacing execute_concurrently with aexecute_concurrently
-import asyncio
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor

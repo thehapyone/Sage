@@ -3,22 +3,22 @@ from typing import List, Optional
 
 from anyio import Path
 from chainlit.types import AskFileResponse
+from faiss import IndexFlatL2
 from langchain.indexes import SQLRecordManager, aindex
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.schema import Document
 from langchain.schema.runnable import RunnableLambda
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
-from faiss import IndexFlatL2
-from langchain_community.docstore.in_memory import InMemoryDocstore
 
 from sage.constants import (
-    EMBEDDING_MODEL,
     EMBED_DIMENSION,
+    EMBEDDING_MODEL,
     core_config,
     logger,
     sources_config,
@@ -26,7 +26,8 @@ from sage.constants import (
 )
 from sage.utils.exceptions import SourceException
 from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
-from sage.utils.supports import aexecute_concurrently, CustomFAISS as FAISS
+from sage.utils.supports import CustomFAISS as FAISS
+from sage.utils.supports import aexecute_concurrently
 from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 

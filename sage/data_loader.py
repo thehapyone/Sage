@@ -25,7 +25,9 @@ async def main():
     """Main Executor"""
     scheduler_time = sources_config.refresh_schedule
     if scheduler_time is None:
-        logger.warning("Data Loader Scheduler won't run. No schedule interval configured.")
+        logger.warning(
+            "Data Loader Scheduler won't run. No schedule interval configured."
+        )
         return
     interval = CronTrigger.from_crontab(scheduler_time)
     scheduler = AsyncIOScheduler(gconfig={"logger": logger})

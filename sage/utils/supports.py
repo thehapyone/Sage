@@ -6,13 +6,13 @@ from typing import Any, Callable, Coroutine, List, Optional, Sequence, Tuple
 from asyncer import asyncify
 from html2text import HTML2Text
 from langchain.agents.output_parsers import XMLAgentOutputParser
-from langchain_community.vectorstores.faiss import FAISS
 from langchain.callbacks.manager import Callbacks
 from langchain.prompts import AIMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
 from langchain.schema import AgentAction, AgentFinish, Document
 from langchain.schema.embeddings import Embeddings
 from langchain.tools import Tool
+from langchain_community.vectorstores.faiss import FAISS
 from markdown import markdown
 from sentence_transformers import CrossEncoder
 from transformers import AutoModel
@@ -71,7 +71,6 @@ class JinaAIEmbeddings(Embeddings):
 
 
 class CustomFAISS(FAISS):
-
     async def adelete(
         self, ids: Optional[List[str]] = None, **kwargs: Any
     ) -> Optional[bool]:
