@@ -15,7 +15,7 @@ import aiofiles
 import requests
 from asyncer import asyncify
 from bs4 import BeautifulSoup
-from constants import (
+from sage.constants import (
     app_name,
     logger,
 )

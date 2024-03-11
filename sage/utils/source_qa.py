@@ -502,8 +502,6 @@ class SourceQAService:
             
         # Sending an action button within a chatbot message
         actions = [
-            cl.Action(name="action_button", value="example_value", label="Source 1"),
-            cl.Action(name="action_button", value="example_value2", label="Source 2"),
             cl.Action(name="action_button", value="example_value3", label="Source 3"),
             cl.Action(name="action_button", value="example_value4", label="Source 4"),
             cl.Action(name="action_button", value="example_valu5", label="Source 5"),
