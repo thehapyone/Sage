@@ -21,7 +21,9 @@ from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 from sage.utils.source_manager import (
     SourceManager,
     convert_sources_to_string,
+    get_faiss_indexes,
 )
+from sage.utils.labels import generate_source_label
 
 
 class Source:
@@ -56,10 +58,13 @@ class Source:
         """Get the source metadata"""
         return self.source_dir / source_hash
 
-    async def _save_source_metadata(self, source_hash: str):
+    async def _save_source_metadata(self, source_metadata: str, source_hash: str):
         """Save the source metadata to disk"""
-        metadata = self._get_source_metadata_path(source_hash)
-        await metadata.write_text("True")
+        metadata_path = self._get_source_metadata_path(source_hash)
+        if await metadata_path.exists():
+            return
+        source_label = await generate_source_label(source_metadata)
+        await metadata_path.write_text(source_label)
 
     async def _source_exist_locally(self, source_hash: str):
         """Returns whether the given source exist or not"""
@@ -134,7 +139,7 @@ class Source:
             logger.error(str(e))
             logger.error("Source will retry next re-run")
         else:
-            await self._save_source_metadata(hash)
+            await self._save_source_metadata(source_ref, hash)
             logger.info(f"Done with source {source_ref}")
 
     async def run(self) -> None:
@@ -295,7 +300,7 @@ class Source:
         """
         Returns either a retriever model from the FAISS vector indexes or compression based retriever model
         """
-        indexes = await self._get_faiss_indexes()
+        indexes = await get_faiss_indexes(self.manager.faiss_dir)
 
         _retriever = self._load_retriever(indexes)
 

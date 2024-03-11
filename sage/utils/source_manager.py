@@ -71,12 +71,12 @@ class SourceManager:
         """The base source dir"""
         self._record_manager_file: Path = source_dir / "dbs_record_manager.sql"
         """Path to the sources record manager"""
-        self._faiss_dir: Path = source_dir / "faiss"
+        self.faiss_dir: Path = source_dir / "faiss"
         """Directory where the Faiss DBs are saved"""
 
     async def _get_or_create_faiss_db(self, source_hash: str) -> FAISS:
         """Create or return any existing FAISS Database if available on the local disk"""
-        faiss_dbs_paths = await get_faiss_indexes()
+        faiss_dbs_paths = await get_faiss_indexes(self.faiss_dir)
         if source_hash not in faiss_dbs_paths:
             # create an empty db and return it
             db = FAISS(
@@ -88,7 +88,7 @@ class SourceManager:
             return db
         # Load an existing db
         db = FAISS.load_local(
-            folder_path=str(self._faiss_dir),
+            folder_path=str(self.faiss_dir),
             index_name=source_hash,
             embeddings=EMBEDDING_MODEL,
         )
@@ -128,7 +128,7 @@ class SourceManager:
             )
 
             # Save DB to source directory
-            db.save_local(str(self._faiss_dir), source_hash)
+            db.save_local(str(self.faiss_dir), source_hash)
             logger.debug(
                 f"Successfully created and saved vector store for source with hash - {source_hash}"
             )
