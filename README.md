@@ -12,6 +12,8 @@ Sage Chat is the user-friendly interface that connects you to the vast capabilit
 
 ![Sage Chat Overview](sage/assets/sage_chat_overview.gif "Experience Sage Chat")
 
+![Watch the video](https://img.youtube.com/vi/gGQecCWPMLs/maxresdefault.jpg)["Experience Sage Chat"](https://www.youtube.com/watch?v=gGQecCWPMLs)
+
 Sage enables you to communicate with your data in a natural and intuitive way. Whether you're looking up information, summarizing content, or integrating with external tools, Sage is your personal data assistant, ready to help.
 
 ## Key Features

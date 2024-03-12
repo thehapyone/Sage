@@ -530,7 +530,7 @@ class SourceQAService:
                     cl.Action(
                         name="source_actions",
                         value="all",
-                        label="👌 All 📚",
+                        label="👌 All Sources 📚",
                     ),
                     *source_actions,
                 ],
