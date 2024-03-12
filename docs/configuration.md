@@ -102,6 +102,8 @@ The [embedding] and [llm] sections configure the embedding engines and Large Lan
 ```toml
 [embedding]
 type = "openai"
+# set the dimension the embedding model used
+dimension = 768
 
 [llm]
 type = "azure"
