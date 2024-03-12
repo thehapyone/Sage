@@ -15,15 +15,15 @@ from sage.constants import (
     validated_config,
 )
 from sage.utils.exceptions import SourceException
-from sage.utils.supports import CustomFAISS as FAISS
-from sage.utils.supports import aexecute_concurrently
-from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
+from sage.utils.labels import generate_source_label
 from sage.utils.source_manager import (
     SourceManager,
     convert_sources_to_string,
     get_faiss_indexes,
 )
-from sage.utils.labels import generate_source_label
+from sage.utils.supports import CustomFAISS as FAISS
+from sage.utils.supports import aexecute_concurrently
+from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 
 class Source:
@@ -217,13 +217,28 @@ class Source:
         self, files: List[AskFileResponse]
     ) -> ContextualCompressionRetriever | VectorStoreRetriever:
         """
-        Create a retriever from a list of files input from the chainlit interface
+        Asynchronously creates a retriever from a list of files provided by the Chainlit interface.
+
+        This method performs several steps:
+        - Renames file paths to match the exact file names, addressing a discrepancy with Chainlit.
+        - Processes the files to build individual FAISS databases for each file.
+        - Combines the FAISS databases into a single retriever instance.
+        - Cleans up the files from the filesystem after processing.
+        - Optionally wraps the retriever with contextual compression if enabled in the config.
+
+        The function ensures that the files are deleted after processing to avoid cluttering
+        the filesystem.
 
         Args:
-            files (List[AskFileResponse]): A list of files
+            files: A list of AskFileResponse objects representing the files to be processed.
 
         Returns:
-            ContextualCompressionRetriever | VectorStoreRetriever: A retriever instance
+            A retriever instance that is either a ContextualCompressionRetriever or a
+            VectorStoreRetriever, depending on whether contextual compression is enabled in
+            the application's configuration.
+
+        Raises:
+            OSError: If an error occurs during file renaming or cleanup.
         """
 
         ## TODO: Remove when chainlit set the file path to match the exact file name
@@ -270,10 +285,11 @@ class Source:
 
         await cleanup_files(files)
 
-        if not validated_config.reranker:
-            return retriever
-        else:
-            return self._compression_retriever(retriever)
+        return (
+            retriever
+            if not validated_config.reranker
+            else self._compression_retriever(retriever)
+        )
 
     def _load_retriever(
         self, indexes: List[str], source_hash: str = "all"
@@ -311,15 +327,16 @@ class Source:
         """
         indexes = await get_faiss_indexes(self.manager.faiss_dir)
 
-        _retriever = self._load_retriever(indexes, source_hash)
+        retriever = self._load_retriever(indexes, source_hash)
 
-        if _retriever is None:
+        if retriever is None:
             return RunnableLambda(lambda x: [])
 
-        if not validated_config.reranker:
-            return _retriever
-        else:
-            return self._compression_retriever(_retriever)
+        return (
+            retriever
+            if not validated_config.reranker
+            else self._compression_retriever(retriever)
+        )
 
     async def get_labels_and_hash(self) -> dict:
         """Returns a tuple containing any available source hash and their corresponding labels"""

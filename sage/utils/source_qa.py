@@ -523,7 +523,6 @@ class SourceQAService:
         action_response = None
 
         if source_actions:
-
             action_response = await cl.AskActionMessage(
                 content="Select a source to chat with. Default is all!",
                 disable_feedback=True,

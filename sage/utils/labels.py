@@ -1,9 +1,9 @@
 from functools import lru_cache
-from langchain.schema.output_parser import StrOutputParser
+
 from langchain.prompts import PromptTemplate
+from langchain.schema.output_parser import StrOutputParser
 
 from sage.constants import LLM_MODEL
-
 
 prompt_instruction = """
 Your task is to generate succinct labels for data sources, formatted as '[Category]: [Descriptor]'.

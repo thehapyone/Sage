@@ -15,10 +15,6 @@ import aiofiles
 import requests
 from asyncer import asyncify
 from bs4 import BeautifulSoup
-from sage.constants import (
-    app_name,
-    logger,
-)
 from git import Blob, Repo
 from gitlab import Gitlab, GitlabGetError
 from gitlab.v4.objects import Group, Project
@@ -27,6 +23,10 @@ from langchain_community.document_loaders import ConfluenceLoader, UnstructuredU
 from langchain_community.document_loaders.base import BaseLoader
 from pydantic import BaseModel, SecretStr
 
+from sage.constants import (
+    app_name,
+    logger,
+)
 from sage.utils.exceptions import SourceException
 from sage.utils.supports import (
     aexecute_concurrently,
