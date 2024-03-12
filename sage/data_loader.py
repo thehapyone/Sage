@@ -29,6 +29,10 @@ async def main():
             "Data Loader Scheduler won't run. No schedule interval configured."
         )
         return
+
+    # Run the update_sources function immediately before starting the scheduler
+    await update_sources()
+
     interval = CronTrigger.from_crontab(scheduler_time)
     scheduler = AsyncIOScheduler(gconfig={"logger": logger})
     scheduler.add_job(update_sources, trigger=interval)

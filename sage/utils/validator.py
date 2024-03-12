@@ -309,6 +309,7 @@ class EmbeddingsConfig(ModelValidateType):
     openai: Optional[EmbeddingCore] = None
     jina: Optional[EmbeddingCore] = None
     type: Literal["jina", "azure", "openai"]
+    dimension: Optional[int] = None
 
 
 class CohereReRanker(Password):

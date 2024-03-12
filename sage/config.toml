@@ -68,6 +68,7 @@ revision = "your_huggingface_revision"
 
 [embedding]
 type = "openai"
+dimension = 768
 
 [embedding.azure]
 name = "your_azure_embedding_name"
