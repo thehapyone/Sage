@@ -18,8 +18,69 @@ from sage.utils.validator import Config
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
 assets_dir = Path(__file__).parent / "assets"
 
+# Initialize the logger
 app_name = "codesage.ai"
 logger = CustomLogger(name=app_name)
+
+
+def load_language_model(config: Config):
+    if config.llm.type == "azure":
+        llm_model = AzureChatOpenAI(
+            azure_endpoint=config.azure.endpoint,
+            api_version=config.azure.revision,
+            azure_deployment=config.llm.azure.name,
+            api_key=config.azure.password.get_secret_value(),
+            streaming=True,
+        )
+    elif config.llm.type == "ollama":
+        llm_model = ChatOllama(
+            base_url=config.llm.ollama.endpoint,
+            model=config.llm.ollama.name,
+            streaming=True,
+        )
+    elif config.llm.type == "openai":
+        llm_model = ChatOpenAI(
+            model=config.llm.openai.name,
+            api_key=config.openai.password.get_secret_value(),
+            organization=config.openai.organization,
+            streaming=True,
+        )
+    else:
+        raise ConfigException(f"Unsupported LLM type: {config.llm.type}")
+
+    return llm_model
+
+
+def load_embedding_model(config: Config):
+    # Embedding model loading and dimension calculation logic...
+    if config.embedding.type == "jina":
+        embedding_model = JinaAIEmbeddings(
+            cache_dir=str(config.core.data_dir) + "/models",
+            jina_model=config.embedding.jina.name,
+            revision=config.embedding.jina.revision,
+        )
+    elif config.embedding.type == "azure":
+        embedding_model = AzureOpenAIEmbeddings(
+            azure_deployment=config.embedding.azure.name,
+            azure_endpoint=config.azure.endpoint,
+            api_version=config.azure.revision,
+            api_key=config.azure.password.get_secret_value(),
+        )
+    elif config.embedding.type == "openai":
+        embedding_model = OpenAIEmbeddings(
+            model=config.embedding.openai.name,
+            api_key=config.openai.password.get_secret_value(),
+            organization=config.openai.organization,
+        )
+    else:
+        raise ValueError(f"Unsupported embedding type: {config.embedding.type}")
+
+    embed_dimension = config.embedding.dimension
+    if embed_dimension is None:
+        embed_dimension = len(embedding_model.embed_query("dummy"))
+
+    return embedding_model, embed_dimension
+
 
 # Validate the configuration file
 try:
@@ -51,60 +112,11 @@ logger.setLevel(core_config.logging_level)
 
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
-# Load the model
-if validated_config.llm.type == "azure":
-    azure_config = validated_config.llm.azure
-
-    LLM_MODEL = AzureChatOpenAI(
-        azure_endpoint=validated_config.azure.endpoint,
-        api_version=validated_config.azure.revision,
-        azure_deployment=validated_config.llm.azure.name,
-        api_key=validated_config.azure.password.get_secret_value(),
-        streaming=True,
-    )
-
-elif validated_config.llm.type == "ollama":
-    ollama_config = validated_config.llm.azure
-
-    LLM_MODEL = ChatOllama(
-        base_url=ollama_config.endpoint, model=ollama_config.name, streaming=True
-    )
-
-elif validated_config.llm.type == "openai":
-    ollama_config = validated_config.llm.openai
-
-    LLM_MODEL = ChatOpenAI(
-        model=validated_config.llm.openai.name,
-        api_key=validated_config.openai.password.get_secret_value(),
-        organization=validated_config.openai.organization,
-        streaming=True,
-    )
+# Set the Large languageModel
+LLM_MODEL = load_language_model(validated_config)
 
 # Load the Embeddings model
-if validated_config.embedding.type == "jina":
-    jina_config = validated_config.embedding.jina
+EMBEDDING_MODEL, EMBED_DIMENSION = load_embedding_model(validated_config)
 
-    EMBEDDING_MODEL = JinaAIEmbeddings(
-        cache_dir=str(core_config.data_dir) + "/models",
-        jina_model=jina_config.name,
-        revision=jina_config.revision,
-    )
-elif validated_config.embedding.type == "azure":
-    EMBEDDING_MODEL = AzureOpenAIEmbeddings(
-        azure_deployment=validated_config.embedding.azure.name,
-        azure_endpoint=validated_config.azure.endpoint,
-        api_version=validated_config.azure.revision,
-        api_key=validated_config.azure.password.get_secret_value(),
-    )
-elif validated_config.embedding.type == "openai":
-    EMBEDDING_MODEL = OpenAIEmbeddings(
-        model=validated_config.embedding.openai.name,
-        api_key=validated_config.openai.password.get_secret_value(),
-        organization=validated_config.openai.organization,
-    )
-
-# Embedding Dimension
-# EMBED_DIMENSION: int = len(EMBEDDING_MODEL.embed_query("dummy"))
-EMBED_DIMENSION = 768
 # Define the path for the sentinel file
 SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"
