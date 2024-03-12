@@ -284,16 +284,13 @@ class SourceQAService:
             formatted_sources.append(metadata)
         return formatted_sources
 
-    async def _get_retriever(self):
+    async def _get_retriever(self, source_hash: str = "all"):
         """Loads a retrieval model from the source engine"""
         # First check if there has been an update from the data loader
         if await check_for_data_updates():
-            self._retriever = await Source().load()
-            return self._retriever
+            return await Source().load(source_hash)
 
-        if not self._retriever:
-            self._retriever = await Source().load()
-        return self._retriever
+        return await Source().load(source_hash)
 
     @property
     def _chat_memory(self):
@@ -313,8 +310,35 @@ class SourceQAService:
         return str(error)
 
     def _setup_runnable(self, retriever: VectorStoreRetriever, profile: str):
-        """Setups the runnable model"""
+        """
+        Configures and initializes the runnable model based on the specified retriever and profile.
 
+        This function sets up the question-answering pipeline, which includes condensing questions,
+        retrieving documents, and generating answers. The pipeline components are assembled
+        based on the operation mode and profile provided.
+
+        In 'chat' mode, conversation history is loaded from the user session's memory.
+        For other modes, a default chat memory buffer is used. The function constructs
+        various runnable components such as inputs formatting, document retrieval, and answer generation,
+        which are then composed into a final runnable sequence.
+
+        Depending on the profile, the answer generation step may use an agent-based approach
+        for parsing and responding to questions, or a chat-based prompt if the profile doesn't
+        include 'agent'. The constructed runnable model is then stored in the user session or
+        the instance's state for execution.
+
+        Parameters:
+            retriever: An instance of VectorStoreRetriever used to retrieve documents relevant to the question.
+            profile: A string that specifies the profile for configuring the question-answering model.
+                    If 'agent' is included in the profile string, an agent-based approach is used.
+
+        Side effects:
+            - Sets up a complete question-answering runnable model based on the operation mode and profile.
+            - Stores the runnable in the user session or instance state for later execution.
+
+        Raises:
+            - Any exceptions that may occur during the construction of the runnable components.
+        """
         if self.mode == "chat":
             memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
         else:
@@ -426,108 +450,121 @@ class SourceQAService:
             ),
         ]
 
-    @cl.action_callback("action_button")
-    async def on_action(action: cl.Action):
-        print("The user clicked on the action button!")
-        logger.debug(action)
+    @staticmethod
+    def generate_source_actions(metadata: dict) -> List[cl.Action]:
+        """Generate a list of actions representing the available sources"""
+        action_name = "source_actions"
+        actions = [
+            cl.Action(name=action_name, value=source_hash, label=source_label)
+            for source_hash, source_label in metadata.items()
+        ]
+        return actions
 
-        return "Thank you for clicking on the action button!"
+    async def _send_avatars(self):
+        """Sends the avatars of the AI assistant and the user."""
+        await cl.Avatar(
+            name=self.ai_assistant_name, path=str(assets_dir / "ai-assistant.png")
+        ).send()
+        await cl.Avatar(name="You", path=str(assets_dir / "boy.png")).send()
+
+    async def _handle_file_mode(self, intro_message: str) -> VectorStoreRetriever:
+        """Handles initialization for 'File Mode', where users upload files for the chat."""
+        files = None
+        # Wait for the user to upload a file
+        while files is None:
+            files = await cl.AskFileMessage(
+                content=intro_message,
+                disable_feedback=True,
+                accept={
+                    "text/plain": [".txt"],
+                    "application/pdf": [".pdf"],
+                    "application/json": [".json"],
+                    "application/x-yaml": [
+                        ".yaml",
+                        ".yml",
+                    ],
+                    "application/vnd.ms-excel": [".xls"],
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+                        ".xlsx"
+                    ],
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+                        ".docx"
+                    ],
+                    "application/msword": [".doc"],
+                },
+                max_size_mb=validated_config.upload.max_size_mb,
+                max_files=validated_config.upload.max_files,
+                timeout=validated_config.upload.timeout,
+            ).send()
+
+        msg = cl.Message(content=f"Now, I will begin processing {len(files)} files ...")
+        await msg.send()
+        await cl.sleep(1)
+
+        # Get the files retriever
+        retriever = await Source().load_files_retriever(files)
+        # Let the user know that the system is ready
+        file_names = "\n  ".join([file.name for file in files])
+        msg.content = (
+            "The following files are now processed and ready to be used!\n"
+            f"  {file_names}"
+        )
+        await cl.sleep(1)
+        await msg.update()
+        return retriever
+
+    async def _handle_chat_only_mode(self, intro_message: str) -> VectorStoreRetriever:
+        """Handles initialization for 'Chat Only' mode, where users select a source to chat with."""
+        await cl.Message(content=intro_message, disable_feedback=True).send()
+        # Get the sources labels that will be used to create the source actions
+        sources_metadata = await Source().get_labels_and_hash()
+        source_actions = self.generate_source_actions(sources_metadata)
+
+        action_response = None
+
+        if source_actions:
+
+            action_response = await cl.AskActionMessage(
+                content="Select a source to chat with. Default is all!",
+                disable_feedback=True,
+                actions=[
+                    cl.Action(
+                        name="source_actions",
+                        value="all",
+                        label="👌 All 📚",
+                    ),
+                    *source_actions,
+                ],
+            ).send()
+
+        # initialize retriever with the selected source action
+        selected_hash = action_response.get("value") if action_response else "all"
+        return await self._get_retriever(selected_hash)
+
+    async def _handle_default_mode(self, intro_message: str) -> VectorStoreRetriever:
+        """Handles initialization for the default mode, which sets up the default retriever."""
+        await cl.Message(content=intro_message, disable_feedback=True).send()
+        return await self._get_retriever()
 
     @cl.on_chat_start
     async def on_chat_start(self):
-        """Initialize a new chat environment"""
+        """Initialize a new chat environment based on the selected profile."""
         if self.mode == "tool":
             raise ValueError("Tool mode is not supported here")
 
         chat_profile = cl.user_session.get("chat_profile")
         cl.user_session.set("memory", self._chat_memory)
 
-        await cl.Avatar(
-            name=self.ai_assistant_name, path=str(assets_dir / "ai-assistant.png")
-        ).send()
-
-        await cl.Avatar(name="You", path=str(assets_dir / "boy.png")).send()
+        await self._send_avatars()
 
         intro_message = self._generate_welcome_message(chat_profile)
 
         if chat_profile == "File Mode":
-            files = None
-            # Wait for the user to upload a file
-            while files is None:
-                files = await cl.AskFileMessage(
-                    content=intro_message,
-                    disable_feedback=True,
-                    accept={
-                        "text/plain": [".txt"],
-                        "application/pdf": [".pdf"],
-                        "application/json": [".json"],
-                        "application/x-yaml": [
-                            ".yaml",
-                            ".yml",
-                        ],
-                        "application/vnd.ms-excel": [".xls"],
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
-                            ".xlsx"
-                        ],
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-                            ".docx"
-                        ],
-                        "application/msword": [".doc"],
-                    },
-                    max_size_mb=validated_config.upload.max_size_mb,
-                    max_files=validated_config.upload.max_files,
-                    timeout=validated_config.upload.timeout,
-                ).send()
-
-            msg = cl.Message(
-                content=f"Now, I will begin processing {len(files)} files ..."
-            )
-            await msg.send()
-            await cl.sleep(1)
-
-            # Get the files retriever
-            retriever = await Source().load_files_retriever(files)
-            # Let the user know that the system is ready
-            file_names = "\n  ".join([file.name for file in files])
-            msg.content = (
-                "The following files are now processed and ready to be used!\n"
-                f"  {file_names}"
-            )
-            await cl.sleep(1)
-            await msg.update()
-
+            retriever = await self._handle_file_mode(intro_message)
+        elif chat_profile == "Chat Only":
+            retriever = await self._handle_chat_only_mode(intro_message)
         else:
-            await cl.Message(content=intro_message, disable_feedback=True).send()
-            retriever = await self._get_retriever()
-            
-        # Sending an action button within a chatbot message
-        actions = [
-            cl.Action(name="action_button", value="example_value3", label="Source 3"),
-            cl.Action(name="action_button", value="example_value4", label="Source 4"),
-            cl.Action(name="action_button", value="example_valu5", label="Source 5"),
-            cl.Action(name="action_button", value="example_value6", label="Source 1"),
-            cl.Action(name="action_button", value="example_value7", label="Source 2"),
-            cl.Action(name="action_button", value="example_value8", label="Source 3"),
-            cl.Action(name="action_button", value="example_value9", label="Source 4", collapsed=True),
-            cl.Action(name="action_button", value="example_valu10", label="Source 5", collapsed=True),
-        ]
-
-        #await cl.Message(content="Interact with this action button:", actions=actions).send()
-        
-        res = await cl.AskActionMessage(
-            content="Pick an action!",
-            disable_feedback=True,
-            actions=[
-                cl.Action(name="continue", value="continue", label="✅ Continue"),
-                cl.Action(name="cancel", value="cancel", label="❌ Cancel"),
-                *actions
-            ],
-        ).send()
-
-        if res and res.get("value") == "continue":
-            await cl.Message(
-                content="Continue!",
-            ).send()
+            retriever = await self._handle_default_mode(intro_message)
 
         self._setup_runnable(retriever, chat_profile)
 

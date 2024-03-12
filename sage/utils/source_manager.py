@@ -102,7 +102,15 @@ class SourceManager:
             async_mode=True,
             db_url=f"sqlite+aiosqlite:///{self._record_manager_file}",
         )
-        await record_manager.acreate_schema()
+        try:
+            await record_manager.acreate_schema()
+        except Exception as e:
+            if "table upsertion_record already exists" in str(e):
+                logger.warning(
+                    "Table 'upsertion_record' already exists. Not creating new table - RecordManager."
+                )
+            else:
+                raise
         return record_manager
 
     async def _create_and_save_db(

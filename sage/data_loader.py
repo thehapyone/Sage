@@ -30,7 +30,7 @@ async def main():
         )
         return
 
-    # Run the update_sources function immediately before starting the scheduler  
+    # Run the update_sources function immediately before starting the scheduler
     await update_sources()
 
     interval = CronTrigger.from_crontab(scheduler_time)

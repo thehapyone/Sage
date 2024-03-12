@@ -244,7 +244,7 @@ class Source:
             """Simple helper to process the files"""
             file = await rename_file_path(file)
             file_source = Files(paths=[file.path])
-            db = await self._add_files_source(
+            db = await self.manager._add_files_source(
                 hash=file.id, source=file_source, path=file.path, save_db=False
             )
             return db
@@ -275,12 +275,20 @@ class Source:
         else:
             return self._compression_retriever(retriever)
 
-    def _load_retriever(self, indexes: List[str]):
-        """Loads a retriever"""
+    def _load_retriever(
+        self, indexes: List[str], source_hash: str = "all"
+    ) -> Optional[VectorStoreRetriever]:
+        """Loads a retriever for selected sources"""
         if not indexes:
             return None
 
-        db_path = str(self._faiss_dir)
+        db_path = str(self.manager.faiss_dir)
+
+        if source_hash != "all":
+            db = FAISS.load_local(
+                folder_path=db_path, index_name=source_hash, embeddings=EMBEDDING_MODEL
+            )
+            return db.as_retriever(search_kwargs=self._retriever_args)
 
         dbs: List[FAISS] = []
 
@@ -295,14 +303,15 @@ class Source:
         return faiss_db.as_retriever(search_kwargs=self._retriever_args)
 
     async def load(
-        self,
+        self, source_hash: str = "all"
     ) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
         """
-        Returns either a retriever model from the FAISS vector indexes or compression based retriever model
+        Returns either a retriever model from the FAISS vector indexes or compression based retriever model.
+        Supports creating a retriever for a selected source hash.
         """
         indexes = await get_faiss_indexes(self.manager.faiss_dir)
 
-        _retriever = self._load_retriever(indexes)
+        _retriever = self._load_retriever(indexes, source_hash)
 
         if _retriever is None:
             return RunnableLambda(lambda x: [])
@@ -311,3 +320,16 @@ class Source:
             return _retriever
         else:
             return self._compression_retriever(_retriever)
+
+    async def get_labels_and_hash(self) -> dict:
+        """Returns a tuple containing any available source hash and their corresponding labels"""
+        source_hashes = await get_faiss_indexes(self.manager.faiss_dir)
+
+        # get the labels
+        sources_repr = {}
+        async for file in self.source_dir.glob("*.source"):
+            if file.name in source_hashes:
+                label = await file.read_text()
+                sources_repr[file.name] = label
+
+        return sources_repr
