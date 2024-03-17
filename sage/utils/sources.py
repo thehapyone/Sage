@@ -298,6 +298,9 @@ class Source:
         if not indexes:
             return None
 
+        if source_hash == "none":
+            return None
+
         db_path = str(self.manager.faiss_dir)
 
         if source_hash != "all":
