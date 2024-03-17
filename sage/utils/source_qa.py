@@ -341,7 +341,7 @@ class SourceQAService:
         """
         if self.mode == "chat":
             memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
-            # TODO: Remove this when the reason for while the momory content is None has been resolved
+            # TODO: Remove this when the reason for while the memory content is None has been resolved
             if memory is None:
                 memory = self._chat_memory
                 cl.user_session.set("memory", memory)

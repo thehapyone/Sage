@@ -68,7 +68,7 @@ Sage currently offers the following functionalities:
 - **Agent Mode**: Activate Sage as an AI agent to handle complex queries and perform autonomous actions.
 - **Configuration Simplicity**: Set up Sage quickly by specifying your desired tools and sources in a configuration file.
 - **Agent Capabilities**: Utilize Sage in agent mode for advanced tasks.
-- **Continous Source update**: Continously update the sage data sources via sage's data loader process whenever your data get updated
+- **Continuous Source update**: Continuously update the sage data sources via sage's data loader process whenever your data get updated
 - **Filter-out Data Source**: Choose to interact with a specific source or all your configured data sources
 
 ![Sage Modes Overview](docs/sage_other_modes.gif "Sage in various modes")
