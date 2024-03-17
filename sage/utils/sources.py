@@ -302,7 +302,7 @@ class Source:
 
         if source_hash != "all":
             db = FAISS.load_local(
-                folder_path=db_path, index_name=source_hash, embeddings=EMBEDDING_MODEL
+                folder_path=db_path, index_name=source_hash, embeddings=EMBEDDING_MODEL, allow_dangerous_deserialization=True
             )
             return db.as_retriever(search_kwargs=self._retriever_args)
 
@@ -310,7 +310,7 @@ class Source:
 
         for index in indexes:
             db = FAISS.load_local(
-                folder_path=db_path, index_name=index, embeddings=EMBEDDING_MODEL
+                folder_path=db_path, index_name=index, embeddings=EMBEDDING_MODEL, allow_dangerous_deserialization=True
             )
             dbs.append(db)
 
