@@ -257,7 +257,7 @@ class SourceQAService:
                 "I can provide you with data and updates from a variety of sources including:\n"
                 f"  {sources}\n\n"
                 f"{tools_message}"
-                "To get started, simply type your query below or ask for help to see what I can do. Looking forward to helping you!"
+                "To get started, simply select an option below; then begin typing your query or ask for help to see what I can do."
             )
         return message.strip()
 
@@ -536,6 +536,11 @@ class SourceQAService:
                         name="source_actions",
                         value="all",
                         label="👌 All Sources 📚",
+                    ),
+                    cl.Action(
+                        name="source_actions",
+                        value="none",
+                        label="🙅‍♂️/🙅‍♀️ No Sources ⛔",
                     ),
                     *source_actions,
                 ],
