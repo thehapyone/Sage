@@ -91,6 +91,7 @@ class SourceManager:
             folder_path=str(self.faiss_dir),
             index_name=source_hash,
             embeddings=EMBEDDING_MODEL,
+            allow_dangerous_deserialization=True,
         )
         return db
 
