@@ -114,8 +114,10 @@ class SourceData(Password):
     Source Data Model. Inherits Password.
     """
 
-    username: str
-    server: str
+    username: Optional[str] = None
+    server: Optional[str] = None
+    max_concurrency: Optional[int] = 10
+    """The concurrency limit for processing sources"""
 
     @field_validator("server")
     @classmethod
@@ -183,16 +185,17 @@ class GitlabModel(SourceData):
         return self
 
 
-class Web(Password):
+class Web(SourceData):
     """
     Web Model.
     """
 
-    username: Optional[str] = None
     links: List[str]
     nested: bool
     ssl_verify: bool = True
     headers: Optional[dict] = {}
+    max_depth: Optional[int] = 10
+    """Max depth to go for finding the child links"""
 
     @model_validator(mode="after")
     def generate_header(self) -> "Web":
