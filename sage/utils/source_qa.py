@@ -136,21 +136,18 @@ class SourceQAService:
     """
 
     qa_template_agent: str = """
-    As Sage, I am tasked to provide factual answers and engage in conversations, distinguishing between informational queries and casual discussions. For AI-related topics, sources aren't needed, but for others, a neutral, journalistic approach is required.
+    As Sage, I am tasked to provide factual answers and engage in conversations, distinguishing between informational queries and casual discussions.
+    For AI-related topics, sources aren't needed, but for others, a neutral, journalistic approach is required.
 
     In crafting responses, I will:
     - Employ creativity where suitable.
     - Verify abbreviations with given context.
-    - Merge 'context' and 'tool' data into a cohesive answer without assumptions.
+    - Merge observations from 'tools' into a cohesive answer without assumptions.
     - Stay unbiased, presenting facts without personal opinions.
     - Rely on my internal knowledge when relevant and disclose when it's used.
     - Utilize bullet points for readability without in-line citations.
     - Clearly state when unable to answer and avoid superfluous footnotes.
     - Include sources only in 'Footnotes' if they directly support the response
-
-    <context>
-    {context}
-    </context>
     
     Here is the current chat history - use if relevant:
     <chat_history>
@@ -187,8 +184,7 @@ class SourceQAService:
     Remember:
     - Iteratively apply tools until all parts are covered. If information is missing, note it in the final response.
     - Utilize tools autonomously, and if unable to answer, still conclude with <final_answer>.
-    - For AI nature queries, omit footnotes.
-    - Include sources used in the 'context' block in 'Footnotes' if they were used to answer the question.
+    - Include sources used in the 'Footnotes' if they were used to answer the question.
 
     Question: {question}
     
@@ -393,7 +389,8 @@ class SourceQAService:
         # construct the inputs
         _context = {
             "context": lambda x: self._format_docs(x["docs"]),
-            "chat_history": RunnableLambda(memory.load_memory_variables) | itemgetter("history"),
+            "chat_history": RunnableLambda(memory.load_memory_variables)
+            | itemgetter("history"),
             "question": lambda x: x["question"],
         }
 
@@ -403,7 +400,7 @@ class SourceQAService:
             _agent = (
                 {
                     "question": lambda x: x["question"],
-                    "context": lambda x: x["context"],
+                    "chat_history": lambda x: x["chat_history"],
                     "intermediate_steps": lambda x: convert_intermediate_steps(
                         x["intermediate_steps"]
                     ),
@@ -419,10 +416,18 @@ class SourceQAService:
                 handle_parsing_errors=self._handle_error,
             ).with_config(run_name="AgentExecutor") | itemgetter("output")
             # construct the question and answer model
+            _agent_input = {
+                "chat_history": RunnableLambda(memory.load_memory_variables)
+                | itemgetter("history"),
+                "question": lambda x: x["question"],
+            }
             qa_answer = RunnableMap(
-                answer=_context | _agent_runner,
-                sources=lambda x: self._format_sources(x["docs"]),
+                answer=_agent_input | _agent_runner,
+                sources=lambda x: [],
             )
+            # create the complete chain
+            _runnable = qa_answer
+
         else:
             qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
             # construct the question and answer model
@@ -431,8 +436,8 @@ class SourceQAService:
                 sources=lambda x: self._format_sources(x["docs"]),
             )
 
-        # create the complete chain
-        _runnable = _inputs | _retrieved_docs | qa_answer
+            # create the complete chain
+            _runnable = _inputs | _retrieved_docs | qa_answer
 
         if self.mode == "chat":
             cl.user_session.set("runnable", _runnable)
@@ -564,9 +569,9 @@ class SourceQAService:
         return await self._get_retriever(selected_hash)
 
     async def _handle_default_mode(self, intro_message: str) -> VectorStoreRetriever:
-        """Handles initialization for the default mode, which sets up the default retriever."""
+        """Handles initialization for the default mode, which sets up the no retriever."""
         await cl.Message(content=intro_message, disable_feedback=True).send()
-        return await self._get_retriever()
+        return await self._get_retriever("none")
 
     @cl.on_chat_start
     async def on_chat_start(self):
