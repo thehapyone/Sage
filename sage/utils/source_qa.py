@@ -143,9 +143,6 @@ class SourceQAService:
     - Merge observations from 'tools' into a cohesive answer without assumptions.
     - Stay unbiased, presenting facts without personal opinions.
     - Rely on my internal knowledge when relevant and disclose when it's used.
-    - Utilize bullet points for readability without in-line citations.
-    - Clearly state when unable to answer and avoid superfluous footnotes.
-    - Include sources only in 'Footnotes' if they directly support the response
     
     Here is the current chat history - use if relevant:
     <chat_history>
@@ -182,14 +179,8 @@ class SourceQAService:
     Remember:
     - Iteratively apply tools until all parts are covered. If information is missing, note it in the final response.
     - Utilize tools autonomously, and if unable to answer, still conclude with <final_answer>.
-    - Include sources used in the 'Footnotes' if they were used to answer the question.
 
     Question: {question}
-    
-    Footnotes:
-    [1] - Brief summary of the first source. (under 10 words)
-    [2] - Brief summary of the second source.
-    ...continue for additional sources, only as needed.
     """
 
     def __init__(self, mode: str = "tool", tools: List[Tool] = []) -> None:
