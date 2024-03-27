@@ -167,7 +167,10 @@ class Source:
         faiss_db: FAISS = dbs[0]
 
         for db in dbs[1:]:
-            faiss_db.merge_from(db)
+            try:
+                faiss_db.merge_from(db)
+            except ValueError:
+                logger.warning(f"Duplicate DB detected. DB merge will be skipped {db.index}")
 
         return faiss_db
 
