@@ -1,18 +1,13 @@
 # loaders.py
-## TODO: Move towards an async operation instead of the current threading approach for concurrency for the web loader
-## Basically replacing execute_concurrently with aexecute_concurrently
+import asyncio
 import os
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from queue import Queue
-from threading import Lock, Thread
-from time import sleep
-from typing import List
-from urllib.parse import quote, urldefrag, urljoin, urlparse
+from typing import List, Set
+from urllib.parse import quote, urljoin, urlparse, urlunparse
 
 import aiofiles
-import requests
+from aiohttp import ClientSession
 from asyncer import asyncify
 from bs4 import BeautifulSoup
 from git import Blob, Repo
@@ -83,10 +78,12 @@ class GitlabLoader(BaseLoader):
         groups: List[str] = [],
         projects: List[str] = [],
         ssl_verify: bool = True,
+        max_concurrency: int = 10,
     ) -> None:
         self.base_url = base_url
         self.private_token = private_token
         self.ssl_verify = ssl_verify
+        self.max_concurrency = max_concurrency
         self.gitlab = self._initialize_gitlab()
         self.groups = self.validate_groups(groups)
         self.projects = self.validate_projects(projects)
@@ -225,7 +222,10 @@ class GitlabLoader(BaseLoader):
         Function that helps to process the git repos and generate the required documents
         """
         documents: List[Document] = await aexecute_concurrently(
-            self._load, repo_data_list, result_type="extends", max_workers=10
+            self._load,
+            repo_data_list,
+            result_type="extends",
+            max_workers=self.max_concurrency,
         )
         return documents
 
@@ -242,7 +242,7 @@ class GitlabLoader(BaseLoader):
         )
 
         repo_data_list = await aexecute_concurrently(
-            self._clone_project, projects, max_workers=50
+            self._clone_project, projects, max_workers=self.max_concurrency
         )
 
         return await self._build_documents(repo_data_list)
@@ -258,13 +258,16 @@ class GitlabLoader(BaseLoader):
         # process groups
         if self.groups:
             group_docs = await aexecute_concurrently(
-                self.process_groups, self.groups, result_type="extends"
+                self.process_groups,
+                self.groups,
+                result_type="extends",
+                max_workers=self.max_concurrency,
             )
             documents.extend(group_docs)
         # process projects
         if self.projects:
             project_repos = await aexecute_concurrently(
-                self._clone_project, self.projects
+                self._clone_project, self.projects, max_workers=self.max_concurrency
             )
             documents.extend(await self._build_documents(project_repos))
         return documents
@@ -279,30 +282,37 @@ class WebLoader(UnstructuredURLLoader):
     def __init__(self, nested: bool = False, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.nested = nested
+        self.max_concurrency: int = kwargs.get("max_concurrency", 10)
+        self.max_depth: int = kwargs.get("max_depth", 10)
         self.ssl_verify = kwargs.get("ssl_verify", True)
 
-    def _load(self, url: str) -> List[Document]:
+    async def _load(self, url: str) -> List[Document]:
         """Load documents"""
         from unstructured.partition.auto import partition
         from unstructured.partition.html import partition_html
 
         docs: List[Document] = list()
+        logger.debug(f"Scraping {url}")
 
         try:
             if self._UnstructuredURLLoader__is_non_html_available():
                 if self._UnstructuredURLLoader__is_headers_available_for_non_html():
-                    elements = partition(
+                    elements = await asyncify(partition)(
                         url=url, headers=self.headers, **self.unstructured_kwargs
                     )
                 else:
-                    elements = partition(url=url, **self.unstructured_kwargs)
+                    elements = await asyncify(partition)(
+                        url=url, **self.unstructured_kwargs
+                    )
             else:
                 if self._UnstructuredURLLoader__is_headers_available_for_html():
-                    elements = partition_html(
+                    elements = await asyncify(partition_html)(
                         url=url, headers=self.headers, **self.unstructured_kwargs
                     )
                 else:
-                    elements = partition_html(url=url, **self.unstructured_kwargs)
+                    elements = await asyncify(partition_html)(
+                        url=url, **self.unstructured_kwargs
+                    )
 
             if self.mode == "single":
                 text = "\n\n".join([str(el) for el in elements])
@@ -341,7 +351,24 @@ class WebLoader(UnstructuredURLLoader):
         else:
             return self.normalize_url(url)
 
-    def find_links(self, base_url: str) -> List[Document]:
+    @staticmethod
+    def get_clean_url(url) -> str:
+        """Returns the clean url with the # and extras"""
+        parsed_url = urlparse(url)
+        # Reconstruct the URL without the fragment
+        main_url = urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                parsed_url.params,
+                parsed_url.query,
+                "",
+            )
+        )
+        return main_url
+
+    async def find_links(self, base_url: str) -> List[Document]:
         """
         Helps to find child links from a given link source
 
@@ -352,42 +379,29 @@ class WebLoader(UnstructuredURLLoader):
             List[Document]: A list of documents
         """
 
-        def worker():
-            """Worker function to process URLs from the queue"""
-            while True:
-                with lock:
-                    if not to_visit_links.empty():
-                        url, depth = to_visit_links.get()
+        async def fetch(url: str, session: ClientSession, depth: int):
+            """Returns the raw data from a given URL"""
+            async with semaphore:
+                try:
+                    async with session.get(
+                        url, timeout=10, ssl=self.ssl_verify
+                    ) as response:
+                        response.raise_for_status()
+                        text = await response.text()
+                        return text, url, depth
+                except Exception as e:
+                    if self.continue_on_failure:
+                        logger.error(f"Error occurred: {e}, url: {url}")
                     else:
-                        break
-                extract_links_docs(url, depth)
+                        raise e
 
-        def add_child_links(url: str, depth: int) -> None:
-            """Find and add child links to the list"""
-            try:
-                response = session.get(url, timeout=10, verify=self.ssl_verify)
-                response.raise_for_status()
-            except (
-                requests.exceptions.HTTPError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-                requests.exceptions.RequestException,
-                requests.exceptions.SSLError,
-            ) as e:
-                if self.continue_on_failure:
-                    logger.error(f"Error occurred: {e}, url: {url}")
-                    return
-                else:
-                    raise e
-            except Exception as e:
-                if self.continue_on_failure:
-                    logger.error(f"An unexpected error has occurred: {e}, url: {url}")
-                    return
-                else:
-                    raise e
+        async def parse_links(text: str, url: str, depth: int):
+            """Extract child links from a given URL data and appends to a the task list"""
+            if depth > self.max_depth:
+                logger.warning(f"Max depth reached - {url}")
+                return
 
-            soup = BeautifulSoup(response.text, "lxml")
-
+            soup = BeautifulSoup(text, "lxml")
             for a_tag in soup.find_all("a", href=True):
                 link = a_tag["href"]
                 if link.startswith(("mailto:", "javascript:", "#")) or link.endswith(
@@ -395,99 +409,91 @@ class WebLoader(UnstructuredURLLoader):
                 ):
                     continue
                 absolute_link = urljoin(url, link)
-
-                with lock:
-                    if absolute_link not in visited_links:
-                        to_visit_links.put((absolute_link, depth + 1))
-
-        def extract_links_docs(url, depth):
-            """
-            Extracts all unique links from a webpage and adds them to the queue.
-            Also, it extracts the page content for the url
-            """
-            url = self.normalize_url(urldefrag(url)[0])
-
-            with lock:
-                if url in visited_links or not url.startswith(
+                clean_link = self.get_clean_url(absolute_link)
+                if clean_link not in visited_links and clean_link.startswith(
                     self.get_base_path(base_url)
                 ):
-                    return
-                visited_links.add(url)
+                    visited_links.add(clean_link)
+                    await tasks.put(
+                        asyncio.create_task(fetch(clean_link, session, depth + 1))
+                    )
 
-            if depth > 10:
-                logger.warning(f"Max depth reached - {url}")
-                return
+        async def worker():
+            """Worker node for fetching all urls"""
+            tasks_tacker = 0
+            while not tasks.empty():
+                current_tasks = []
+                while not tasks.empty():
+                    current_tasks.append(await tasks.get())
+                    tasks_tacker = tasks_tacker + 1
+                fetch_results = await asyncio.gather(*current_tasks)
 
-            logger.debug(f"Scraping {url}")
+                parse_child_tasks = [
+                    asyncio.create_task(parse_links(*fetch_result))
+                    for fetch_result in fetch_results
+                    if fetch_result
+                ]
 
-            documents = self._load(url)
-            with docs_lock:
-                docs.extend(documents)
+                await asyncio.gather(*parse_child_tasks)
+            # mark all tasks as done
+            for _ in range(tasks_tacker):
+                tasks.task_done()
 
-            add_child_links(url, depth)
+        # Configures a semaphore for concurrency
+        semaphore = asyncio.Semaphore(self.max_concurrency)
 
-            sleep(0.5)
+        visited_links: Set[str] = set()
+        tasks: asyncio.Queue = asyncio.Queue()
 
-        session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(
-            pool_connections=100, pool_maxsize=100, max_retries=3
-        )
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        session.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
-                AppleWebKit/537.36 (KHTML, like Gecko) \
-                    Chrome/89.0.4389.82 Safari/537.36"
-        }
-        session.headers.update(self.headers)
+        async with ClientSession() as session:
+            # Set up the session headers here
 
-        visited_links = set()
-        to_visit_links = Queue()
-        lock = Lock()
-        base_url = quote(self.normalize_url(base_url), safe="/:")
-        to_visit_links.put((base_url, 0))
+            session.headers.update(
+                {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36"
+                }
+            )
 
-        threads = []
-        docs_lock = Lock()
-        docs: List[Document] = list()
+            if self.headers:
+                session.headers.update(self.headers)
 
-        for _ in range(5):
-            t = Thread(target=worker)
-            t.start()
-            threads.append(t)
+            base_url = quote(self.normalize_url(base_url), safe="/:")
+            visited_links.add(base_url)
+            await tasks.put(asyncio.create_task(fetch(base_url, session, 0)))
 
-        while any(t.is_alive() for t in threads):
-            with lock:
-                if to_visit_links.qsize() >= 2 and len(threads) < 10:
-                    t = Thread(target=worker)
-                    t.start()
-                    threads.append(t)
-            sleep(0.5)
+            await worker()
 
-        for t in threads:
-            t.join()
-
+        visited_links.discard(base_url)
         logger.debug(f"Total links detected: {len(visited_links)}")
 
-        return docs
+        # Now we loads the data into a document objects
+        documents = await aexecute_concurrently(
+            self._load,
+            visited_links,
+            max_workers=self.max_concurrency,
+            result_type="extend",
+        )
 
-    def load(self) -> List[Document]:
+        logger.debug(f"Total documents created: {len(documents)}")
+        return documents
+
+    async def load(self) -> List[Document]:
         """
         Loads and parse the URLS into documents
 
         Returns:
             _type_: List[Documents]
         """
-        docs: List[Document] = list()
-
         if self.nested:
-            with ThreadPoolExecutor() as executor:
-                docs_futures = [
-                    executor.submit(self.find_links, url) for url in self.urls
-                ]
-                for future in docs_futures:
-                    docs.extend(future.result())
+            docs = await aexecute_concurrently(
+                self.find_links,
+                self.urls,
+                max_workers=self.max_concurrency,
+                result_type="extend",
+            )
         else:
-            for url in self.urls:
-                docs.extend(self._load(url))
+            docs = await aexecute_concurrently(
+                self._load, self.urls, max_workers=self.max_concurrency
+            )
+
         return docs

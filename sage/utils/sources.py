@@ -136,7 +136,7 @@ class Source:
             await self.manager.add(hash, source_type, identifier, identifier_type)
         except Exception as e:
             logger.error(f"An error has occurred processing source {source_ref}")
-            logger.error(str(e))
+            logger.error(str(e), exc_info=True)
             logger.error("Source will retry next re-run")
         else:
             await self._save_source_metadata(source_ref, hash)

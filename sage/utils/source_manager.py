@@ -213,6 +213,7 @@ class SourceManager:
                 projects=projects,
                 private_token=source.password,
                 ssl_verify=True,
+                max_concurrency=source.max_concurrency,
             )
 
             gitlab_documents = await loader.load()
@@ -249,9 +250,11 @@ class SourceManager:
                 ssl_verify=source.ssl_verify,
                 urls=[link],
                 headers=source.headers,
+                max_concurrency=source.max_concurrency,
+                max_depth=source.max_depth,
             )
 
-            web_documents = loader.load()
+            web_documents = await loader.load()
 
             if not web_documents:
                 raise SourceException(

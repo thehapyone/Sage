@@ -303,7 +303,7 @@ async def aexecute_concurrently(
     Args:
         func (Callable[[any], Coroutine]): The async function to execute. This function should accept a single argument.
         items (List): The list of items to execute the function on.
-        result_type (str): The type of result to return. Can be "append" or "return". Defaults to "append".
+        result_type (str): The type of result to return. Can be "append" or "extend". Defaults to "append".
         max_workers (int, optional): The maximum number of workers to use. Defaults to 10.
         input_type (str, optional): The expected type of inputs to the function
 
