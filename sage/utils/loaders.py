@@ -468,8 +468,10 @@ class WebLoader(UnstructuredURLLoader):
 
         # Now we loads the data into a document objects
         documents = await aexecute_concurrently(
-            self._load, visited_links, max_workers=self.max_concurrency,
-            result_type="extend"
+            self._load,
+            visited_links,
+            max_workers=self.max_concurrency,
+            result_type="extend",
         )
 
         logger.debug(f"Total documents created: {len(documents)}")

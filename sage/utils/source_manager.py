@@ -213,7 +213,7 @@ class SourceManager:
                 projects=projects,
                 private_token=source.password,
                 ssl_verify=True,
-                max_concurrency=source.max_concurrency
+                max_concurrency=source.max_concurrency,
             )
 
             gitlab_documents = await loader.load()
