@@ -41,6 +41,18 @@ spell_check:
 spell_fix:
 	poetry run codespell --toml pyproject.toml -w
 
+
+######################
+# BUILDING AND PUBLISHING
+######################
+
+TAG?=latest
+build:
+	docker build -t thehapyone/codesage:$(TAG) .
+
+deploy:
+	docker push thehapyone/codesage:$(TAG)
+
 ######################
 # HELP
 ######################

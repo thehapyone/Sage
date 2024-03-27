@@ -420,12 +420,12 @@ class WebLoader(UnstructuredURLLoader):
 
         async def worker():
             """Worker node for fetching all urls"""
-            tasks_tacker = 0
+            tasks_tracker = 0
             while not tasks.empty():
                 current_tasks = []
                 while not tasks.empty():
                     current_tasks.append(await tasks.get())
-                    tasks_tacker = tasks_tacker + 1
+                    tasks_tracker = tasks_tracker + 1
                 fetch_results = await asyncio.gather(*current_tasks)
 
                 parse_child_tasks = [
@@ -436,7 +436,7 @@ class WebLoader(UnstructuredURLLoader):
 
                 await asyncio.gather(*parse_child_tasks)
             # mark all tasks as done
-            for _ in range(tasks_tacker):
+            for _ in range(tasks_tracker):
                 tasks.task_done()
 
         # Configures a semaphore for concurrency
