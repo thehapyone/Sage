@@ -67,7 +67,7 @@ class SourceQAService:
     description_pre: str = (
         "A tool for providing detailed and verified information for answering questions that require insights from various data sources. "
         "When to use: "
-        "- You need answers that could be possibily found in external sources or docuemnts."
+        "- You need answers that could be possibly found in external sources or documents."
         "- The question could be linked to data from specific, known sources. "
         "- You need answers to something outside your own knowledge. "
         "Input: A clear and concise question. "
@@ -660,7 +660,7 @@ class SourceQAService:
         """Answer the question in the query"""
         if not self._runnable:
             await self.asetup_runnable()
-        response : dict = await self._runnable.ainvoke({"question": query})
+        response: dict = await self._runnable.ainvoke({"question": query})
         return response.get("answer")
 
     def setup_tool(self) -> Tool:
