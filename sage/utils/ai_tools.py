@@ -4,6 +4,8 @@ from typing import List
 from constants import LLM_MODEL as llm
 from langchain.tools import Tool
 
+from sage.utils.source_qa import SourceQAService
+
 
 def load_duck_search() -> List[Tool]:
     """Load a DuckDuckGoSearch tool"""
@@ -54,3 +56,8 @@ def load_jira_tools() -> List[Tool]:
     )
 
     return [summarize_tool, get_issue_tool]
+
+
+def load_qa_tool() -> List[Tool]:
+    """Loads a QA tool based on the available data sources"""
+    return [SourceQAService(mode="tool").setup_tool()]

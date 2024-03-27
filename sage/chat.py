@@ -1,10 +1,10 @@
 # chat.py
 import chainlit as cl
 
-from sage.utils.ai_tools import load_duck_search, load_jira_tools
+from sage.utils.ai_tools import load_duck_search, load_jira_tools, load_qa_tool
 from sage.utils.source_qa import SourceQAService
 
-sage_tools = load_duck_search() + load_jira_tools()
+sage_tools = load_duck_search() + load_jira_tools() + load_qa_tool()
 qa_chat = SourceQAService(mode="chat", tools=sage_tools)
 
 

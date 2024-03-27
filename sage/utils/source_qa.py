@@ -65,19 +65,17 @@ class SourceQAService:
 
     tool_name: str = "multi_source_inquiry"
     description_pre: str = (
-        "A comprehensive question-answering tool backed by local and external data sources. "
-        "Designed to provide detailed and verified information for answering complex questions that require insights from data sources "
-        "or evidence-backed explanations across a diverse range of topics. Use me when you have no answer to the question"
+        "A tool for providing detailed and verified information for answering questions that require insights from various data sources. "
         "When to use: "
-        "- You need to answer questions from external documents "
-        "- The question could be linked to data from specific, known sources "
+        "- You need answers that could be possibily found in external sources or docuemnts."
+        "- The question could be linked to data from specific, known sources. "
+        "- You need answers to something outside your own knowledge. "
         "Input: A clear and concise question. "
         "Capabilities: "
-        "- Retrieves and synthesizes information from relevant sources to construct accurate and relevant answers. "
-        "- Provides citations from the data sources when applicable. "
+        "- Retrieves and synthesizes data from relevant source database to construct answers. "
         "Example input: "
         "- 'How many team members are in the Xeres Design Team?' "
-        "- 'How are the current configurations for the platform test environments?' "
+        "- 'What are the current configurations for the platform test environments?' "
     )
 
     condensed_template: str = """
@@ -258,13 +256,18 @@ class SourceQAService:
                 "Supported file types: Word Documents, PDFs, Text files, Excel files, JSON, and YAML files.\n"
                 "Looking forward to our conversation!"
             )
+        elif "agent" in profile.lower():
+            message = (
+                f"{greeting} and welcome!\n"
+                "I am Sage, your AI Agent capable of various functionalities. How may I be of service to you today?\n\n"
+                f"{tools_message}"
+            )
         else:
             message = (
                 f"{greeting} and welcome!\n"
                 "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
                 "I can provide you with data and updates from a variety of sources including:\n"
                 f"  {sources}\n\n"
-                f"{tools_message}"
                 "To get started, simply select an option below; then begin typing your query or ask for help to see what I can do."
             )
         return message.strip()
@@ -273,7 +276,7 @@ class SourceQAService:
     def tool_description(self):
         """Generate a description for the source qa tool"""
         source_description = Source().sources_to_string().replace("\n  ", " ")
-        description = f"{self.description_pre} Access to data and updates from sources including: {source_description}"
+        description = f"{self.description_pre}\n. I have access to the following sources: {source_description}"
         return description
 
     def _format_sources(self, docs: Sequence[Document]):
@@ -421,12 +424,11 @@ class SourceQAService:
                 | itemgetter("history"),
                 "question": lambda x: x["question"],
             }
-            qa_answer = RunnableMap(
+            # create the agent chain
+            _runnable = RunnableMap(
                 answer=_agent_input | _agent_runner,
                 sources=lambda x: [],
             )
-            # create the complete chain
-            _runnable = qa_answer
 
         else:
             qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
@@ -658,16 +660,15 @@ class SourceQAService:
         """Answer the question in the query"""
         if not self._runnable:
             await self.asetup_runnable()
-        return self._runnable.ainvoke({"question": query}).get("answer")
+        response : dict = await self._runnable.ainvoke({"question": query})
+        return response.get("answer")
 
     def setup_tool(self) -> Tool:
         """Create a tool object"""
-        from chainlit import run_sync
-
         _tool = Tool(
             name=self.tool_name,
             description=self.tool_description,
-            func=run_sync(self._run),
+            func=None,
             coroutine=self._run,
         )
         return _tool
