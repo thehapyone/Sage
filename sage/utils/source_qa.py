@@ -115,12 +115,19 @@ class SourceQAService:
     - Make use of bullet points to aid readability if helpful. Each bullet point should present a piece of information WITHOUT in-line citations.
     - Provide a clear response when unable to answer
     - Avoid adding any sources in the footnotes when the response does not reference specific context.
-    - Citations must not be inserted anywhere in the answer only listed in a 'Footnotes' section at the end of the response.
+    - Citations must not be inserted anywhere in the answer, only listed in a 'Footnotes' section at the end of the response.
     <context>
     {context}
     </context>
+    
+    Here is the current chat history - use if relevant:
+    <chat_history>
+    {chat_history}
+    <chat_history/>
+
     Question: {question}
-    REMEMBER: No in-line citations are allowed, and there should be no citation repetition. Clearly state the source of in the 'Footnotes' section or Sage's internal knowledge base.
+
+    REMEMBER: No in-line citations and no citation repetition. State sources in the 'Footnotes' section.
     For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
     Footnotes:
     [1] - Brief summary of the first source. (Less than 10 words)
@@ -144,6 +151,11 @@ class SourceQAService:
     <context>
     {context}
     </context>
+    
+    Here is the current chat history - use if relevant:
+    <chat_history>
+    {chat_history}
+    <chat_history/>
 
     <available_tools>{tools}</available_tools>
 
@@ -381,6 +393,7 @@ class SourceQAService:
         # construct the inputs
         _context = {
             "context": lambda x: self._format_docs(x["docs"]),
+            "chat_history": RunnableLambda(memory.load_memory_variables) | itemgetter("history"),
             "question": lambda x: x["question"],
         }
 
