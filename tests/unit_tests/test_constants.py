@@ -33,11 +33,11 @@ sample_config_data = {
         "type": "openai",
         "openai": {"name": "ada_embeddings"},
     },
-    "llm": {"type": "openai", "openai": {"name": "gpt3.5"}},
+    "llm": {"model": "gpt3.5"},
 }
 
 mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
-mock_openai_llm = Mock(name="ChatOpenAI")
+mock_lite_llm = Mock(name="ChatLiteLLM")
 mock_openai_embedding = Mock(name="OpenAIEmbeddings")
 mock_openai_embedding.return_value.embed_query.return_value = [0] * 768
 mock_logger_spec = Mock(name="logger")
@@ -50,8 +50,8 @@ def mock_path(monkeypatch):
 
 
 @pytest.fixture
-def mock_openai_models(monkeypatch):
-    monkeypatch.setattr("langchain_openai.chat_models.ChatOpenAI", mock_openai_llm)
+def mock_models(monkeypatch):
+    monkeypatch.setattr("langchain_community.chat_models.ChatLiteLLM", mock_lite_llm)
     monkeypatch.setattr(
         "langchain_openai.embeddings.OpenAIEmbeddings", mock_openai_embedding
     )
@@ -75,9 +75,7 @@ def mock_logger(monkeypatch):
     monkeypatch.setattr("sage.utils.logger.CustomLogger", mock_logger_spec)
 
 
-def test_successful_config_load(
-    mock_logger, mock_path, mock_openai_models, mock_common
-):
+def test_successful_config_load(mock_logger, mock_path, mock_models, mock_common):
     # Import the constants module to apply the mocks
     # reload(constants)
     import sage.constants as constants
@@ -92,7 +90,7 @@ def test_successful_config_load(
 
     assert mock_path_mkdir.assert_called_once
     # Test if the chat and embedding models got initialized
-    assert mock_openai_llm.assert_called_once
+    assert mock_lite_llm.assert_called_once
     assert mock_openai_embedding.assert_called_once
 
 

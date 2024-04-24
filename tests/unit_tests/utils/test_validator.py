@@ -22,7 +22,6 @@ from sage.utils.validator import (
     HuggingFaceReRanker,
     Jira_Config,
     LLMConfig,
-    LLMCore,
     ModelValidateType,
     OpenAIConfig,
     Password,
@@ -600,53 +599,18 @@ def test_reranker_config_missing_model_raises_exception():
     assert "The Config data for type 'huggingface' is missing." in str(exc_info.value)
 
 
-###############################################################################
-##################### Unit Tests for the LLMCore ##############################
-
-
-def test_llm_core_creation():
-    llm_core = LLMCore(
-        name="llm_service",
-        password="secret",
-        endpoint="https://llm.example.com",
-        revision="v1",
-    )
-    assert llm_core.name == "llm_service"
-    assert llm_core.password.get_secret_value() == "secret"
-    assert llm_core.endpoint == "https://llm.example.com"
-    assert llm_core.revision == "v1"
-
-
-def test_llm_core_optional_fields():
-    llm_core = LLMCore(name="llm_service")
-    assert llm_core.endpoint is None
-    assert llm_core.revision is None
-
-
 ###################################################################################
 ######################### Unit Tests for the LLMConfig ############################
 
 
-def test_llm_config_type_validation():
-    llm_config = LLMConfig(type="openai", openai=LLMCore(name="openai_llm"))
-    assert llm_config.type == "openai"
-    assert llm_config.openai is not None
-
-    with pytest.raises(ConfigException):
-        LLMConfig(type="invalid_type")
+def test_llm_model_validation():
+    llm_config = LLMConfig(model="azure/gpt4-128k")
+    assert llm_config.model == "azure/gpt4-128k"
 
 
-def test_llm_config_provided_model_validation():
-    llm_config = LLMConfig(type="ollama", ollama=LLMCore(name="ollama_llm"))
-    assert llm_config.ollama is not None
-    assert llm_config.azure is None
-    assert llm_config.openai is None
-
-
-def test_llm_config_missing_model_raises_exception():
-    with pytest.raises(ConfigException) as exc_info:
-        LLMConfig(type="azure")
-    assert "The Config data for type 'azure' is missing." in str(exc_info.value)
+def test_llm_model_value_required():
+    with pytest.raises(ValidationError):
+        LLMConfig()
 
 
 ###########################################################################
@@ -684,13 +648,11 @@ def test_config_provider_configs_validation(setup_env_vars):
                 "azure": EmbeddingCore(name="azure_embed", revision="v1"),
             },
             llm={
-                "type": "azure",
-                "azure": LLMCore(name="azure_llm", password="secret"),
+                "model": "gpt3.5",
             },
         )
-    assert (
-        "Azure configuration must be provided when embedding or llm type is 'azure'"
-        in str(exc_info.value)
+    assert "Azure configuration must be provided when embedding type is 'azure'" in str(
+        exc_info.value
     )
 
 
@@ -715,7 +677,9 @@ def test_config_creation_with_all_fields(setup_env_vars):
             "type": "azure",
             "azure": EmbeddingCore(name="azure_embed", revision="v1"),
         },
-        llm={"type": "azure", "azure": LLMCore(name="azure_llm", password="secret")},
+        llm={
+            "model": "gpt3.5",
+        },
     )
     assert config.core is not None
     assert config.upload is not None
@@ -743,7 +707,9 @@ def test_config_default_optional_fields(setup_env_vars):
             "type": "azure",
             "azure": EmbeddingCore(name="azure_embed", revision="v1"),
         },
-        llm={"type": "azure", "azure": LLMCore(name="azure_llm", password="secret")},
+        llm={
+            "model": "gpt3.5",
+        },
     )
     assert isinstance(config.core, Core)
     assert isinstance(config.upload, UploadConfig)
