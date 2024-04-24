@@ -4,8 +4,7 @@ import sys
 
 import toml
 from anyio import Path
-from langchain_community.chat_models import ChatOllama
-from langchain_openai.chat_models import AzureChatOpenAI, ChatOpenAI
+from langchain_community.chat_models import ChatLiteLLM
 from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from pydantic import ValidationError
 
@@ -23,31 +22,22 @@ app_name = "codesage.ai"
 logger = CustomLogger(name=app_name)
 
 
-def load_language_model(config: Config):
-    if config.llm.type == "azure":
-        llm_model = AzureChatOpenAI(
-            azure_endpoint=config.azure.endpoint,
-            api_version=config.azure.revision,
-            azure_deployment=config.llm.azure.name,
-            api_key=config.azure.password.get_secret_value(),
-            streaming=True,
+def load_language_model(model_name: str) -> ChatLiteLLM:
+    try:
+        llm_model = ChatLiteLLM(
+            model=model_name, streaming=True, verbose=False, max_retries=1
         )
-    elif config.llm.type == "ollama":
-        llm_model = ChatOllama(
-            base_url=config.llm.ollama.endpoint,
-            model=config.llm.ollama.name,
-            streaming=True,
+        # Attempts to use the provider to capture any potential missing configuration error
+        llm_model.invoke("Hi")
+    except Exception as e:
+        logger.error(
+            f"Error initializing the language model '{model_name}'. Please check all required variables are set. "
+            "Provider docs here - https://litellm.vercel.app/docs/providers \n"
+            f"Error: {e}"
         )
-    elif config.llm.type == "openai":
-        llm_model = ChatOpenAI(
-            model=config.llm.openai.name,
-            api_key=config.openai.password.get_secret_value(),
-            organization=config.openai.organization,
-            streaming=True,
-        )
+        sys.exit(2)
     else:
-        raise ConfigException(f"Unsupported LLM type: {config.llm.type}")
-
+        logger.info(f"Loaded the language model {model_name}")
     return llm_model
 
 
@@ -113,7 +103,7 @@ logger.setLevel(core_config.logging_level)
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
 # Set the Large languageModel
-LLM_MODEL = load_language_model(validated_config)
+LLM_MODEL = load_language_model(validated_config.llm.model)
 
 # Load the Embeddings model
 EMBEDDING_MODEL, EMBED_DIMENSION = load_embedding_model(validated_config)

@@ -351,21 +351,10 @@ class ReRankerConfig(ModelValidateType):
     top_n: int = 5
 
 
-class LLMCore(Password):
-    """The LLM Core Model schema"""
-
-    name: str
-    endpoint: Optional[str] = None
-    revision: Optional[str] = None
-
-
-class LLMConfig(ModelValidateType):
+class LLMConfig(BaseModel):
     """The configuration for LLM models"""
 
-    azure: Optional[LLMCore] = None
-    openai: Optional[LLMCore] = None
-    ollama: Optional[LLMCore] = None
-    type: Literal["azure", "ollama", "openai"]
+    model: str
 
 
 class Config(BaseModel):
@@ -392,7 +381,6 @@ class Config(BaseModel):
     def check_provider_configs(cls, values: dict) -> dict:
         """Ensure the appropriate provider field is not empty when using specific providers"""
         embedding = values.get("embedding")
-        llm = values.get("llm")
 
         # Define a list of providers to validate
         providers = [
@@ -405,12 +393,11 @@ class Config(BaseModel):
             provider_config = provider["config"]
 
             # Check if embedding or llm type matches the provider type and ensure the corresponding config is provided
-            if (
-                (embedding and embedding["type"] == provider_type)
-                or (llm and llm["type"] == provider_type)
-            ) and not values.get(provider_config):
+            if (embedding and embedding["type"] == provider_type) and not values.get(
+                provider_config
+            ):
                 raise ConfigException(
-                    f"{provider_type.capitalize()} configuration must be provided when embedding or llm type is '{provider_type}'"
+                    f"{provider_type.capitalize()} configuration must be provided when embedding type is '{provider_type}'"
                 )
 
         return values
