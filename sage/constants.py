@@ -24,9 +24,7 @@ logger = CustomLogger(name=app_name)
 
 def load_language_model(model_name: str) -> ChatLiteLLM:
     try:
-        llm_model = ChatLiteLLM(
-            model=model_name, streaming=True, verbose=False, max_retries=1
-        )
+        llm_model = ChatLiteLLM(model=model_name, streaming=True, max_retries=0)
         # Attempts to use the provider to capture any potential missing configuration error
         llm_model.invoke("Hi")
     except Exception as e:
@@ -72,6 +70,11 @@ def load_embedding_model(config: Config):
     return embedding_model, embed_dimension
 
 
+# Create the main data directory
+async def create_data_dir() -> None:
+    await core_config.data_dir.mkdir(exist_ok=True)
+
+
 # Validate the configuration file
 try:
     config = toml.load(config_path)
@@ -89,12 +92,7 @@ except (FileNotFoundError, KeyError) as error:
     )
     sys.exit(1)
 
-
-# Create the main data directory
-async def create_data_dir() -> None:
-    await core_config.data_dir.mkdir(exist_ok=True)
-
-
+# Create the data directory
 asyncio.run(create_data_dir())
 
 # Update the logging level
