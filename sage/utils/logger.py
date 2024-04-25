@@ -33,7 +33,7 @@ class CustomLogger(logging.Logger):
         Args:
             name (str, optional): A custom name for the logger. Defaults to __name__.
 
-            level (int, optional): The level of logging. Defaults to logging.DEBUG.
+            level (int, optional): The level of logging. Defaults to logging.INFO.
         """
         super().__init__(name, level)
 
@@ -47,6 +47,11 @@ class CustomLogger(logging.Logger):
         self.name = name
         self.setLevel(level)
         self.addHandler(self._log_handler)
+
+        # Get the root logger and attach handler to it
+        root_logger = logging.getLogger()
+        root_logger.handlers = self.handlers
+        root_logger.setLevel(logging.WARNING)
 
     def setLevel(self, level) -> None:
         self._log_handler.setLevel(level)
