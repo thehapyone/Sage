@@ -42,58 +42,6 @@ class Password(BaseModel):
         return v.get_secret_value() if v else None
 
 
-class AzureConfig(Password):
-    """Common Azure Configurations"""
-
-    endpoint: str
-    revision: str
-
-    @field_validator("endpoint")
-    @classmethod
-    def add_https_to_endpoint(cls, v: str):
-        if not v.startswith("https://"):
-            return f"https://{v}"
-        return v
-
-    @model_validator(mode="after")
-    def set_password(self) -> "Password":
-        if self.password is None:
-            if password_env := os.getenv("AZURE_PASSWORD") or os.getenv(
-                "AZURE_OPENAI_API_KEY"
-            ):
-                self.password = SecretStr(password_env)
-            else:
-                raise ConfigException(
-                    (
-                        "The AZURE_OPENAI_API_KEY | AZURE_PASSWORD | config password is missing. "
-                        "Please add it via an env variable or to the config password field."
-                    )
-                )
-        return self
-
-
-class OpenAIConfig(Password):
-    """Common OpenAI Configurations"""
-
-    organization: Optional[str] = None
-
-    @model_validator(mode="after")
-    def set_password(self) -> "Password":
-        if self.password is None:
-            if password_env := os.getenv("OPENAI_PASSWORD") or os.getenv(
-                "OPENAI_API_KEY"
-            ):
-                self.password = SecretStr(password_env)
-            else:
-                raise ConfigException(
-                    (
-                        "The OPENAI_API_KEY | OPENAI_PASSWORD | config password is missing. "
-                        "Please add it via an env variable or to the config password field."
-                    )
-                )
-        return self
-
-
 class ModelValidateType(BaseModel):
     """Base Model for validating the type data"""
 
@@ -300,18 +248,9 @@ class Core(BaseModel):
         return values
 
 
-class EmbeddingCore(BaseModel):
-    """The Embedding Model schema"""
-
-    name: str
-    revision: Optional[str] = None
-
-
-class EmbeddingsConfig(ModelValidateType):
-    azure: Optional[EmbeddingCore] = None
-    openai: Optional[EmbeddingCore] = None
-    jina: Optional[EmbeddingCore] = None
-    type: Literal["jina", "azure", "openai"]
+class EmbeddingsConfig(BaseModel):
+    type: Literal["litellm", "huggingface"]
+    model: str
     dimension: Optional[int] = None
 
 
@@ -367,37 +306,7 @@ class Config(BaseModel):
     )
     upload: Optional[UploadConfig] = UploadConfig()
     jira: Optional[Jira_Config] = Field(default=None, description="Jira configuration")
-    azure: AzureConfig = Field(default=None, description="Shared Azure configuration")
-    openai: OpenAIConfig = Field(
-        default=None, description="Shared OpenAI configuration"
-    )
     source: Source
     reranker: Optional[ReRankerConfig] = None
     embedding: EmbeddingsConfig
     llm: LLMConfig
-
-    @model_validator(mode="before")
-    @classmethod
-    def check_provider_configs(cls, values: dict) -> dict:
-        """Ensure the appropriate provider field is not empty when using specific providers"""
-        embedding = values.get("embedding")
-
-        # Define a list of providers to validate
-        providers = [
-            {"type": "azure", "config": "azure"},
-            {"type": "openai", "config": "openai"},
-        ]
-
-        for provider in providers:
-            provider_type = provider["type"]
-            provider_config = provider["config"]
-
-            # Check if embedding or llm type matches the provider type and ensure the corresponding config is provided
-            if (embedding and embedding["type"] == provider_type) and not values.get(
-                provider_config
-            ):
-                raise ConfigException(
-                    f"{provider_type.capitalize()} configuration must be provided when embedding type is '{provider_type}'"
-                )
-
-        return values

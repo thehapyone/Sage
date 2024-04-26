@@ -30,7 +30,7 @@ pydantic = "2.5.3"
 python-docx = "1.1.0"
 pyyaml = "6.0.1"
 requests = "2.31.0"
-sentence-transformers = "2.2.2"
+sentence-transformers = "^2.2.2"
 toml = "0.10.2"
 transformers = "4.36.2"
 unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.12.5" }
@@ -56,6 +56,9 @@ ruff = { version = "^0.3.0" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit_tests"]
+
+[tool.codespell]
+skip = "./.git,./data"
 
 [build-system]
 requires = ["poetry-core"]

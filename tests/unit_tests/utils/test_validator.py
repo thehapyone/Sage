@@ -10,12 +10,10 @@ from pydantic import SecretStr, ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.validator import (
-    AzureConfig,
     CohereReRanker,
     Config,
     ConfluenceModel,
     Core,
-    EmbeddingCore,
     EmbeddingsConfig,
     Files,
     GitlabModel,
@@ -23,7 +21,6 @@ from sage.utils.validator import (
     Jira_Config,
     LLMConfig,
     ModelValidateType,
-    OpenAIConfig,
     Password,
     ReRankerConfig,
     Source,
@@ -107,101 +104,6 @@ def test_password_available_only_via_secret_parser():
     model = Password(password=secret_password)
     assert model.password != "my_secret_password"
     assert model.password.get_secret_value() == "my_secret_password"
-
-
-############################################################################
-##################### Unit Tests for the AzureConfig #######################
-
-
-def test_azure_config_creation():
-    """Test creating an AzureConfig instance with all required fields"""
-    config = AzureConfig(
-        endpoint="example.com", revision="1", password="custom_password"
-    )
-    assert config.endpoint == "https://example.com"
-    assert config.revision == "1"
-    assert config.password.get_secret_value() == "custom_password"
-
-
-def test_azure_config_endpoint_validation(monkeypatch):
-    """Test that the endpoint is correctly prefixed with 'https://'"""
-    monkeypatch.setenv("AZURE_PASSWORD", "test_azure_password")
-
-    config = AzureConfig(endpoint="example.com", revision="1")
-    assert config.endpoint == "https://example.com"
-
-    # Test that an already correct endpoint remains unchanged
-    config = AzureConfig(endpoint="https://example.com", revision="1")
-    assert config.endpoint == "https://example.com"
-
-
-def test_azure_config_password_validation():
-    """Test that the password is set from the constructor"""
-    config = AzureConfig(
-        endpoint="example.com", revision="1", password="custom_password"
-    )
-    assert config.password.get_secret_value() == "custom_password"
-
-    # Test that the password is set from the AZURE_PASSWORD environment variable
-    os.environ["AZURE_PASSWORD"] = "test_azure_password"
-    config = AzureConfig(endpoint="example.com", revision="1")
-    assert config.password.get_secret_value() == "test_azure_password"
-    del os.environ["AZURE_PASSWORD"]
-
-    # Test that the password is set from the AZURE_OPENAI_API_KEY environment variable
-    os.environ["AZURE_OPENAI_API_KEY"] = "test_azure_openai_api_key"
-    config = AzureConfig(endpoint="example.com", revision="1")
-    assert config.password.get_secret_value() == "test_azure_openai_api_key"
-    del os.environ["AZURE_OPENAI_API_KEY"]
-
-    # Test that a missing password raises a ConfigException
-    error_mgs = (
-        "The AZURE_OPENAI_API_KEY | AZURE_PASSWORD | config password is missing. "
-        "Please add it via an env variable or to the config password field."
-    )
-    with pytest.raises(ConfigException, match=error_mgs) as _:
-        AzureConfig(endpoint="example.com", revision="1")
-
-
-############################################################################
-##################### Unit Tests for the OpenAIConfig #######################
-
-
-def test_openai_config_password_validation(monkeypatch):
-    """Test OpenAIConfig password validation"""
-    # Test that the password is set from the constructor
-    config = OpenAIConfig(password="custom_password")
-    assert config.password.get_secret_value() == "custom_password"
-
-    # Test that the password is set from the OPENAI_PASSWORD environment variable
-    monkeypatch.setenv("OPENAI_PASSWORD", "test_openai_password")
-    config = OpenAIConfig()
-    assert config.password.get_secret_value() == "test_openai_password"
-    monkeypatch.delenv("OPENAI_PASSWORD", raising=False)
-
-    # Test that the password is set from the OPENAI_API_KEY environment variable
-    monkeypatch.setenv("OPENAI_API_KEY", "test_openai_api_key")
-    config = OpenAIConfig()
-    assert config.password.get_secret_value() == "test_openai_api_key"
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-
-    # Test that a missing password raises a ConfigException
-    error_mgs = (
-        "The OPENAI_API_KEY | OPENAI_PASSWORD | config password is missing. "
-        "Please add it via an env variable or to the config password field."
-    )
-    with pytest.raises(ConfigException, match=error_mgs) as _:
-        OpenAIConfig()
-
-
-def test_openai_config_organization_optional():
-    """Test OpenAI config organization is optional"""
-    config = OpenAIConfig(password="custom_password")
-    assert config.organization is None
-
-    # Test organization value can be set
-    config = OpenAIConfig(organization="cool_org", password="custom_password")
-    assert config.organization == "cool_org"
 
 
 ##############################################################################
@@ -495,16 +397,18 @@ def test_core_logging_level_validation():
 ##################### Unit Tests for the EmbeddingsConfig #####################
 
 
-def test_embeddings_config_validation():
+def test_embedding_config_seting_values():
     embeddings_config = EmbeddingsConfig(
-        type="azure", azure=EmbeddingCore(name="azure_embedding")
+        type="litellm", model="text-embedding-ada-002", dimension=1024
     )
-    assert embeddings_config.type == "azure"
-    assert embeddings_config.azure.name == "azure_embedding"
+    assert embeddings_config.type == "litellm"
+    assert embeddings_config.model == "text-embedding-ada-002"
+    assert embeddings_config.dimension == 1024
 
-    with pytest.raises(ConfigException) as exc_info:
-        EmbeddingsConfig(type="azure")
-    assert "The Config data for type 'azure' is missing." in str(exc_info.value)
+
+def test_embedding_config_no_default_values():
+    with pytest.raises(ValidationError) as _:
+        EmbeddingsConfig(type="huggingface")
 
 
 ###############################################################################
@@ -629,33 +533,6 @@ def setup_env_vars(monkeypatch):
     yield
 
 
-def test_config_provider_configs_validation(setup_env_vars):
-    # Test that the validator raises an exception when required provider configs are missing
-    with pytest.raises(ConfigException) as exc_info:
-        Config(
-            core=Core(),
-            upload=UploadConfig(),
-            jira=Jira_Config(
-                url="https://jira.example.com",
-                username="user",
-                polling_interval=30,
-                project="TEST",
-                status_todo="To Do",
-            ),
-            source=Source(top_k=10),
-            embedding={
-                "type": "azure",
-                "azure": EmbeddingCore(name="azure_embed", revision="v1"),
-            },
-            llm={
-                "model": "gpt3.5",
-            },
-        )
-    assert "Azure configuration must be provided when embedding type is 'azure'" in str(
-        exc_info.value
-    )
-
-
 def test_config_creation_with_all_fields(setup_env_vars):
     config = Config(
         core=Core(),
@@ -667,15 +544,13 @@ def test_config_creation_with_all_fields(setup_env_vars):
             project="TEST",
             status_todo="To Do",
         ),
-        azure=AzureConfig(endpoint="example.com", revision="1"),
-        openai=OpenAIConfig(organization="org"),
         source=Source(top_k=10),
         reranker=ReRankerConfig(
             type="cohere", cohere=CohereReRanker(name="cohere_reranker")
         ),
         embedding={
-            "type": "azure",
-            "azure": EmbeddingCore(name="azure_embed", revision="v1"),
+            "type": "litellm",
+            "model": "openai/ada_embedding",
         },
         llm={
             "model": "gpt3.5",
@@ -684,8 +559,6 @@ def test_config_creation_with_all_fields(setup_env_vars):
     assert config.core is not None
     assert config.upload is not None
     assert config.jira is not None
-    assert config.azure is not None
-    assert config.openai is not None
     assert config.source is not None
     assert config.reranker is not None
     assert config.embedding is not None
@@ -702,10 +575,9 @@ def test_config_default_optional_fields(setup_env_vars):
             status_todo="To Do",
         ),
         source=Source(top_k=10),
-        azure=AzureConfig(endpoint="example.com", revision="1"),
         embedding={
-            "type": "azure",
-            "azure": EmbeddingCore(name="azure_embed", revision="v1"),
+            "type": "huggingface",
+            "model": "jina/model",
         },
         llm={
             "model": "gpt3.5",
@@ -713,5 +585,4 @@ def test_config_default_optional_fields(setup_env_vars):
     )
     assert isinstance(config.core, Core)
     assert isinstance(config.upload, UploadConfig)
-    assert config.openai is None
     assert config.reranker is None

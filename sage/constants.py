@@ -5,12 +5,11 @@ import sys
 import toml
 from anyio import Path
 from langchain_community.chat_models import ChatLiteLLM
-from langchain_openai.embeddings import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from pydantic import ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
-from sage.utils.supports import JinaAIEmbeddings
+from sage.utils.supports import LiteLLMEmbeddings, LocalEmbeddings
 from sage.utils.validator import Config
 
 # Load the configuration file only once
@@ -41,24 +40,15 @@ def load_language_model(model_name: str) -> ChatLiteLLM:
 
 def load_embedding_model(config: Config):
     # Embedding model loading and dimension calculation logic...
-    if config.embedding.type == "jina":
-        embedding_model = JinaAIEmbeddings(
-            cache_dir=str(config.core.data_dir) + "/models",
-            jina_model=config.embedding.jina.name,
-            revision=config.embedding.jina.revision,
+    if config.embedding.type == "huggingface":
+        embedding_model = LocalEmbeddings(
+            cache_folder=str(config.core.data_dir) + "/models",
+            model_kwargs={"device": "cpu", "trust_remote_code": True},
+            model_name=config.embedding.model,
         )
-    elif config.embedding.type == "azure":
-        embedding_model = AzureOpenAIEmbeddings(
-            azure_deployment=config.embedding.azure.name,
-            azure_endpoint=config.azure.endpoint,
-            api_version=config.azure.revision,
-            api_key=config.azure.password.get_secret_value(),
-        )
-    elif config.embedding.type == "openai":
-        embedding_model = OpenAIEmbeddings(
-            model=config.embedding.openai.name,
-            api_key=config.openai.password.get_secret_value(),
-            organization=config.openai.organization,
+    elif config.embedding.type == "litellm":
+        embedding_model = LiteLLMEmbeddings(
+            model=config.embedding.model, dimensions=config.embedding.dimension
         )
     else:
         raise ValueError(f"Unsupported embedding type: {config.embedding.type}")

@@ -1,6 +1,5 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 from typing import Any, Callable, Coroutine, List, Optional, Sequence, Tuple
 
 from asyncer import asyncify
@@ -12,10 +11,11 @@ from langchain.retrievers.document_compressors.base import BaseDocumentCompresso
 from langchain.schema import AgentAction, AgentFinish, Document
 from langchain.schema.embeddings import Embeddings
 from langchain.tools import Tool
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
+from litellm import aembedding, embedding
 from markdown import markdown
 from sentence_transformers import CrossEncoder
-from transformers import AutoModel
 
 text_maker = HTML2Text()
 text_maker.ignore_links = False
@@ -23,43 +23,58 @@ text_maker.ignore_images = True
 text_maker.ignore_emphasis = True
 
 
-class JinaAIEmbeddings(Embeddings):
-    """Am embedding class powered by hugging face jinaAI"""
+class LiteLLMEmbeddings(Embeddings):
+    """An embedding class powered by LiteLLM"""
 
-    def __init__(
-        self,
-        cache_dir: str,
-        revision: str = "7302ac470bed880590f9344bfeee32ff8722d0e5",
-        jina_model: str = "jinaai/jina-embeddings-v2-base-en",
-    ):
-        """Initialize the Jina Embeddings"""
-        Path(cache_dir).mkdir(exist_ok=True)
-        self.name = jina_model
-        self.revision = revision
-        self.cache_dir = cache_dir
-        self.model = None
+    def __init__(self, model: str, timeout: int = 600, dimensions: int = None):
+        """Initialize the LiteLLM Embeddings"""
+        self.model = model
+        self.timeout = timeout
+        self.dimensions = dimensions
 
     def embed_query(self, text: str) -> List[float]:
-        if self.model is None:
-            self.model = AutoModel.from_pretrained(
-                pretrained_model_name_or_path=self.name,
-                trust_remote_code=True,
-                cache_dir=self.cache_dir,
-                resume_download=True,
-                revision=self.revision,
-            )
-        return self.model.encode(text)
+        # Synchronous embedding of a single query
+        response = embedding(
+            model=self.model,
+            input=[text],
+            timeout=self.timeout,
+            dimensions=self.dimensions,
+        )
+        return response["data"][0]["embedding"]
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        if self.model is None:
-            self.model = AutoModel.from_pretrained(
-                pretrained_model_name_or_path=self.name,
-                trust_remote_code=True,
-                cache_dir=self.cache_dir,
-                resume_download=True,
-                revision=self.revision,
-            )
-        return self.model.encode(texts)
+        # Synchronous embedding of multiple documents
+        response = embedding(
+            model=self.model,
+            input=texts,
+            timeout=self.timeout,
+            dimensions=self.dimensions,
+        )
+        return [item["embedding"] for item in response["data"]]
+
+    async def aembed_documents(self, texts: List[str]) -> List[List[float]]:
+        # Asynchronous embedding of multiple documents
+        response = await aembedding(
+            model=self.model,
+            input=texts,
+            timeout=self.timeout,
+            dimensions=self.dimensions,
+        )
+        return [item["embedding"] for item in response["data"]]
+
+    async def aembed_query(self, text: str) -> List[float]:
+        # Asynchronous embedding of a single query
+        response = await aembedding(
+            model=self.model,
+            input=[text],
+            timeout=self.timeout,
+            dimensions=self.dimensions,
+        )
+        return response["data"][0]["embedding"]
+
+
+class LocalEmbeddings(HuggingFaceEmbeddings):
+    """An embedding class for running HuggingFace embedding models locally"""
 
     async def aembed_documents(self, texts: List[str]) -> List[List[float]]:
         """An async version of the documents embedding"""
