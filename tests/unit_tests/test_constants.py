@@ -30,16 +30,16 @@ sample_config_data = {
     "openai": {"password": "openai_token", "oranization": "org1"},
     "source": {"top_k": 10, "files": {"paths": ["file1.pdf", "file2.pdf"]}},
     "embedding": {
-        "type": "openai",
-        "openai": {"name": "ada_embeddings"},
+        "type": "litellm",
+        "model": "text-embedding-ada-002",
     },
     "llm": {"model": "gpt3.5"},
 }
 
 mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
 mock_lite_llm = Mock(name="ChatLiteLLM")
-mock_openai_embedding = Mock(name="OpenAIEmbeddings")
-mock_openai_embedding.return_value.embed_query.return_value = [0] * 768
+mock_lite_llm_embedding = Mock(name="LiteLLMEmbeddings")
+mock_lite_llm_embedding.return_value.embed_query.return_value = [0] * 768
 mock_logger_spec = Mock(name="logger")
 
 
@@ -53,7 +53,7 @@ def mock_path(monkeypatch):
 def mock_models(monkeypatch):
     monkeypatch.setattr("langchain_community.chat_models.ChatLiteLLM", mock_lite_llm)
     monkeypatch.setattr(
-        "langchain_openai.embeddings.OpenAIEmbeddings", mock_openai_embedding
+        "sage.utils.supports.LiteLLMEmbeddings", mock_lite_llm_embedding
     )
 
 
@@ -61,8 +61,8 @@ def mock_models(monkeypatch):
 def mock_common(monkeypatch):
     # Set the SAGE_CONFIG_PATH environment variable to point to the test config file
     monkeypatch.setenv("SAGE_CONFIG_PATH", "fake_config.toml")
-    # Mock the JinaEmbeddings to avoid setting it up
-    monkeypatch.setattr("sage.utils.supports.JinaAIEmbeddings", MagicMock())
+    # Mock the LocalEmbeddings to avoid setting it up
+    monkeypatch.setattr("sage.utils.supports.LocalEmbeddings", MagicMock())
     # Mock the sys.exit call to raise an exception for testing
     monkeypatch.setattr("sys.exit", Mock(name="SystemExit", side_effect=SystemExit))
     # Mock the toml.load function to return a sample configuration
@@ -91,7 +91,7 @@ def test_successful_config_load(mock_logger, mock_path, mock_models, mock_common
     assert mock_path_mkdir.assert_called_once
     # Test if the chat and embedding models got initialized
     assert mock_lite_llm.assert_called_once
-    assert mock_openai_embedding.assert_called_once
+    assert mock_lite_llm_embedding.assert_called_once
 
 
 @pytest.mark.parametrize(
