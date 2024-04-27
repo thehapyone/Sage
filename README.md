@@ -24,19 +24,12 @@ spaces = ["SPACE1", "SPACE2"]
 links = ["https://example.com", "https://anotherexample.com"]
 nested = true
 
-[embedding]
-type = "jina"
-dimension = 768
-
-[embedding.jina]
-name = "jinaai/jina-embeddings-v2-base-en"
-revision = "7aef14b0840b7dded6c7e4ce28ff87f16071284d"
-
 [llm]
-type = "azure"
+model = "gpt-4-turbo"
 
-[llm.azure]
-name = "your_azure_llm_name"
+[embedding]
+type = "litellm"
+model = "text-embedding-3-large"
 
 [reranker]
 type = "huggingface"

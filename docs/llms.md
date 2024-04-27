@@ -1,37 +1,70 @@
 # Large Language Models (LLMs) Supported by Sage
 
-Large Language Models are fundamental to CodeSage's operation. The system can leverage various LLMs thanks to the integration with the LangChain framework, which provides the flexibility to use different models as required.
+Sage leverages Large Language Models (LLMs) to power its core functionalities. Through integration with the LiteLLM framework, Sage offers the flexibility to utilize a variety of LLMs to suit different requirements.
+
+Sage is designed to be compatible with a wide array of LLMs, ensuring seamless configuration and integration.
 
 ## Supported LLMs
 
-- **OpenAI's GPT Models**: Utilize models like GPT-3 for generating human-like text.
-- **Azure's OpenAI Models**: Utilize models like GPT-3 for generating human-like text.
-- **Hugging Face Models**: Access a wide range of models from the Hugging Face community.
+Sage supports several LLMs, including but not limited to:
+
+- **OpenAI's GPT Models**: Harness the power of models like GPT-3 to generate human-like text.
+- **Azure's OpenAI Models**: Leverage Azure's implementation of models like GPT-3 for text generation.
+- **Hugging Face Models**: Access a diverse collection of models from the Hugging Face community.
+- ...and many others.
+
+For a comprehensive list of supported LLMs, visit the LiteLLM documentation: [Supported LLM Providers](https://litellm.vercel.app/docs/providers)
 
 ## Interacting with LLMs
 
-To interact with an LLM through Sage:
+To use an LLM with Sage:
 
-1. Send a query that the LLM is configured to respond to.
-2. Sage will process the query using the appropriate LLM and return a response.
+1. Submit a query that the configured LLM can process.
+2. Sage will utilize the selected LLM to generate and return a response.
 
 ## Configuring LLMs
 
-Ensure you have the necessary API keys and tokens set up in your `.env` file and `config.toml`. For each LLM, specify the settings such as model type, API endpoint, and any other relevant parameters.
+Selecting an LLM for Sage is as simple as specifying the model name in the `config.toml` file. API keys and other credentials are securely managed via environment variables set in your `.env` file.
 
+Example configuration in `config.toml`:
+
+```toml
+[llm]
+model = "groq/llama3-70b-8192"
+```
+
+For model names and required environment variables, refer to the LiteLLM documentation: [LLM Configuration](https://litellm.vercel.app/docs/providers)
 
 ## Embeddings
 
-CodeSage utilizes various embedding engines to transform text inputs into vector representations for different functionalities. Both open-source and proprietary models are supported.
+Sage employs various embedding engines to convert text inputs into vector representations, supporting both open-source and proprietary models.
 
-> **Note:** It is advisable to consistently use the same embedding model throughout the application runtime. Changing embeddings can lead to dimensionality mismatches and potentially cause errors. To switch embeddings, you may need to clear previously indexed data.
+> **Note:** Consistency in embedding models is crucial during application runtime to avoid dimensionality mismatches and errors. If you need to change embeddings, ensure previously indexed data is cleared.
 
+Sage's embedding capabilities are enhanced by the LiteLLM embeddings API and the HuggingFace Hub, enabling support for numerous embeddings both online and locally.
+
+### Example - Using Hugging Face Models Locally
+
+```toml
+[embedding]
+type = "huggingface"
+model = "jinaai/jina-embeddings-v2-base-en"
+dimension = 768
+```
+
+Explore all compatible Hugging Face embedding models: [Hugging Face Models](https://huggingface.co/models?pipeline_tag=feature-extraction)
+
+### Example - Using Other Embeddings like OpenAI, Cohere, etc.
+
+```toml
+[embedding]
+type = "litellm"
+model = "text-embedding-ada-002"
+```
+
+Discover all supported embedding models: [Supported Embeddings](https://litellm.vercel.app/docs/embedding/supported_embedding)
 
 ## Best Practices
 
-- Provide enough context in your queries to get the most accurate responses.
-- Be aware of the limitations and usage costs associated with each LLM.
-
-...
-
-Stay informed on the latest updates and additions to the LLMs supported by Sage.
+- Ensure your queries contain sufficient context for the most accurate responses.
+- Be mindful of the limitations and potential costs associated with each LLM.
