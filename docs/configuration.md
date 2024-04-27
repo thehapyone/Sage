@@ -1,10 +1,10 @@
-# Configuration Guide for CodeSage
+# Configuration Guide for Sage
 
-This document provides detailed instructions on how to configure the CodeSage application to suit your specific needs and environment. CodeSage uses a TOML configuration file to manage various settings and preferences.
+This document provides detailed instructions on how to configure the Sage application to suit your specific needs and environment. Sage uses a TOML configuration file to manage various settings and preferences.
 
 ## Configuration File
 
-The primary way to configure CodeSage is through a `config.toml` file located in the root directory of the application. This file contains various sections that correspond to different parts of the application, such as core settings, source connections, and model configurations.
+The primary way to configure Sage is through a `config.toml` file located in the root directory of the application. This file contains various sections that correspond to different parts of the application, such as core settings, source connections, and model configurations.
 
 Path to the configuration file `config.toml` can be set via the environment variable `SAGE_CONFIG_PATH=/path/to/config.toml`
 
@@ -16,7 +16,7 @@ The `[core]` section of the configuration file specifies the fundamental setting
 [core]
 data_dir = "/path/to/data/directory"
 logging_level = "INFO" # Can be DEBUG, INFO, WARNING, ERROR, or CRITICAL
-user_agent = "codesage.ai"
+user_agent = "Sage.ai"
 ```
 
 ## Upload Configuration
@@ -27,25 +27,6 @@ The [upload] section defines the settings related to file uploads, such as maxim
 max_size_mb = 10
 max_files = 5
 timeout = 300
-```
-
-## Azure Configuration
-
-The [azure] section defines the settings related to azure configuration, such as endpoint and versions.
-```toml
-[azure]
-endpoint = "https://your_azure_endpoint"
-password = "your_azure_password"
-revision = "your_azure_api_version"
-```
-
-## OpenAI Configuration
-
-The [openai] section defines the settings for common openai settings.
-```toml
-[openai]
-password = "your_openai_token"
-organization = "your_organization"
 ```
 
 ## Jira Configuration
@@ -63,7 +44,7 @@ status_todo = "To Do"
 
 ## Source Configuration
 
-The [source] section allows you to configure various data sources that CodeSage can interact with, such as Confluence, GitLab, web links, and files.
+The [source] section allows you to configure various data sources that Sage can interact with, such as Confluence, GitLab, web links, and files.
 
 ```toml
 [source]
@@ -100,18 +81,17 @@ paths = ["/path/to/file1", "/path/to/file2"]
 The [embedding] and [llm] sections configure the embedding engines and Large Language Models (LLMs) used by Sage
 
 ```toml
-[embedding]
-type = "openai"
-# set the dimension the embedding model used
-dimension = 768
-
 [llm]
-type = "azure"
+model = "gpt-4-turbo"
+
+[embedding]
+type = "huggingface"
+model = "jinaai/jina-embeddings-v2-base-en"
 ```
 
 ## Environment Variables for Sensitive Credentials
 
-For security reasons, it is crucial to avoid storing sensitive credentials such as passwords and API keys directly in the configuration file. Instead, CodeSage is designed to retrieve these credentials from environment variables.
+For security reasons, it is crucial to avoid storing sensitive credentials such as passwords and API keys directly in the configuration file. Instead, Sage is designed to retrieve these credentials from environment variables.
 
 The `validator.py` file contains logic to fall back to environment variables if a password is not provided in the `config.toml` file. This approach allows you to keep sensitive information secure.
 
@@ -141,10 +121,10 @@ After setting the environment variables, Sage will automatically use these value
 
 ## Finalizing Configuration
 
-Once you have edited the `config.toml` file and set the necessary environment variables, save the file and restart the **CodeSage** application to apply the changes.
+Once you have edited the `config.toml` file and set the necessary environment variables, save the file and restart the **Sage** application to apply the changes.
 
 For more information on the specific fields and acceptable values in the configuration file, please refer to the inline documentation within the [validator.py](../sage/utils/validator.py) file or the sample [config.toml](../sage/config.toml) provided with the application.
 
 ## Support
 
-If you encounter any issues or have questions about configuring CodeSage, please file an issue on our [GitHub Issues](https://github.com/thehapyone/codesage/issues) page.
+If you encounter any issues or have questions about configuring Sage, please file an issue on our [GitHub Issues](https://github.com/thehapyone/Sage/issues) page.
