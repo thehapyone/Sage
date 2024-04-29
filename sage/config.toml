@@ -67,18 +67,8 @@ name = "your_huggingface_reranker_name"
 revision = "your_huggingface_revision"
 
 [embedding]
-type = "openai"
-dimension = 768
-
-[embedding.azure]
-name = "your_azure_embedding_name"
-
-[embedding.jina]
-name = "your_jina_embedding_name"
-revision = "your_jina_embedding_revision"
-
-[embedding.openai]
-name = "ada_embeddings"
+type = "huggingface"
+model = "jinaai/jina-embeddings-v2-base-en"
 
 [llm]
 model = "azure/my_azure_deplpoyment_name"
