@@ -363,12 +363,24 @@ class SourceQAService:
             run_name="RawInput",
         )
 
+        def standalone_chain_router(x: dict):
+            """Helper for routing to the standalone chain"""
+            ### Check if there is a valid retreiver
+            if isinstance(retriever, RunnableLambda):
+                return x.get("question")
+            else:
+                ## We have a valid retreiver so we check if there is a valid chat history
+                if not x.get("chat_history"):
+                    return x.get("question")
+                return _standalone_chain
+
         _inputs = _raw_input | RunnableMap(
-            standalone=RunnableBranch(
-                (lambda x: bool(x.get("chat_history")), _standalone_chain),
-                itemgetter("question"),
-            ).with_config(
-                run_name="CondenseQuestionWithHistory",
+            standalone={
+                "question": lambda x: x["question"],
+                "chat_history": lambda x: x["chat_history"],
+            }
+            | RunnableLambda(standalone_chain_router).with_config(
+                run_name="CondenseQuestionWithHistory"
             )
         )
 
