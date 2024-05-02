@@ -29,9 +29,9 @@ jobs:
 
       - name: Check Actions
         run: |
-          ls -aRl .github/actions
-          ls -al ./.github/actions/python_setup
+          ls -aRl .github
           echo $PWD
+          ls -al ./.github/actions/python_setup
           ls -al /home/runner/work/codesage/codesage/.github/actions/python_setup
 
       - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
