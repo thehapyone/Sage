@@ -26,6 +26,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check Actions
+        run: |
+          ls -aRl .github/actions
+          ls -al ./.github/actions/python_setup
+          echo $PWD
+          ls -al /home/runner/work/codesage/codesage/.github/actions/python_setup
+
       - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
         uses: "./.github/actions/python_setup"
         with:
