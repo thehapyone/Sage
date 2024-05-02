@@ -1,0 +1,102 @@
+name: CI/CD
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  POETRY_VERSION: "1.8.2"
+  PYTHON_VERSION: "3.11"
+  WORKDIR: ${{ inputs.working-directory == '' && '.' || inputs.working-directory }}
+  RUFF_OUTPUT_FORMAT: github
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  lint:
+    name: "Code Style"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
+        uses: "./.github/actions/python_setup"
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          poetry-version: ${{ env.POETRY_VERSION }}
+          working-directory: ${{ env.WORKDIR }}
+          cache-key: lint-with-extras
+
+      - name: Check Poetry File
+        run: |
+          poetry check
+
+      - name: Check lock file
+        run: |
+          poetry lock --check
+
+      - name: Install dependencies
+        run: |
+          poetry install --with dev
+
+      - name: Linting with ruff
+        run: |
+          make lint
+
+      - name: Style check with ruff
+        run: |
+          make format
+
+      - name: CodeSpell
+        run: |
+          make spell_check
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
+        uses: "./.github/actions/python_setup"
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          poetry-version: ${{ env.POETRY_VERSION }}
+          working-directory: ${{ env.WORKDIR }}
+          cache-key: lint-with-extras
+
+      - name: Install deps
+        run: poetry install --with tests
+
+      - name: Run tests
+        shell: bash
+        run: |
+          make test
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build Docker Image
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: thehapyone/codesage:test-${{ github.sha }}
+          push: false

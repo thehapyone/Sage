@@ -10,6 +10,7 @@ tests
 .Makefile
 LICENSE
 requirements.txt
+.github/
 
 # Ignore all log files and temporary files
 *.log
