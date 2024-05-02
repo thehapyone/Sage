@@ -1,7 +1,6 @@
 # test_validator.py
 
 import base64
-import os
 from logging import getLevelName
 from pathlib import Path
 

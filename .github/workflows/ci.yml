@@ -1,4 +1,4 @@
-name: Sage Development
+name: CI/CD
 
 on:
   pull_request:
@@ -74,7 +74,7 @@ jobs:
           cache-key: lint-with-extras
 
       - name: Install deps
-        run: poetry install --with test
+        run: poetry install --with tests
 
       - name: Run tests
         shell: bash
@@ -85,5 +85,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build the Sage image
-        run: docker build . --file Dockerfile --tag thehapyone/codesage:test-$(date +%s)
+      - name: Build Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: thehapyone/codesage:test-$(date +%s)
+          push: false
