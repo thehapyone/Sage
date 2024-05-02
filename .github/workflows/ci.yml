@@ -59,7 +59,7 @@ jobs:
           make spell_check
 
   test:
-    name: Run unit tests
+    name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -83,15 +83,16 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    name: Build Docker Image
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build Docker
+      - name: Build Image
         uses: docker/build-push-action@v5
         with:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: thehapyone/codesage:test-$(date +%s)
+          tags: thehapyone/codesage:test-${{ github.sha }}
           push: false
