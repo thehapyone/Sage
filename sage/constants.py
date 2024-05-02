@@ -57,6 +57,8 @@ def load_embedding_model(config: Config):
     if embed_dimension is None:
         embed_dimension = len(embedding_model.embed_query("dummy"))
 
+    logger.info(f"Loaded the embedding model {config.embedding.model}")
+
     return embedding_model, embed_dimension
 
 

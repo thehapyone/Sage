@@ -1,7 +1,7 @@
 # Helps to initialize various tools that can be used by AI agents
 from typing import List
 
-from constants import LLM_MODEL as llm
+from sage.constants import LLM_MODEL as llm
 from langchain.tools import Tool
 
 from sage.utils.source_qa import SourceQAService

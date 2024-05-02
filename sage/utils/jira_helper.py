@@ -3,7 +3,7 @@ from queue import Queue
 from time import sleep
 from typing import List
 
-from constants import JIRA_QUERY, jira_config
+from sage.constants import JIRA_QUERY, jira_config
 from jira import JIRA, Issue
 from jira.resources import Comment
 

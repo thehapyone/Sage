@@ -1,6 +1,6 @@
 from typing import Any
 
-from constants import LLM_MODEL, logger
+from sage.constants import LLM_MODEL, logger
 from jira import Issue, JIRAError
 from langchain.chains.llm import LLMChain
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
@@ -9,7 +9,7 @@ from langchain.prompts import ChatPromptTemplate, PromptTemplate
 # from langchain_experimental.plan_and_execute.planners.chat_planner import (
 #     PlanningOutputParser,
 # )
-from utils.jira_helper import Jira
+from sage.utils.jira_helper import Jira
 
 issue_template = """
 **Title**: {title}

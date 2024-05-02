@@ -11,7 +11,6 @@ from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.document import Document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableConfig,
     RunnableLambda,
     RunnableMap,
@@ -311,6 +310,72 @@ class SourceQAService:
     def _handle_error(self, error: Exception) -> str:
         return str(error)
 
+    def _load_chat_history(self, memory: ConversationBufferWindowMemory):
+        return RunnableLambda(memory.load_memory_variables).with_config(
+            run_name="ChatHistory"
+        ) | itemgetter("history")
+
+    def _get_memory(self):
+        """Returns a memory instance for the runnable instance"""
+        if self.mode == "chat":
+            memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
+            # TODO: Remove this when the reason for while the memory content is None has been resolved
+            if memory is None:
+                memory = self._chat_memory
+                cl.user_session.set("memory", memory)
+        else:
+            memory = self._chat_memory
+        return memory
+
+    def _create_agent_runnable(self, chat_history_loader):
+        """Creates the agent runnable"""
+        agent_qa_prompt = agent_prompt(self.qa_template_agent)
+        # create the agent engine
+        _agent = (
+            {
+                "question": lambda x: x["question"],
+                "chat_history": lambda x: x["chat_history"],
+                "intermediate_steps": lambda x: convert_intermediate_steps(
+                    x["intermediate_steps"]
+                ),
+            }
+            | agent_qa_prompt.partial(tools=convert_tools(self.tools))
+            | LLM_MODEL.bind(stop=["</tool_input>", "</final_answer>"])
+            | CustomXMLAgentOutputParser()
+        )
+        _agent_runner = AgentExecutor(
+            agent=_agent,
+            tools=self.tools,
+            verbose=False,
+            handle_parsing_errors=self._handle_error,
+        ).with_config(run_name="AgentExecutor") | itemgetter("output")
+
+        # construct the question and answer model
+        _agent_input = {
+            "chat_history": chat_history_loader,
+            "question": lambda x: x["question"],
+        }
+
+        # create the agent chain
+        _runnable = RunnableMap(
+            answer=_agent_input | _agent_runner,
+            sources=lambda x: [],
+        )
+        return _runnable
+
+    def _create_chat_runnable(self, _inputs, _retrieved_docs, _context):
+        """Implementation for creating chat runnable"""
+        qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
+        # construct the question and answer model
+        qa_answer = RunnableMap(
+            answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
+            sources=lambda x: self._format_sources(x["docs"]),
+        )
+
+        # create the complete chain
+        _runnable = _inputs | _retrieved_docs | qa_answer
+        return _runnable
+
     def _setup_runnable(self, retriever: VectorStoreRetriever, profile: str):
         """
         Configures and initializes the runnable model based on the specified retriever and profile.
@@ -341,108 +406,52 @@ class SourceQAService:
         Raises:
             - Any exceptions that may occur during the construction of the runnable components.
         """
-        if self.mode == "chat":
-            memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
-            # TODO: Remove this when the reason for while the memory content is None has been resolved
-            if memory is None:
-                memory = self._chat_memory
-                cl.user_session.set("memory", memory)
-        else:
-            memory = self._chat_memory
-
-        condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
-
-        ## The standalone chain for generating a new standalone question
-        _standalone_chain = condense_question_prompt | LLM_MODEL | StrOutputParser()
-
-        _raw_input = RunnableMap(
-            question=itemgetter("question"),
-            chat_history=RunnableLambda(memory.load_memory_variables)
-            | itemgetter("history"),
-        ).with_config(
-            run_name="RawInput",
-        )
 
         def standalone_chain_router(x: dict):
             """Helper for routing to the standalone chain"""
-            ### Check if there is a valid retreiver
-            if isinstance(retriever, RunnableLambda):
+            # If retriever is a RunnableLambda or there is no valid chat history, return the question.
+            if isinstance(retriever, RunnableLambda) or not x.get("chat_history"):
                 return x.get("question")
-            else:
-                ## We have a valid retreiver so we check if there is a valid chat history
-                if not x.get("chat_history"):
-                    return x.get("question")
-                return _standalone_chain
+            # Otherwise, return the standalone chain.
+            return _standalone_chain
 
-        _inputs = _raw_input | RunnableMap(
-            standalone={
-                "question": lambda x: x["question"],
-                "chat_history": lambda x: x["chat_history"],
-            }
-            | RunnableLambda(standalone_chain_router).with_config(
-                run_name="CondenseQuestionWithHistory"
-            )
-        )
-
-        # retrieve the documents
-        _retrieved_docs = RunnableMap(
-            docs=itemgetter("standalone") | retriever,
-            question=itemgetter("standalone"),
-        ).with_config(
-            run_name="FetchSources",
-        )
-
-        # construct the inputs
-        _context = {
-            "context": lambda x: self._format_docs(x["docs"]),
-            "chat_history": RunnableLambda(memory.load_memory_variables)
-            | itemgetter("history"),
-            "question": lambda x: x["question"],
-        }
+        # Loads the chat history
+        chat_history_loader = self._load_chat_history(self._get_memory())
 
         if "agent" in profile.lower():
-            agent_qa_prompt = agent_prompt(self.qa_template_agent)
-            # create the agent engine
-            _agent = (
-                {
-                    "question": lambda x: x["question"],
-                    "chat_history": lambda x: x["chat_history"],
-                    "intermediate_steps": lambda x: convert_intermediate_steps(
-                        x["intermediate_steps"]
-                    ),
-                }
-                | agent_qa_prompt.partial(tools=convert_tools(self.tools))
-                | LLM_MODEL.bind(stop=["</tool_input>", "</final_answer>"])
-                | CustomXMLAgentOutputParser()
-            )
-            _agent_runner = AgentExecutor(
-                agent=_agent,
-                tools=self.tools,
-                verbose=False,
-                handle_parsing_errors=self._handle_error,
-            ).with_config(run_name="AgentExecutor") | itemgetter("output")
-            # construct the question and answer model
-            _agent_input = {
-                "chat_history": RunnableLambda(memory.load_memory_variables)
-                | itemgetter("history"),
-                "question": lambda x: x["question"],
-            }
-            # create the agent chain
-            _runnable = RunnableMap(
-                answer=_agent_input | _agent_runner,
-                sources=lambda x: [],
-            )
-
+            _runnable = self._create_agent_runnable(chat_history_loader)
         else:
-            qa_prompt = ChatPromptTemplate.from_template(self.qa_template_chat)
-            # construct the question and answer model
-            qa_answer = RunnableMap(
-                answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
-                sources=lambda x: self._format_sources(x["docs"]),
+            # Condense Question Chain
+            condense_question_prompt = PromptTemplate.from_template(
+                self.condensed_template
+            )
+            _standalone_chain = condense_question_prompt | LLM_MODEL | StrOutputParser()
+
+            _inputs = RunnableMap(
+                standalone={
+                    "question": lambda x: x["question"],
+                    "chat_history": chat_history_loader,
+                }
+                | RunnableLambda(standalone_chain_router).with_config(
+                    run_name="CondenseQuestion"
+                )
             )
 
-            # create the complete chain
-            _runnable = _inputs | _retrieved_docs | qa_answer
+            # retrieve the documents
+            _retrieved_docs = RunnableMap(
+                docs=itemgetter("standalone") | retriever,
+                question=itemgetter("standalone"),
+            ).with_config(
+                run_name="FetchSources",
+            )
+
+            # construct the context inputs
+            _context = RunnableMap(
+                context=lambda x: self._format_docs(x["docs"]),
+                chat_history=chat_history_loader,
+                question=itemgetter("question"),
+            )
+            _runnable = self._create_chat_runnable(_inputs, _retrieved_docs, _context)
 
         if self.mode == "chat":
             cl.user_session.set("runnable", _runnable)
