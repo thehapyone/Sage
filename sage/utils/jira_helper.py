@@ -3,9 +3,10 @@ from queue import Queue
 from time import sleep
 from typing import List
 
-from sage.constants import JIRA_QUERY, jira_config
 from jira import JIRA, Issue
 from jira.resources import Comment
+
+from sage.constants import JIRA_QUERY, jira_config
 
 issue_fields = [
     "summary",
