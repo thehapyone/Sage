@@ -9,6 +9,10 @@ on:
       - reopened
   workflow_call:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   POETRY_VERSION: "1.8.2"
   PYTHON_VERSION: "3.11"
