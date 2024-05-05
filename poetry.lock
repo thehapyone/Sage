@@ -1731,13 +1731,13 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "jira"
-version = "3.6.0"
+version = "3.8.0"
 description = "Python library for interacting with JIRA via REST APIs."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jira-3.6.0-py3-none-any.whl", hash = "sha256:08b28388ee498542ebb6b05db87e6c46c37535c268717ccc23c84b377ea309fb"},
-    {file = "jira-3.6.0.tar.gz", hash = "sha256:4c67497fe8dc2f60f1c4f7b33479f059c928bec3db9dcb5cd7b6a09b6ecc0942"},
+    {file = "jira-3.8.0-py3-none-any.whl", hash = "sha256:12190dc84dad00b8a6c0341f7e8a254b0f38785afdec022bd5941e1184a5a3fb"},
+    {file = "jira-3.8.0.tar.gz", hash = "sha256:63719c529a570aaa01c3373dbb5a104dab70381c5be447f6c27f997302fa335a"},
 ]
 
 [package.dependencies]
@@ -5971,4 +5971,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "2dbc40c38b76288a8372e58758a953aa06b7b3f2053756c8e6718d2176657159"
+content-hash = "5c19dfafcfe33b0829431709f911252135dfa4752588f622fcc73ab3bbbb9e86"
