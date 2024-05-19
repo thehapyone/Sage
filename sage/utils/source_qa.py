@@ -575,7 +575,7 @@ class SourceQAService:
 
         if source_actions:
             action_response = await cl.AskActionMessage(
-                content="To start a conversation, choose a data source. If no selection is made before the time runs out, the default is '🙅‍♂️/🙅‍♀️ No Sources ⛔'",
+                content="To start a conversation, choose a data source. If no selection is made before the time runs out, the default is 🙅‍♂️/🙅‍♀️ No Sources ⛔",
                 disable_feedback=True,
                 timeout=300,
                 actions=[
