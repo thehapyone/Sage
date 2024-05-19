@@ -4,12 +4,11 @@ import sys
 
 import toml
 from anyio import Path
-from langchain_community.chat_models import ChatLiteLLM
 from pydantic import ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
-from sage.utils.supports import LiteLLMEmbeddings, LocalEmbeddings
+from sage.utils.supports import LiteLLMEmbeddings, LocalEmbeddings, CustomLiteLLM
 from sage.utils.validator import Config
 
 # Load the configuration file only once
@@ -21,9 +20,9 @@ app_name = "codesage.ai"
 logger = CustomLogger(name=app_name)
 
 
-def load_language_model(model_name: str) -> ChatLiteLLM:
+def load_language_model(model_name: str) -> CustomLiteLLM:
     try:
-        llm_model = ChatLiteLLM(model=model_name, streaming=True, max_retries=0)
+        llm_model = CustomLiteLLM(model_name=model_name, streaming=True, max_retries=0)
         # Attempts to use the provider to capture any potential missing configuration error
         llm_model.invoke("Hi")
     except Exception as e:
