@@ -333,7 +333,7 @@ class Source:
         return faiss_db.as_retriever(search_kwargs=self._retriever_args)
 
     async def load(
-        self, source_hash: str = "all"
+        self, source_hash: str = "none"
     ) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
         """
         Returns either a retriever model from the FAISS vector indexes or compression based retriever model.
