@@ -13,6 +13,7 @@ from langchain.schema.embeddings import Embeddings
 from langchain.tools import Tool
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
+from langchain_community.chat_models import ChatLiteLLM
 from litellm import aembedding, embedding
 from markdown import markdown
 from sentence_transformers import CrossEncoder
@@ -21,6 +22,12 @@ text_maker = HTML2Text()
 text_maker.ignore_links = False
 text_maker.ignore_images = True
 text_maker.ignore_emphasis = True
+
+
+class CustomLiteLLM(ChatLiteLLM):
+    """Override the default LiteLLM model to allow setting infinity max_tokens"""
+
+    max_tokens: Optional[int] = None
 
 
 class LiteLLMEmbeddings(Embeddings):

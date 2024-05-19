@@ -37,7 +37,7 @@ sample_config_data = {
 }
 
 mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
-mock_lite_llm = Mock(name="ChatLiteLLM")
+mock_lite_llm = Mock(name="CustomLiteLLM")
 mock_lite_llm_embedding = Mock(name="LiteLLMEmbeddings")
 mock_lite_llm_embedding.return_value.embed_query.return_value = [0] * 768
 mock_logger_spec = Mock(name="logger")
@@ -51,7 +51,7 @@ def mock_path(monkeypatch):
 
 @pytest.fixture
 def mock_models(monkeypatch):
-    monkeypatch.setattr("langchain_community.chat_models.ChatLiteLLM", mock_lite_llm)
+    monkeypatch.setattr("sage.utils.supports.CustomLiteLLM", mock_lite_llm)
     monkeypatch.setattr(
         "sage.utils.supports.LiteLLMEmbeddings", mock_lite_llm_embedding
     )

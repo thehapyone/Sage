@@ -285,13 +285,28 @@ class SourceQAService:
             formatted_sources.append(metadata)
         return formatted_sources
 
-    async def _get_retriever(self, source_hash: str = "all"):
+    async def _get_retriever(self, source_hash: str = "none"):
         """Loads a retrieval model from the source engine"""
-        # First check if there has been an update from the data loader
-        if await check_for_data_updates():
+
+        if source_hash == "none":
             return await Source().load(source_hash)
 
-        return await Source().load(source_hash)
+        # Inform the user that data loading is about to begin
+        loading_msg = cl.Message(
+            content="Please bear with me for a moment. I'm preparing the data source - might take some time depending on the size of the source..."
+        )
+        await loading_msg.send()
+        await cl.sleep(1)
+
+        # Check for data update
+        await check_for_data_updates()
+
+        retriever = await Source().load(source_hash)
+
+        loading_msg.content = "All set! You're good to go - start by entering your query."
+        await loading_msg.update()
+
+        return retriever
 
     @property
     def _chat_memory(self):
@@ -560,7 +575,7 @@ class SourceQAService:
 
         if source_actions:
             action_response = await cl.AskActionMessage(
-                content="Select a source to chat with. Default is all!",
+                content="To start a conversation, choose a data source. If no selection is made before the time runs out, the default is 🙅‍♂️/🙅‍♀️ No Sources ⛔",
                 disable_feedback=True,
                 timeout=300,
                 actions=[
@@ -579,7 +594,7 @@ class SourceQAService:
             ).send()
 
         # initialize retriever with the selected source action
-        selected_hash = action_response.get("value") if action_response else "all"
+        selected_hash = action_response.get("value") if action_response else "none"
         return await self._get_retriever(selected_hash)
 
     async def _handle_default_mode(self, intro_message: str) -> VectorStoreRetriever:
