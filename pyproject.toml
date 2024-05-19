@@ -47,7 +47,7 @@ litellm = "^1.35.23"
 optional = true
 
 [tool.poetry.group.tests.dependencies]
-pytest = "^8.0.2"
+pytest = "^8.2.0"
 pytest-cov = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
