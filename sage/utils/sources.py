@@ -22,7 +22,7 @@ from sage.utils.source_manager import (
     get_faiss_indexes,
 )
 from sage.utils.supports import CustomFAISS as FAISS
-from sage.utils.supports import aexecute_concurrently
+from sage.utils.supports import aexecute_concurrently, asyncify
 from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
 
 
@@ -341,7 +341,7 @@ class Source:
         """
         indexes = await get_faiss_indexes(self.manager.faiss_dir)
 
-        retriever = self._load_retriever(indexes, source_hash)
+        retriever = await asyncify(self._load_retriever)(indexes, source_hash)
 
         if retriever is None:
             return RunnableLambda(lambda x: [])
