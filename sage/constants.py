@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
-from sage.utils.supports import LiteLLMEmbeddings, LocalEmbeddings, CustomLiteLLM
+from sage.utils.supports import CustomLiteLLM, LiteLLMEmbeddings, LocalEmbeddings
 from sage.utils.validator import Config
 
 # Load the configuration file only once

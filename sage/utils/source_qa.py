@@ -303,7 +303,9 @@ class SourceQAService:
 
         retriever = await Source().load(source_hash)
 
-        loading_msg.content = "All set! You're good to go - start by entering your query."
+        loading_msg.content = (
+            "All set! You're good to go - start by entering your query."
+        )
         await loading_msg.update()
 
         return retriever
