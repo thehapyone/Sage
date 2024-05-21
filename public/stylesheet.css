@@ -1,6 +1,7 @@
-header .MuiStack-root img[alt="logo"] {
-    max-height: 60px !important;
-}
+/* Set the logo height */  
+.css-1ow8pi5 img[alt="logo"] {  
+    max-height: 80px !important;
+}  
 
 /* Text color for the welcome message - Readme page */
 #welcome-screen {
