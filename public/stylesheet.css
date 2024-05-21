@@ -4,6 +4,11 @@ header .MuiStack-root img[alt="logo"] {
 
 /* Text color for the welcome message - Readme page */
 #welcome-screen {
+    color: #d3e2df;
+}
+
+/* Text color for the welcome message - Readme page header */
+#instructions-dialog {
     color: white;
 }
 
@@ -32,14 +37,36 @@ header .MuiStack-root img[alt="logo"] {
     background-color: #54b58f !important;
 }
 
-/* Color for the Chat Profile Selector */
-#chat-profile-selector {
-    color: red !important;
-    background-color: aqua !important;
-}
 /* Color for the new chat button icon */
 #new-chat-button {
     color: #54b58f !important;
+}
+
+/* Color for the chat profile selector mui-component-select-chat-profile-selector */
+#mui-component-select-chat-profile-selector {
+    color: black !important;
+    background-color: white !important;
+}
+
+/* Color for the chat profile selector mui-component-select-chat-profile-selector:hover */
+#mui-component-select-chat-profile-selector:hover {
+    background-color: #54b58f !important;
+    color: white !important;;
+}
+
+/* Change dropdown button text color to pale white - Chat selector */  
+#menu-chat-profile-selector .MuiMenuItem-root span {  
+    color: #d3e2df;
+}  
+
+/* Change dropdown button hover color to black - Chat Selector */  
+#menu-chat-profile-selector .MuiMenuItem-root:hover span {  
+    color: black;  
+}
+
+/* Set the chat popup description text color */
+.css-1v84xce {
+  color: white !important;;
 }
 
 /* Text color for the settings  button text */
@@ -50,6 +77,16 @@ header .MuiStack-root img[alt="logo"] {
 /* Text color for the readme button text */
 .css-fxwsz {
     color: #ffffff !important;
+}
+
+/* Text color for the settings menu header message text */
+.css-5xgbr {
+    color: #d3e2df !important;
+}
+
+/* Background color for the sidebar popup color */
+.css-xhgxhy {
+    background-color: #0f0f0f !important;
 }
 
 /* Text color for the text in the sidebar */
@@ -77,31 +114,28 @@ header .MuiStack-root img[alt="logo"] {
     color: #54b58f !important;
 }
 
-/* text color for new chat section */
-.css-1v84xce {
-    color: #fefefe !important;
+/* Caption text colors */
+.MuiTypography-caption {
+    color: #d3e2df !important;
 }
 
-/* Text color in the show history */
 
+/* Text color in the show history */
 .css-lzolpx {
     color: #d3e2df !important;
 }
 
-/* Color for the sidebar close icon */
-.css-mgjzyx {
-    color: #d3e2df !important;
-}
 
 /* Color for the highlights in the AI text */
-
 .MuiBox-root code {
     background-color: #0f0f0f !important;
     color: aqua !important;
 }
 
-.css-me129t {
-    background: #0f0f0f !important;
+/* Color for the highlights in the AI text code language header */
+.css-ponhl9 {
+    background-color: #0f0f0f !important;
+    color: #d3e2df !important;
 }
 
 /* Color chat profile description */
