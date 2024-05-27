@@ -1,10 +1,21 @@
-header .MuiStack-root img[alt="logo"] {
-    max-height: 60px !important;
+/* Set the logo height */  
+.css-1ow8pi5 img[alt="logo"] {  
+    max-height: 80px !important;
+}  
+
+/* Text color for the welcome message - Readme page */
+#welcome-screen {
+    color: #d3e2df;
 }
 
-/* Text color for the welcome message */
-#welcome-screen {
+/* Text color for the welcome message - Readme page header */
+#instructions-dialog {
     color: white;
+}
+
+/* Text color for the default text fields */
+.css-9vo64t {
+    color: #d3e2df !important;
 }
 
 /* Margin for the welcome message */
@@ -12,21 +23,66 @@ header .MuiStack-root img[alt="logo"] {
     margin-top: 10px !important;
 }
 
-/* Text color for the chat input field */
-.css-14pkh2q textarea {
+/* Background color for the sidebar popup */
+.css-1dnvejm {
+    background-color: #54b58f !important;
+}
+
+/* Background color for the sidebar popup contd */
+.css-1q3qpzg {
+    background-color: #54b58f !important;
+}
+
+/* Color for the new chat button icon */
+#new-chat-button {
+    color: #54b58f !important;
+}
+
+/* Color for the chat profile selector mui-component-select-chat-profile-selector */
+#mui-component-select-chat-profile-selector {
+    color: black !important;
+    background-color: white !important;
+}
+
+/* Color for the chat profile selector mui-component-select-chat-profile-selector:hover */
+#mui-component-select-chat-profile-selector:hover {
+    background-color: #54b58f !important;
+    color: white !important;;
+}
+
+/* Change dropdown button text color to pale white - Chat selector */  
+#menu-chat-profile-selector .MuiMenuItem-root span {  
+    color: #d3e2df;
+}  
+
+/* Change dropdown button hover color to black - Chat Selector */  
+#menu-chat-profile-selector .MuiMenuItem-root:hover span {  
+    color: black;  
+}
+
+/* Set the chat popup description text color */
+.css-1v84xce {
+  color: white !important;;
+}
+
+/* Text color for the settings  button text */
+.css-2jrx9s {
+    color: #ffffff !important;
+}
+
+/* Text color for the readme button text */
+.css-fxwsz {
+    color: #ffffff !important;
+}
+
+/* Text color for the settings menu header message text */
+.css-5xgbr {
     color: #d3e2df !important;
 }
 
-/* Text color for the chat conversation field */
-
-.css-19mvntf {
-    color: #d3e2df !important;
-}
-
-/* Color for the AI assistant response row */
-.css-1s3oi5q {
-    color: #d3e2df !important;
-    background-color: #142130 !important;
+/* Background color for the sidebar popup color */
+.css-xhgxhy {
+    background-color: #0f0f0f !important;
 }
 
 /* Text color for the text in the sidebar */
@@ -39,46 +95,33 @@ header .MuiStack-root img[alt="logo"] {
     background: #000000 !important;
 }
 
-/* Text color in the prompt platground */
-.css-blpe7b {
-    color: #fefefe !important;
-}
-
-/* Text color for the User name */
-.css-17z68sn {
-    color: #54b58f !important;
-}
-
 /* Header text color for new chat */
 .css-1rglye3 {
     color: #54b58f !important;
 }
 
-/* text color for new chat section */
-.css-1v84xce {
-    color: #fefefe !important;
+/* Caption text colors */
+.MuiTypography-caption {
+    color: #d3e2df !important;
 }
 
-/* Text color in the show history */
 
+/* Text color in the show history */
 .css-lzolpx {
     color: #d3e2df !important;
 }
 
-/* Color for the sidebar close icon */
-.css-mgjzyx {
-    color: #d3e2df !important;
-}
 
 /* Color for the highlights in the AI text */
-
 .MuiBox-root code {
     background-color: #0f0f0f !important;
     color: aqua !important;
 }
 
-.css-me129t {
-    background: #0f0f0f !important;
+/* Color for the highlights in the AI text code language header */
+.css-x3uk4t {
+    background-color: #0f0f0f !important;
+    color: #d3e2df !important;
 }
 
 /* Color chat profile description */
@@ -117,12 +160,7 @@ header .MuiStack-root img[alt="logo"] {
     color: #d3e2df !important
 }
 
-/* Github logo */
-.css-vubbuv {
-    color: #d3e2df !important
-}
-
-/* Color for the code header message block */
-.css-zthrdk {
-    background: #54b58f !important
+/* SVG logo color*/
+.MuiSvgIcon-root {
+    color: white !important;
 }
