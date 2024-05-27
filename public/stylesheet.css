@@ -14,18 +14,13 @@
 }
 
 /* Text color for the default text fields */
-.css-pbjmjc {
+.css-9vo64t {
     color: #d3e2df !important;
 }
 
 /* Margin for the welcome message */
 .markdown-body :first-child {
     margin-top: 10px !important;
-}
-
-/* Text color for the chat input field */
-.css-14pkh2q textarea {
-    color: #d3e2df !important;
 }
 
 /* Backgroud color for the sidebar popup */
@@ -100,16 +95,6 @@
     background: #000000 !important;
 }
 
-/* Text color in the prompt platground */
-.css-blpe7b {
-    color: #fefefe !important;
-}
-
-/* Text color for the User name */
-.css-17z68sn {
-    color: #54b58f !important;
-}
-
 /* Header text color for new chat */
 .css-1rglye3 {
     color: #54b58f !important;
@@ -134,7 +119,7 @@
 }
 
 /* Color for the highlights in the AI text code language header */
-.css-ponhl9 {
+.css-x3uk4t {
     background-color: #0f0f0f !important;
     color: #d3e2df !important;
 }
@@ -175,12 +160,7 @@
     color: #d3e2df !important
 }
 
-/* Github logo */
-.css-vubbuv {
-    color: #d3e2df !important
-}
-
-/* Color for the code header message block */
-.css-zthrdk {
-    background: #54b58f !important
+/* SVG logo color*/
+.MuiSvgIcon-root {
+    color: white !important;
 }
