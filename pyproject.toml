@@ -48,7 +48,7 @@ dataclasses-json = "0.5.14"
 optional = true
 
 [tool.poetry.group.tests.dependencies]
-pytest = "^8.0.2"
+pytest = "^8.2.1"
 pytest-cov = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
