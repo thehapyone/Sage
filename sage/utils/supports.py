@@ -8,6 +8,7 @@ from langchain.agents.output_parsers import XMLAgentOutputParser
 from langchain.callbacks.manager import Callbacks
 from langchain.prompts import AIMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain_community.docstore.base import AddableMixin
 from langchain.schema import AgentAction, AgentFinish, Document
 from langchain.schema.embeddings import Embeddings
 from langchain.tools import Tool
@@ -98,6 +99,33 @@ class CustomFAISS(FAISS):
     ) -> Optional[bool]:
         """An async version of the delete method"""
         return await asyncify(self.delete)(ids, **kwargs)
+
+    def merge_from(self, target: FAISS) -> None:
+        if not isinstance(self.docstore, AddableMixin):
+            raise ValueError("Cannot merge with this type of docstore")
+
+        # Merge two IndexFlatL2
+        self.index.merge_from(target.index)
+
+        # Calculate the offset to apply to the target indices
+        index_offset = max(self.index_to_docstore_id.keys(), default=-1) + 1
+
+        # Update the index_to_docstore_id with the target's index_to_docstore_id, applying the offset
+        updated_index_to_docstore_id = {
+            index + index_offset: doc_id
+            for index, doc_id in target.index_to_docstore_id.items()
+        }
+
+        # Add the target's documents to the docstore, skipping duplicates
+        for doc_id in updated_index_to_docstore_id.values():
+            if doc_id not in self.index_to_docstore_id.values():
+                doc = target.docstore.search(doc_id)
+                if not isinstance(doc, Document):
+                    raise ValueError("Document should be returned")
+                self.docstore.add({doc_id: doc})
+
+        # Merge the updated mapping with the original mapping
+        self.index_to_docstore_id.update(updated_index_to_docstore_id)
 
 
 class BgeRerank(BaseDocumentCompressor):
