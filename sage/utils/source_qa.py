@@ -490,6 +490,7 @@ class SourceQAService:
                 name="Chat Only",
                 markdown_description="Run Sage in Chat only mode and interact with provided sources",
                 icon="https://picsum.photos/200",
+                default=True,
             ),
             cl.ChatProfile(
                 name="Agent Mode",
@@ -512,13 +513,6 @@ class SourceQAService:
             for source_hash, source_label in metadata.items()
         ]
         return actions
-
-    async def _send_avatars(self):
-        """Sends the avatars of the AI assistant and the user."""
-        await cl.Avatar(
-            name=self.ai_assistant_name, path=str(assets_dir / "ai-assistant.png")
-        ).send()
-        await cl.Avatar(name="You", path=str(assets_dir / "boy.png")).send()
 
     async def _handle_file_mode(self, intro_message: str) -> VectorStoreRetriever:
         """Handles initialization for 'File Mode', where users upload files for the chat."""
@@ -613,8 +607,6 @@ class SourceQAService:
         chat_profile = cl.user_session.get("chat_profile")
         cl.user_session.set("memory", self._chat_memory)
 
-        await self._send_avatars()
-
         intro_message = self._generate_welcome_message(chat_profile)
 
         if chat_profile == "File Mode":
@@ -675,6 +667,8 @@ class SourceQAService:
                     cl.Text(
                         content=source_content,
                         name=source_name,
+                        display="side",
+                        size="medium",
                     )
                 )
 

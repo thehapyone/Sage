@@ -396,13 +396,13 @@ pycparser = "*"
 
 [[package]]
 name = "chainlit"
-version = "1.1.202"
+version = "1.1.300rc4"
 description = "Build Conversational AI."
 optional = false
 python-versions = "<4.0.0,>=3.8.1"
 files = [
-    {file = "chainlit-1.1.202-py3-none-any.whl", hash = "sha256:1c8972853e980b43b0272598c080414c3d437a99d74d59ece4e169eac3fe50ba"},
-    {file = "chainlit-1.1.202.tar.gz", hash = "sha256:d8c98d59d0c1335a989950c0df0c6893a7da7378f0d2514095890d17870bc95a"},
+    {file = "chainlit-1.1.300rc4-py3-none-any.whl", hash = "sha256:ca9b3a44e40cfa27bbbadf125a4b73b7989dabf3878c1f3458c350d0349aaceb"},
+    {file = "chainlit-1.1.300rc4.tar.gz", hash = "sha256:dac3f8525e4b457de964f89974d938f2f6b90a44cdbce58b50c93aa749293fa8"},
 ]
 
 [package.dependencies]
@@ -415,8 +415,9 @@ fastapi-socketio = ">=0.0.10,<0.0.11"
 filetype = ">=1.2.0,<2.0.0"
 httpx = ">=0.23.0"
 lazify = ">=0.4.0,<0.5.0"
-literalai = "0.0.601"
+literalai = "0.0.604"
 nest-asyncio = ">=1.5.6,<2.0.0"
+numpy = {version = ">=1.26,<2.0", markers = "python_version >= \"3.9\""}
 packaging = ">=23.1,<24.0"
 pydantic = ">=1,<3"
 pyjwt = ">=2.8.0,<3.0.0"
@@ -2153,12 +2154,12 @@ proxy = ["PyJWT (>=2.8.0,<3.0.0)", "apscheduler (>=3.10.4,<4.0.0)", "backoff", "
 
 [[package]]
 name = "literalai"
-version = "0.0.601"
+version = "0.0.604"
 description = "An SDK for observability in Python applications"
 optional = false
 python-versions = "*"
 files = [
-    {file = "literalai-0.0.601.tar.gz", hash = "sha256:f0ff962db5d6ac908f19587bb43ac7989809f6a750af63c9bb7acf2a6f3138d4"},
+    {file = "literalai-0.0.604.tar.gz", hash = "sha256:6f6cce12bb968d9653a9d8adc4d0472be1315d0dccbb2647c972a68f620b3281"},
 ]
 
 [package.dependencies]
@@ -5870,4 +5871,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "d743695a7bdfa43e394bb043c4db6cae5dcc475ba42d94da5a08a18e43e08048"
+content-hash = "fa474f7fb7e0d3cbdc3413d199fbb61f82bde404e672dd465af3dab1488f01de"
