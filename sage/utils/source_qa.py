@@ -23,9 +23,9 @@ from langchain.tools import Tool
 from sage.constants import (
     LLM_MODEL,
     SENTINEL_PATH,
+    chat_starters,
     logger,
     validated_config,
-    chat_starters
 )
 from sage.utils.exceptions import SourceException
 from sage.utils.sources import Source
@@ -497,7 +497,7 @@ class SourceQAService:
                         message="/home",
                         icon="/public/avatars/home.png",
                     ),
-                    *chat_starters
+                    *chat_starters,
                 ],
             ),
             cl.ChatProfile(
