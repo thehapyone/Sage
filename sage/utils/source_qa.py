@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from operator import itemgetter
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 import chainlit as cl
 from langchain.agents import AgentExecutor
@@ -23,7 +23,6 @@ from langchain.tools import Tool
 from sage.constants import (
     LLM_MODEL,
     SENTINEL_PATH,
-    assets_dir,
     logger,
     validated_config,
 )
@@ -491,6 +490,28 @@ class SourceQAService:
                 markdown_description="Run Sage in Chat only mode and interact with provided sources",
                 icon="https://picsum.photos/200",
                 default=True,
+                starters=[
+                    cl.Starter(
+                        label="Home - Get Started",
+                        message="/home",
+                        icon="/public/avatars/home.png",
+                    ),
+                    cl.Starter(
+                        label="Explain superconductors",
+                        message="Explain superconductors like I'm five years old. %Confluence: SF Space Details%",
+                        icon="https://picsum.photos/200",
+                    ),
+                    cl.Starter(
+                        label="Python script for daily email reports",
+                        message="Write a script to automate sending daily email reports in Python, and walk me through how I would set it up.",
+                        icon="https://picsum.photos/300",
+                    ),
+                    cl.Starter(
+                        label="Text inviting friend to wedding",
+                        message="Write a text asking a friend to be my plus-one at a wedding next month. I want to keep it super short and casual, and offer an out.",
+                        icon="https://picsum.photos/400",
+                    ),
+                ],
             ),
             cl.ChatProfile(
                 name="Agent Mode",
@@ -560,11 +581,23 @@ class SourceQAService:
         await msg.update()
         return retriever
 
-    async def _handle_chat_only_mode(self, intro_message: str) -> VectorStoreRetriever:
+    async def _handle_chat_only_mode(
+        self, intro_message: str, root_id: str = None, source_label: str = None
+    ) -> VectorStoreRetriever:
         """Handles initialization for 'Chat Only' mode, where users select a source to chat with."""
-        await cl.Message(content=intro_message, disable_feedback=True).send()
         # Get the sources labels that will be used to create the source actions
         sources_metadata = await Source().get_labels_and_hash()
+
+        if source_label:
+            hash_key = next(
+                (k for k, v in sources_metadata.items() if v == source_label), "none"
+            )
+            return await self._get_retriever(hash_key)
+
+        await cl.Message(
+            id=root_id, content=intro_message, disable_feedback=True
+        ).send()
+
         source_actions = self.generate_source_actions(sources_metadata)
 
         action_response = None
@@ -607,23 +640,57 @@ class SourceQAService:
         chat_profile = cl.user_session.get("chat_profile")
         cl.user_session.set("memory", self._chat_memory)
 
+        # Chat Only mode will be configured via starters instead
+        if chat_profile == "Chat Only":
+            return
+
         intro_message = self._generate_welcome_message(chat_profile)
 
         if chat_profile == "File Mode":
             retriever = await self._handle_file_mode(intro_message)
-        elif chat_profile == "Chat Only":
-            retriever = await self._handle_chat_only_mode(intro_message)
         else:
             retriever = await self._handle_default_mode(intro_message)
 
         self._setup_runnable(retriever, chat_profile)
 
+    @staticmethod
+    def _get_starter_source_label(message: str) -> Tuple[str, str]:
+        """Helper to extract the source label from the starter message"""
+        if not message.endswith("%"):
+            logger.warning("Can not extract label from starter message")
+            return message, "none"
+        try:
+            main_message, label, _ = message.rsplit("%", 2)
+            return main_message.strip(), label.strip()
+        except ValueError as error:
+            logger.warning("Error extracting label from starter %s", error)
+        return message, "none"
+
     @cl.on_message
     async def on_message(self, message: cl.Message):
         """Function to react user's message request"""
-
         if self.mode == "tool":
             raise ValueError("Tool mode is not supported here")
+
+        # Handle starter message only once
+        if cl.user_session.get("starter_message", True):
+            cl.user_session.set("starter_message", False)
+            chat_profile = cl.user_session.get("chat_profile")
+
+            if message.content == "/home":
+                intro_message = self._generate_welcome_message(chat_profile)
+                retriever = await self._handle_chat_only_mode(intro_message, message.id)
+                self._setup_runnable(retriever, chat_profile)
+                return
+
+            message.content, source_label = self._get_starter_source_label(
+                message.content
+            )
+            await message.update()
+
+            # Now we should set the retriever for the other messages
+            retriever = await self._handle_chat_only_mode("", source_label=source_label)
+            self._setup_runnable(retriever, chat_profile)
 
         runnable: RunnableSequence = cl.user_session.get("runnable")
         memory: ConversationBufferWindowMemory = cl.user_session.get("memory")
