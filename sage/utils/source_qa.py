@@ -25,6 +25,7 @@ from sage.constants import (
     SENTINEL_PATH,
     logger,
     validated_config,
+    chat_starters
 )
 from sage.utils.exceptions import SourceException
 from sage.utils.sources import Source
@@ -496,21 +497,7 @@ class SourceQAService:
                         message="/home",
                         icon="/public/avatars/home.png",
                     ),
-                    cl.Starter(
-                        label="Explain superconductors",
-                        message="Explain superconductors like I'm five years old. %Confluence: SF Space Details%",
-                        icon="https://picsum.photos/200",
-                    ),
-                    cl.Starter(
-                        label="Python script for daily email reports",
-                        message="Write a script to automate sending daily email reports in Python, and walk me through how I would set it up.",
-                        icon="https://picsum.photos/300",
-                    ),
-                    cl.Starter(
-                        label="Text inviting friend to wedding",
-                        message="Write a text asking a friend to be my plus-one at a wedding next month. I want to keep it super short and casual, and offer an out.",
-                        icon="https://picsum.photos/400",
-                    ),
+                    *chat_starters
                 ],
             ),
             cl.ChatProfile(
