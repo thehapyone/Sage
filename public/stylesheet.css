@@ -125,7 +125,6 @@ img[alt="logo"] {
 /* Color for the highlights in the AI text */
 .MuiBox-root code {
     background-color: #0f0f0f !important;
-    color: aqua !important;
 }
 
 /* Color for the highlights in the AI text code language header */
