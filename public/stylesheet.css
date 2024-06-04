@@ -1,7 +1,7 @@
-/* Set the logo height */  
-.css-1ow8pi5 img[alt="logo"] {  
-    max-height: 80px !important;
-}  
+/* Set the logo height */
+img[alt="logo"] {
+    max-height: 50px !important;
+}
 
 /* Text color for the welcome message - Readme page */
 #welcome-screen {
@@ -33,6 +33,16 @@
     background-color: #54b58f !important;
 }
 
+/* Background color for the sidebar background */
+.css-7eygjx {
+    background-color: #101010 !important;
+}
+
+/* Background color for the sidebar elements background */
+.MuiDrawer-paper {
+    background-color: #101010 !important;
+}
+
 /* Color for the new chat button icon */
 #new-chat-button {
     color: #54b58f !important;
@@ -47,22 +57,22 @@
 /* Color for the chat profile selector mui-component-select-chat-profile-selector:hover */
 #mui-component-select-chat-profile-selector:hover {
     background-color: #54b58f !important;
-    color: white !important;;
+    color: white !important;
 }
 
-/* Change dropdown button text color to pale white - Chat selector */  
-#menu-chat-profile-selector .MuiMenuItem-root span {  
+/* Change dropdown button text color to pale white - Chat selector */
+#menu-chat-profile-selector .MuiMenuItem-root span {
     color: #d3e2df;
-}  
+}
 
-/* Change dropdown button hover color to black - Chat Selector */  
-#menu-chat-profile-selector .MuiMenuItem-root:hover span {  
-    color: black;  
+/* Change dropdown button hover color to black - Chat Selector */
+#menu-chat-profile-selector .MuiMenuItem-root:hover span {
+    color: black;
 }
 
 /* Set the chat popup description text color */
 .css-1v84xce {
-  color: white !important;;
+    color: white !important;
 }
 
 /* Text color for the settings  button text */
@@ -115,11 +125,10 @@
 /* Color for the highlights in the AI text */
 .MuiBox-root code {
     background-color: #0f0f0f !important;
-    color: aqua !important;
 }
 
 /* Color for the highlights in the AI text code language header */
-.css-x3uk4t {
+.css-1ltnmms {
     background-color: #0f0f0f !important;
     color: #d3e2df !important;
 }
@@ -140,24 +149,9 @@
     color: #d3e2df !important;
 }
 
-/* Show history button */
-.css-b933ss {
-    color: #54b58f !important;
-}
-
-/* history header text */
-.css-157qq19 {
-    color: #d3e2df !important;
-}
-
-/* Settings color text */
-.css-a1i2f5 {
-    color: #d3e2df !important;
-}
-
-/* Settings color logo */
-.css-1f8bwsm {
-    color: #d3e2df !important
+/* Input text background */
+.css-njpsko {
+    background-color: #151515 !important;
 }
 
 /* SVG logo color*/

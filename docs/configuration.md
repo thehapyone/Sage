@@ -2,6 +2,41 @@
 
 This document provides detailed instructions on how to configure the Sage application to suit your specific needs and environment. Sage uses a TOML configuration file to manage various settings and preferences.
 
+## Starters Configuration
+
+Configuring starters is straightforward and requires editing a YAML configuration file. Each starter consists of a user-friendly label, a pre-defined message that sets the context or action for the AI, an optional icon to visually represent the action, and an optional source identifier that specifies the context for the message.
+
+Here's how you can configure starters:
+
+1. Open the `starters.yaml` file in your code editor.
+2. Define each starter with the following attributes:
+   - `label`: A short, descriptive name for the quick-action prompt.
+   - `message`: The initial message or command that the starter will send to Sage.
+   - `icon`: A URL to an image that will appear as an icon for the starter in the UI.
+   - `source`: (Optional) A string that denotes the source to be concatenated with the `message` when sent to Sage.
+
+Starters are configured via a yaml file that is set via the environment variable `SAGE_STARTER_PATH=/path/to/starters.yaml`
+
+### Example Starters Configuration
+
+Below is an example of how starters can be configured in the `starters.yaml` file:
+
+```yaml
+starters:
+  - label: "Casual Wedding Invite"
+    message: "Draft a casual message to invite a friend as my guest to a wedding next month, ensuring it feels light-hearted and stress-free."
+    icon: "https://picsum.photos/200"
+  - label: "Superconductors Simplified"
+    message: "Describe superconductors in a way that a five-year-old could understand."
+    icon: "https://picsum.photos/300"
+    source: "Confluence: SF Space Details"
+  - label: "Python Email Automation Script"
+    message: "Generate a Python script for automating daily email reports."
+    icon: "https://picsum.photos/400"
+    source: "Confluence: Development Docs"
+```
+When the user selects a starter, the message (concatenated with the source, if provided) is sent to Sage, triggering the respective action or query as if the user had typed the message themself.
+
 ## Configuration File
 
 The primary way to configure Sage is through a `config.toml` file located in the root directory of the application. This file contains various sections that correspond to different parts of the application, such as core settings, source connections, and model configurations.

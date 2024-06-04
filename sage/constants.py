@@ -3,17 +3,18 @@ import os
 import sys
 
 import toml
-from anyio import Path
+import yaml
 from pydantic import ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
 from sage.utils.supports import CustomLiteLLM, LiteLLMEmbeddings, LocalEmbeddings
-from sage.utils.validator import Config
+from sage.utils.validator import Config, Starters
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
-assets_dir = Path(__file__).parent / "assets"
+starters_file_path = os.getenv("SAGE_STARTERS_PATH", None)
+
 
 # Initialize the logger
 app_name = "codesage.ai"
@@ -61,6 +62,29 @@ def load_embedding_model(config: Config):
     return embedding_model, embed_dimension
 
 
+def load_and_validate_starters_yaml(file_path: str | None) -> Starters:
+    """Validates the chat starters yaml is valid"""
+    if file_path is None:
+        return []
+    try:
+        with open(file_path, "r") as file:
+            data = yaml.safe_load(file)
+            if data is None:
+                raise ConfigException("Starters content cannot be empty")
+    except FileNotFoundError:
+        raise ConfigException(f"Starters file not found at path: {file_path}")
+    except yaml.YAMLError as exc:
+        raise ConfigException(f"Error parsing YAML: {exc}")
+
+    # Validate data with pydantic
+    try:
+        starters_config = Starters(**data).starters
+    except ValidationError as ve:
+        raise ConfigException(f"Validation error in starters YAML: {ve}")
+
+    return starters_config
+
+
 # Create the main data directory
 async def create_data_dir() -> None:
     await core_config.data_dir.mkdir(exist_ok=True)
@@ -73,6 +97,7 @@ try:
     core_config = validated_config.core
     jira_config = validated_config.jira
     sources_config = validated_config.source
+    chat_starters = load_and_validate_starters_yaml(starters_file_path)
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(1)

@@ -86,7 +86,6 @@ def test_successful_config_load(mock_logger, mock_path, mock_models, mock_common
 
     assert core_config.data_dir == Path("/fake/path")
     assert core_config.logging_level == getLevelName("WARNING")
-    assert isinstance(constants.assets_dir, Path)
 
     assert mock_path_mkdir.assert_called_once
     # Test if the chat and embedding models got initialized

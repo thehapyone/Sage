@@ -66,6 +66,31 @@ Sage currently offers the following functionalities:
 
 ![Sage Modes Overview](docs/sage_other_modes.gif "Sage in various modes")
 
+### Starters: Quick-Tap Launchpad
+
+Starters are predefined prompts designed to provide a seamless initiation into Sage's capabilities. They create a more intuitive experience by offering common queries and source-specific interactions. The following samples showcase examples of starters you can implement:
+
+```yaml
+starters:
+  - label: "Casual Wedding Invite"
+    message: "Draft a casual message to invite a friend as my guest to a wedding next month, ensuring it feels light-hearted and stress-free."
+    icon: "https://picsum.photos/200"
+  - label: "Superconductors Simplified"
+    message: "Describe superconductors in a way that a five-year-old could understand."
+    icon: "https://picsum.photos/300"
+    source: "Confluence: SF Space Details"
+  - label: "Python Email Automation Script"
+    message: "Generate a Python script for automating daily email reports, and provide instructions for deployment."
+    icon: "https://picsum.photos/400"
+    source: "Confluence: Development Docs"
+```
+
+![Starters Visual](docs/starters.png "Access Starters Quickly")
+
+Configuring starters is straightforward and requires editing a YAML configuration file. Each starter consists of a user-friendly label, a pre-defined message that sets the context or action for the AI, an optional icon to visually represent the action, and an optional source identifier that specifies the context for the message.
+
+Learn more about [starters configuration](docs/configuration.md#starters-configuration)
+
 ## Getting Started with Sage
 
 Begin your journey with Sage in just a few steps:

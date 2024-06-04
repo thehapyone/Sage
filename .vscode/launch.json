@@ -6,7 +6,17 @@
             "type": "debugpy",
             "request": "launch",
             "module": "chainlit",
+            "justMyCode": false,
             "args": "run -w ${workspaceFolder}/sage/chat.py",
+            "envFile": "${workspaceFolder}/sandbox/sage.env"
+        },
+        {
+            "name": "Chainlit - Others",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "chainlit",
+            "justMyCode": false,
+            "args": "run -w ${workspaceFolder}/sandbox/demo1.py",
             "envFile": "${workspaceFolder}/sandbox/sage.env"
         },
         {
