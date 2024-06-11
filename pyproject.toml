@@ -41,7 +41,7 @@ apscheduler = "^3.10.4"
 croniter = "^2.0.2"
 atlassian-python-api = "^3.41.11"
 aiosqlite = "^0.20.0"
-litellm = "^1.35.23"
+litellm = "^1.37.19"
 dataclasses-json = "0.5.14"
 
 [tool.poetry.group.tests]
