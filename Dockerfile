@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV POETRY_VERSION 1.7.1
+ENV POETRY_VERSION 1.8.3
 ENV REQUESTS_CA_BUNDLE "/etc/ssl/certs/ca-certificates.crt"
 ENV CURL_CA_BUNDLE "/etc/ssl/certs/ca-certificates.crt"
 

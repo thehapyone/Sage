@@ -5,6 +5,7 @@ description = "Sage: A conversational AI assistant simplifying data interactions
 authors = ["Ayo Ayibiowu <charles.ayibiowu@hotmail.com>"]
 license = "Apache-2.0 license"
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
