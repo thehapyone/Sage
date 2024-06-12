@@ -23,7 +23,6 @@ jira = "^3.8.0"
 langchain = "^0.1.12"
 langchain-community = "^0.0.28"
 langchain-core = "^0.1.31"
-langchain-openai = "^0.0.8"
 markdownify = "0.11.6"
 openai = "^1.13.3"
 pdf2image = "1.17.0"
@@ -44,6 +43,7 @@ atlassian-python-api = "^3.41.11"
 aiosqlite = "^0.20.0"
 litellm = "^1.35.23"
 dataclasses-json = "0.5.14"
+crewai = "^0.30.11"
 
 [tool.poetry.group.tests]
 optional = true
