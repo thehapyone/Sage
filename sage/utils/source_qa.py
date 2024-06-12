@@ -660,7 +660,10 @@ class SourceQAService:
             raise ValueError("Tool mode is not supported here")
 
         # Handle starter message only once
-        if cl.user_session.get("starter_message", True):
+        if (
+            cl.user_session.get("starter_message", True)
+            and cl.user_session.get("chat_profile") == "Chat Only"
+        ):
             cl.user_session.set("starter_message", False)
             chat_profile = cl.user_session.get("chat_profile")
 
