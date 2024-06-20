@@ -120,8 +120,9 @@ JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{ass
 LLM_MODEL = load_language_model(validated_config.llm.model)
 
 # Load the Embeddings model
-#EMBEDDING_MODEL, EMBED_DIMENSION = load_embedding_model(validated_config)
+# EMBEDDING_MODEL, EMBED_DIMENSION = load_embedding_model(validated_config)
 from unittest.mock import Mock
-EMBEDDING_MODEL=Mock()
+
+EMBEDDING_MODEL = Mock()
 # Define the path for the sentinel file
 SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"

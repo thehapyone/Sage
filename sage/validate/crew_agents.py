@@ -1,11 +1,11 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Any, List, Optional
+
 import yaml
 from chainlit import AsyncLangchainCallbackHandler
-from sage.constants import LLM_MODEL
-
 from crewai import Agent, Task
+from pydantic import BaseModel, Field, field_validator, model_validator
 
+from sage.constants import LLM_MODEL
 from sage.utils.exceptions import ConfigException
 
 
@@ -54,8 +54,7 @@ class CrewConfig(BaseModel):
                 AgentConfig(**agent) if isinstance(agent, dict) else agent
                 for agent in agents
             ]
-            values['agents'] = agents
-
+            values["agents"] = agents
 
         agents_dict = {agent.role: agent for agent in agents}
 

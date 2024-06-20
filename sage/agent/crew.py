@@ -1,26 +1,21 @@
 ## CrewAIRunnable
+import chainlit as cl
+from asyncer import asyncify
+from chainlit import AsyncLangchainCallbackHandler
+from crewai import Crew
 from langchain.schema.runnable import (
     RunnableConfig,
     RunnableLambda,
 )
-from asyncer import asyncify
-from chainlit import AsyncLangchainCallbackHandler
 
-from crewai import Crew
-import chainlit as cl
-
-
-from sage.crewai_utils.gamer.tasks import GameTasks
 from sage.crewai_utils.gamer.agents import GameAgents
-
+from sage.crewai_utils.gamer.tasks import GameTasks
 
 tasks = GameTasks()
 agents = GameAgents()
 
 
 class CrewAIRunnable:
-    
-
     def __init__(self, callback):
         self._callback = callback
         pass
