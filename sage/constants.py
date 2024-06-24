@@ -13,8 +13,6 @@ from sage.utils.validator import Config, Starters
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
-starters_file_path = os.getenv("SAGE_STARTERS_PATH", None)
-
 
 # Initialize the logger
 app_name = "codesage.ai"
@@ -97,7 +95,7 @@ try:
     core_config = validated_config.core
     jira_config = validated_config.jira
     sources_config = validated_config.source
-    chat_starters = load_and_validate_starters_yaml(starters_file_path)
+    chat_starters = load_and_validate_starters_yaml(core_config.starters_path)
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(1)

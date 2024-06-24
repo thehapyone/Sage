@@ -15,7 +15,14 @@ Here's how you can configure starters:
    - `icon`: A URL to an image that will appear as an icon for the starter in the UI.
    - `source`: (Optional) A string that denotes the source to be concatenated with the `message` when sent to Sage.
 
-Starters are configured via a yaml file that is set via the environment variable `SAGE_STARTER_PATH=/path/to/starters.yaml`
+Starters are configured via a yaml file that is set in the sage config.toml file under the core section like below
+
+```toml
+[core]
+...
+starters_path = "/path/to/starters.yaml"
+...
+```
 
 ### Example Starters Configuration
 
@@ -52,6 +59,7 @@ The `[core]` section of the configuration file specifies the fundamental setting
 data_dir = "/path/to/data/directory"
 logging_level = "INFO" # Can be DEBUG, INFO, WARNING, ERROR, or CRITICAL
 user_agent = "Sage.ai"
+starters_path = "/path/to/starters.yaml"
 ```
 
 ## Upload Configuration

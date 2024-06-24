@@ -1,10 +1,11 @@
+## Validator for the CrewAI framework interface
 from typing import Any, List, Optional, Tuple
 
 import yaml
 from chainlit import AsyncLangchainCallbackHandler
 from crewai import Agent, Task, Crew
 from crewai.process import Process
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import UUID4, BaseModel, Field, field_validator, model_validator
 
 from sage.constants import LLM_MODEL
 from sage.utils.exceptions import ConfigException
@@ -26,6 +27,7 @@ class TaskConfig(Task):
             raise ValueError("Task description must include '{input}' placeholder.")
         return v
 
+
 class AgentConfig(Agent):
     llm: Any = Field(
         default_factory=lambda: LLM_MODEL,
@@ -37,10 +39,17 @@ class AgentConfig(Agent):
     # callbacks = ([AsyncLangchainCallbackHandler().handlers[0]],)
 
 
-class CrewConfig(BaseModel):
+class CrewConfig(Crew):
+    """Generates a Crew profile from the loaded configuration"""
+
     name: str
     agents: List[AgentConfig] = Field(..., min_length=1)
     tasks: List[TaskConfig] = Field(..., min_length=1)
+    verbose: int | bool = Field(default=True)
+    memory: bool = Field(
+        default=False,
+        description="Whether the crew should use memory to store memories of it's execution",
+    )
 
     @field_validator("agents")
     @classmethod
@@ -49,6 +58,12 @@ class CrewConfig(BaseModel):
         if len(roles) != len(set(roles)):
             raise ConfigException("Agent roles must be unique")
         return agents
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_manager_llm(cls, values) -> dict:
+        values["manager_llm"] = LLM_MODEL
+        return values
 
     @model_validator(mode="before")
     @classmethod
@@ -79,73 +94,18 @@ class CrewConfig(BaseModel):
         return values
 
 
-def create_crew(config: CrewConfig) -> Tuple[str, Crew]:
-    """Generates a Crew profile from the loaded configuration"""
-
-    crew = Crew(
-        agents=config.agents,
-        tasks=config.tasks,
-        verbose=True,
-        memory=False,
-        process=Process.hierarchical,
-        manager_llm=LLM_MODEL,
-        share_crew=False,
-    )
-
-    return config.name, crew
-
-
-# Example usage
-yaml_config = """
-name: GameStartup
-agents:
-  - role: Game Designer
-    goal: Design engaging and innovative game mechanics
-    backstory: An expert with over a decade of experience in game design and is known for creating unique and popular game mechanics.
-
-  - role: Marketing Strategist
-    goal: Develop a marketing strategy to launch the game successfully
-    backstory: You have worked on several successful game launches and excels at creating buzz and engaging the gaming community.
-
-tasks:
-  - description: "You help research and design the core mechanics of games. This is the game instructions: {input}"
-    agent: Game Designer
-    expected_output: A detailed report on the game mechanics including sketches and flowcharts
-
-  - description: "Conduct a competitor analysis for similar games. Game details: {input}"
-    agent: Marketing Strategist
-    expected_output: A report on competitor strengths, weaknesses, and market positioning
-
-  - description: "You develop the initial concept art and prototypes for the game. Game details: {input}"
-    agent: Game Designer
-    expected_output: Concept art and prototype sketches
-
-  - description: "You wil create a comprehensive marketing plan for the game launch. Game details: {input}"
-    agent: Marketing Strategist
-    expected_output: A complete marketing strategy document with timelines, channels, and key messages
-"""
 
 # Load the YAML configuration
 config_dict = yaml.safe_load(yaml_config)
 
 # Validate the configuration and set defaults
 try:
-    crew_config = CrewConfig(**config_dict)
+    crew_model = CrewConfig(**config_dict)
     print("Configuration is valid")
-    print(crew_config)
-    _, crew_model = create_crew(crew_config)
-    print(crew_model)
 except Exception as e:
     print(f"Configuration validation error: {e}")
     raise e
 
 game = "A tic tac toe game that can be playable by two players. The game should provide an instruction screen and playable in a simple UI. Also the game should support restarting the game "
 
-result = crew_model.kickoff({"input": game})
-
-# Print results
-print("\n\n########################")
-print("## Here is the result")
-print("########################\n")
-print("final code for the game:")
-print(result)
+#result = crew_model.kickoff({"input": game})

@@ -2,6 +2,7 @@
 data_dir = "/path/to/data/directory"
 logging_level = "INFO"
 user_agent = "codesage.ai"
+starters_path = "/path/to/starters.yaml"
 
 [upload]
 max_size_mb = 10
