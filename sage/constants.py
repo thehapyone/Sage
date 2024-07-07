@@ -11,8 +11,9 @@ from pydantic import ValidationError
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
 from sage.utils.supports import CustomLiteLLM, LiteLLMEmbeddings, LocalEmbeddings
-from sage.utils.validator import Config, Starters
-from sage.validators.crew_ai import CrewConfig
+from sage.utils.validator import Config
+from sage.validators.crew_ai import load_and_validate_agents_yaml
+from sage.validators.starters import load_and_validate_starters_yaml
 
 # Load the configuration file only once
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
@@ -63,68 +64,6 @@ def load_embedding_model(config: Config):
     return embedding_model, embed_dimension
 
 
-def load_and_validate_starters_yaml(file_path: str | None) -> Starters:
-    """Validates the chat starters yaml is valid"""
-    if file_path is None:
-        return []
-    try:
-        with open(file_path, "r") as file:
-            data = yaml.safe_load(file)
-            if data is None:
-                raise ConfigException("Starters content cannot be empty")
-    except FileNotFoundError:
-        raise ConfigException(f"Starters file not found at path: {file_path}")
-    except yaml.YAMLError as exc:
-        raise ConfigException(f"Error parsing YAML: {exc}")
-
-    # Validate data with pydantic
-    try:
-        starters_config = Starters(**data).starters
-    except ValidationError as ve:
-        raise ConfigException(f"Validation error in starters YAML: {ve}")
-
-    return starters_config
-
-
-def load_and_validate_agents_yaml(agent_dir: str | None) -> List[CrewConfig]:
-    """Validates and loads all available agents configuration files."""
-    if agent_dir is None:
-        return []
-
-    dir_path = Path(agent_dir)
-
-    if not dir_path.exists():
-        raise ConfigException(f"The agents dir '{agent_dir}' does not exist")
-
-    if not dir_path.is_dir():
-        raise ConfigException(f"The agents dir '{agent_dir}' is not a directory")
-
-    # Check if the directory contains any .yaml or .yml files
-    yaml_files = list(dir_path.glob("*.yaml")) + list(dir_path.glob("*.yml"))
-    if not yaml_files:
-        raise ConfigException(
-            f"The agents dir '{agent_dir}' does not contain any YAML files"
-        )
-
-    # Load respective agent files
-    crew_list = []
-    try:
-        for file_path in yaml_files:
-            with open(file_path, "r") as file:
-                data = yaml.safe_load(file)
-                if data is None:
-                    raise ConfigException(f"The file '{file_path}' is empty")
-                # Validate the data with Pydantic
-                crew_model = CrewConfig(**data)
-                crew_list.append(crew_model)
-    except yaml.YAMLError as exc:
-        raise ConfigException(f"Error parsing YAML: {exc}")
-    except ValidationError as ve:
-        raise ConfigException(f"Validation error in agent YAML: {ve}")
-
-    return crew_list
-
-
 # Create the main data directory
 async def create_data_dir() -> None:
     await core_config.data_dir.mkdir(exist_ok=True)
@@ -167,9 +106,9 @@ EMBEDDING_MODEL = Mock()
 # Define the path for the sentinel file
 SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"
 
-# Validate the agents
+# Load any available agents
 try:
-    agents_crew = load_and_validate_agents_yaml(core_config.agents_dir)
+    agents_crew = load_and_validate_agents_yaml(core_config.agents_dir, LLM_MODEL)
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(1)

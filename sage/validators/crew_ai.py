@@ -1,13 +1,18 @@
 ## Validator for the CrewAI framework interface
+from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
 import yaml
 from chainlit import AsyncLangchainCallbackHandler
 from crewai import Agent, Task, Crew
 from crewai.process import Process
-from pydantic import UUID4, BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
-from sage.constants import LLM_MODEL
 from sage.utils.exceptions import ConfigException
 
 
@@ -29,10 +34,7 @@ class TaskConfig(Task):
 
 
 class AgentConfig(Agent):
-    llm: Any = Field(
-        default_factory=lambda: LLM_MODEL,
-        description="Language model that will run the agent.",
-    )
+    llm: Any
     allow_delegation: bool = Field(
         default=False, description="Allow delegation of tasks to agents"
     )
@@ -50,6 +52,7 @@ class CrewConfig(Crew):
         default=False,
         description="Whether the crew should use memory to store memories of it's execution",
     )
+    manager_llm: Any
 
     @field_validator("agents")
     @classmethod
@@ -61,19 +64,17 @@ class CrewConfig(Crew):
 
     @model_validator(mode="before")
     @classmethod
-    def set_manager_llm(cls, values) -> dict:
-        values["manager_llm"] = LLM_MODEL
-        return values
-
-    @model_validator(mode="before")
-    @classmethod
     def validate_and_assign_agents_to_task(cls, values) -> dict:
         agents = values.get("agents", [])
 
         # Ensure agents are properly instantiated
         if all(isinstance(agent, dict) for agent in agents):
             agents = [
-                AgentConfig(**agent) if isinstance(agent, dict) else agent
+                (
+                    AgentConfig(**agent, llm=values.get("manager_llm"))
+                    if isinstance(agent, dict)
+                    else agent
+                )
                 for agent in agents
             ]
             values["agents"] = agents
@@ -94,18 +95,40 @@ class CrewConfig(Crew):
         return values
 
 
+def load_and_validate_agents_yaml(agent_dir: str | None, llm_model: Any) -> list:
+    """Validates and loads all available agents configuration files."""
+    if agent_dir is None:
+        return []
 
-# Load the YAML configuration
-config_dict = yaml.safe_load(yaml_config)
+    dir_path = Path(agent_dir)
 
-# Validate the configuration and set defaults
-try:
-    crew_model = CrewConfig(**config_dict)
-    print("Configuration is valid")
-except Exception as e:
-    print(f"Configuration validation error: {e}")
-    raise e
+    if not dir_path.exists():
+        raise ConfigException(f"The agents dir '{agent_dir}' does not exist")
 
-game = "A tic tac toe game that can be playable by two players. The game should provide an instruction screen and playable in a simple UI. Also the game should support restarting the game "
+    if not dir_path.is_dir():
+        raise ConfigException(f"The agents dir '{agent_dir}' is not a directory")
 
-#result = crew_model.kickoff({"input": game})
+    # Check if the directory contains any .yaml or .yml files
+    yaml_files = list(dir_path.glob("*.yaml")) + list(dir_path.glob("*.yml"))
+    if not yaml_files:
+        raise ConfigException(
+            f"The agents dir '{agent_dir}' does not contain any YAML files"
+        )
+
+    # Load respective agent files
+    crew_list = []
+    try:
+        for file_path in yaml_files:
+            with open(file_path, "r") as file:
+                data = yaml.safe_load(file)
+                if data is None:
+                    raise ConfigException(f"The file '{file_path}' is empty")
+                # Validate the data with Pydantic
+                crew_model = CrewConfig(**data, manager_llm=llm_model)
+                crew_list.append(crew_model)
+    except yaml.YAMLError as exc:
+        raise ConfigException(f"Error parsing YAML: {exc}")
+    except ValidationError as ve:
+        raise ConfigException(f"Validation error in agent YAML: {ve}")
+
+    return crew_list

@@ -11,6 +11,7 @@ tests
 LICENSE
 requirements.txt
 .github/
+examples/
 
 # Ignore all log files and temporary files
 *.log
