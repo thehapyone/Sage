@@ -58,6 +58,12 @@ ruff = { version = "^0.3.0" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit_tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "default::DeprecationWarning:sage.*",
+    "default::PendingDeprecationWarning:sage.*",
+]
 
 [tool.codespell]
 skip = "./.git,./data"

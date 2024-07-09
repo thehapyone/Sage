@@ -8,7 +8,7 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from sage.utils.exceptions import ConfigException
-from sage.utils.validator import (
+from sage.validators.config_toml import (
     CohereReRanker,
     Config,
     ConfluenceModel,
@@ -371,8 +371,8 @@ def test_core_default_values():
     assert core.data_dir == Path.home() / ".sage"
     assert core.logging_level == "INFO"
     assert core.user_agent == "codesage.ai"
-    assert core.starters_path == None
-    assert core.agents_dir == None
+    assert core.starters_path is None
+    assert core.agents_dir is None
 
 
 def test_core_custom_values():
@@ -389,6 +389,7 @@ def test_core_custom_values():
     assert core.user_agent == "custom_agent"
     assert core.starters_path == "/fake/starters.yaml"
     assert core.agents_dir == "/fake/agents"
+
 
 def test_core_logging_level_validation():
     core = Core(logging_level="WARNING")

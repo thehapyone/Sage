@@ -1,17 +1,14 @@
 import asyncio
 import os
-from pathlib import Path
 import sys
-from typing import List
 
 import toml
-import yaml
 from pydantic import ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
-from sage.utils.supports import CustomLiteLLM, LiteLLMEmbeddings, LocalEmbeddings
-from sage.utils.validator import Config
+from sage.utils.supports import load_embedding_model, load_language_model
+from sage.validators.config_toml import Config
 from sage.validators.crew_ai import load_and_validate_agents_yaml
 from sage.validators.starters import load_and_validate_starters_yaml
 
@@ -21,47 +18,6 @@ config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
 # Initialize the logger
 app_name = "codesage.ai"
 logger = CustomLogger(name=app_name)
-
-
-def load_language_model(model_name: str) -> CustomLiteLLM:
-    try:
-        llm_model = CustomLiteLLM(model_name=model_name, streaming=True, max_retries=0)
-        # Attempts to use the provider to capture any potential missing configuration error
-        llm_model.invoke("Hi")
-    except Exception as e:
-        logger.error(
-            f"Error initializing the language model '{model_name}'. Please check all required variables are set. "
-            "Provider docs here - https://litellm.vercel.app/docs/providers \n"
-            f"Error: {e}"
-        )
-        sys.exit(2)
-    else:
-        logger.info(f"Loaded the language model {model_name}")
-    return llm_model
-
-
-def load_embedding_model(config: Config):
-    # Embedding model loading and dimension calculation logic...
-    if config.embedding.type == "huggingface":
-        embedding_model = LocalEmbeddings(
-            cache_folder=str(config.core.data_dir) + "/models",
-            model_kwargs={"device": "cpu", "trust_remote_code": True},
-            model_name=config.embedding.model,
-        )
-    elif config.embedding.type == "litellm":
-        embedding_model = LiteLLMEmbeddings(
-            model=config.embedding.model, dimensions=config.embedding.dimension
-        )
-    else:
-        raise ValueError(f"Unsupported embedding type: {config.embedding.type}")
-
-    embed_dimension = config.embedding.dimension
-    if embed_dimension is None:
-        embed_dimension = len(embedding_model.embed_query("dummy"))
-
-    logger.info(f"Loaded the embedding model {config.embedding.model}")
-
-    return embedding_model, embed_dimension
 
 
 # Create the main data directory
@@ -95,14 +51,17 @@ logger.setLevel(core_config.logging_level)
 
 JIRA_QUERY = 'project = "{project}" and status = "{status}" and assignee = "{assignee}" ORDER BY created ASC'
 
-# Set the Large languageModel
-LLM_MODEL = load_language_model(validated_config.llm.model)
+# Set the Large languageModel and Embeddings
+try:
+    LLM_MODEL = load_language_model(logger, validated_config.llm.model)
+    EMBEDDING_MODEL, EMBED_DIMENSION = load_embedding_model(logger, validated_config)
+except Exception as error:
+    logger.error(
+        f"Error loading models: {str(error)}",
+        exc_info=False,
+    )
+    sys.exit(2)
 
-# Load the Embeddings model
-# EMBEDDING_MODEL, EMBED_DIMENSION = load_embedding_model(validated_config)
-from unittest.mock import Mock
-
-EMBEDDING_MODEL = Mock()
 # Define the path for the sentinel file
 SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"
 
@@ -111,4 +70,4 @@ try:
     agents_crew = load_and_validate_agents_yaml(core_config.agents_dir, LLM_MODEL)
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
-    sys.exit(1)
+    sys.exit(3)

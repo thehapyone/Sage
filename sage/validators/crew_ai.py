@@ -1,14 +1,13 @@
 ## Validator for the CrewAI framework interface
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List
 
 import yaml
 from chainlit import AsyncLangchainCallbackHandler
-from crewai import Agent, Task, Crew
+from crewai import Agent, Crew, Task
 from crewai.process import Process
 from pydantic import (
     Field,
-    ValidationError,
     field_validator,
     model_validator,
 )
@@ -19,10 +18,6 @@ from sage.utils.exceptions import ConfigException
 class TaskConfig(Task):
     agent: Agent | str = Field(
         description="Agent responsible for execution the task.", default=None
-    )
-    async_execution: Optional[bool] = Field(
-        description="Whether the task should be executed asynchronously or not.",
-        default=False,
     )
 
     @field_validator("description")
@@ -128,7 +123,7 @@ def load_and_validate_agents_yaml(agent_dir: str | None, llm_model: Any) -> list
                 crew_list.append(crew_model)
     except yaml.YAMLError as exc:
         raise ConfigException(f"Error parsing YAML: {exc}")
-    except ValidationError as ve:
+    except Exception as ve:
         raise ConfigException(f"Validation error in agent YAML: {ve}")
 
     return crew_list

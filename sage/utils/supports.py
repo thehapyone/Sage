@@ -19,6 +19,8 @@ from litellm import aembedding, embedding
 from markdown import markdown
 from sentence_transformers import CrossEncoder
 
+from sage.validators.config_toml import Config
+
 text_maker = HTML2Text()
 text_maker.ignore_links = False
 text_maker.ignore_images = True
@@ -378,3 +380,46 @@ async def aexecute_concurrently(
             results.extend(result)
 
     return results
+
+
+def load_language_model(logger, model_name: str) -> CustomLiteLLM:
+    """
+    Helper method for loading language model
+    """
+    try:
+        llm_model = CustomLiteLLM(model_name=model_name, streaming=True, max_retries=0)
+        # Attempts to use the provider to capture any potential missing configuration error
+        llm_model.invoke("Hi")
+    except Exception as e:
+        logger.error(
+            f"Error initializing the language model '{model_name}'. Please check all required variables are set. "
+            "Provider docs here - https://litellm.vercel.app/docs/providers \n"
+        )
+        raise e
+    else:
+        logger.info(f"Loaded the language model {model_name}")
+    return llm_model
+
+
+def load_embedding_model(logger, config: Config):
+    """Embedding model loading and dimension calculation logic"""
+    if config.embedding.type == "huggingface":
+        embedding_model = LocalEmbeddings(
+            cache_folder=str(config.core.data_dir) + "/models",
+            model_kwargs={"device": "cpu", "trust_remote_code": True},
+            model_name=config.embedding.model,
+        )
+    elif config.embedding.type == "litellm":
+        embedding_model = LiteLLMEmbeddings(
+            model=config.embedding.model, dimensions=config.embedding.dimension
+        )
+    else:
+        raise ValueError(f"Unsupported embedding type: {config.embedding.type}")
+
+    embed_dimension = config.embedding.dimension
+    if embed_dimension is None:
+        embed_dimension = len(embedding_model.embed_query("dummy"))
+
+    logger.info(f"Loaded the embedding model {config.embedding.model}")
+
+    return embedding_model, embed_dimension

@@ -9,6 +9,6 @@ agents: # a list of agents for the crew
    
 
 tasks: # a list of tasks
- - desciption: # the task description that will be assigned to the agent
+ - description: # the task description that will be assigned to the agent
    agent: # the agent to used
    expected_output: # description of the agent's expected output

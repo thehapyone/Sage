@@ -1,6 +1,7 @@
 # starters.py
 from typing import List, Optional
 
+import yaml
 from chainlit import Starter
 from pydantic import (
     BaseModel,
@@ -8,7 +9,7 @@ from pydantic import (
     ValidationError,
     model_validator,
 )
-import yaml
+
 from sage.utils.exceptions import ConfigException
 
 
@@ -52,7 +53,7 @@ def load_and_validate_starters_yaml(file_path: str | None) -> Starters:
     # Validate data with pydantic
     try:
         starters_config = Starters(**data).starters
-    except ValidationError as ve:
+    except Exception as ve:
         raise ConfigException(f"Validation error in starters YAML: {ve}")
 
     return starters_config

@@ -23,7 +23,7 @@ from sage.utils.source_manager import (
 )
 from sage.utils.supports import CustomFAISS as FAISS
 from sage.utils.supports import aexecute_concurrently, asyncify
-from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
+from sage.validators.config_toml import ConfluenceModel, Files, GitlabModel, Web
 
 
 class Source:
@@ -197,7 +197,7 @@ class Source:
                     user_agent=core_config.user_agent,
                 )
             elif ranker_config.type == "huggingface":
-                from utils.supports import BgeRerank
+                from sage.utils.supports import BgeRerank
 
                 _compressor = BgeRerank(
                     name=ranker_config.huggingface.name,
