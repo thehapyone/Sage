@@ -1,4 +1,6 @@
 ## CrewAIRunnable
+from typing import Sequence
+
 import chainlit as cl
 from asyncer import asyncify
 from chainlit import AsyncLangchainCallbackHandler
@@ -8,68 +10,67 @@ from langchain.schema.runnable import (
     RunnableLambda,
 )
 
-from sage.crewai_utils.gamer.agents import GameAgents
-from sage.crewai_utils.gamer.tasks import GameTasks
-
-tasks = GameTasks()
-agents = GameAgents()
+from sage.validators.crew_ai import CrewConfig
 
 
 class CrewAIRunnable:
-    def __init__(self, callback):
-        self._callback = callback
-        pass
+    def __init__(self, crews: Sequence[CrewConfig]):
+        self.avaiable_crews = crews
 
-    def _create_crew(self, callback) -> Crew:
-        chainlit_callback_handler = callback.handlers[0]
-        # Create Agents
-        senior_engineer_agent = agents.senior_engineer_agent(chainlit_callback_handler)
-        qa_engineer_agent = agents.qa_engineer_agent(chainlit_callback_handler)
-        chief_qa_engineer_agent = agents.chief_qa_engineer_agent(
-            chainlit_callback_handler
-        )
+    @staticmethod
+    def _get_run_name(config: RunnableConfig) -> str | None:
+        return config.get("metadata", {}).get("run_name") or config.get("run_name")
 
-        # Create Tasks
-        code_game = tasks.code_task(senior_engineer_agent)
-        review_game = tasks.review_task(qa_engineer_agent)
-        approve_game = tasks.evaluate_task(chief_qa_engineer_agent)
+    def update_agents(self, crew: CrewConfig, config: RunnableConfig):
+        """Update the agents attributes"""
+        extra_callbacks = config.get("callbacks").handlers
+        config["run_name"] = self._get_run_name(config)
+        for agent in crew.agents:
+            if agent.callbacks:
+                agent.callbacks.extend(extra_callbacks)
+            else:
+                agent.callbacks = extra_callbacks
+            agent.runnable_config = config
 
-        crew = Crew(
-            agents=[senior_engineer_agent, chief_qa_engineer_agent],
-            tasks=[code_game, approve_game],
-            verbose=True,
-            memory=True,
-            # process=Process.hierarchical,
-            # manager_llm=LLM_MODEL,
-            share_crew=False,
-            embedder={
-                "provider": "azure_openai",
-                "config": {
-                    "model": "text-embedding-ada-002",
-                    "deployment_name": "ada-embeddings",
-                },
-            },
-        )
-        return crew
+    def get_crew(self, config: RunnableConfig) -> CrewConfig:
+        """Retrieve a crew by name"""
+        crew_name = self._get_run_name(config)
+        if not crew_name:
+            raise ValueError(f"Crew name {crew_name} is not valid")
+        for crew in self.avaiable_crews:
+            if crew.name == crew_name:
+                return crew
+        raise ValueError(f"Crew with name {crew_name} not found")
 
-    ## I need ainvoke, invoke,
-    def _format_runnable_response(self, result: str) -> dict:
+    @staticmethod
+    def _format_runnable_response(result: str) -> dict:
         return {"answer": result}
 
-    def _format_crew_input(self, request: dict) -> dict:
-        return {"game": request["question"]}
+    @staticmethod
+    def _format_crew_input(request: dict) -> dict:
+        return {"input": request["question"]}
 
     def _crew(self, x: dict, config: RunnableConfig) -> dict:
-        crew = self._create_crew(config.get("callbacks"))
+        """Synchronous crew execution"""
+        crew = self.get_crew(config)
+        self.update_agents(crew, config)
         result = crew.kickoff(self._format_crew_input(x))
         return self._format_runnable_response(result)
 
     async def _acrew(self, x: dict, config: RunnableConfig) -> dict:
-        crew = self._create_crew(config.get("callbacks"))
-        result = await asyncify(crew.kickoff)(self._format_crew_input(x))
+        """Asynchronous crew execution"""
+        crew = self.get_crew(config)
+        self.update_agents(crew, config)
+        async with cl.Step(name=crew.name, type="tool") as step:
+            step.input = x
+            result = await asyncify(crew.kickoff)(self._format_crew_input(x))
         return self._format_runnable_response(result)
 
-    def mycrew(self) -> RunnableLambda:
-        return RunnableLambda(self._crew, afunc=self._acrew).with_config(
-            run_name="GameCrew"
-        )
+    def runnable(self) -> Sequence[RunnableLambda]:
+        """Create runnable instance for all available crews"""
+        return [
+            RunnableLambda(self._crew, afunc=self._acrew).with_config(
+                run_name=crew.name
+            )
+            for crew in self.avaiable_crews
+        ]

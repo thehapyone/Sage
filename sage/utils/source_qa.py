@@ -20,9 +20,11 @@ from langchain.schema.runnable import (
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.tools import Tool
 
+from sage.agent.crew import CrewAIRunnable
 from sage.constants import (
     LLM_MODEL,
     SENTINEL_PATH,
+    agents_crew,
     chat_starters,
     logger,
     validated_config,
@@ -225,6 +227,9 @@ class SourceQAService:
         greeting = self._get_time_of_day_greeting()
         sources = Source().sources_to_string()
 
+        if not profile:
+            return ""
+
         if self.tools and "agent" in profile.lower():
             tools_prep = "\n  ".join(
                 [f"- {tool.name}: {tool.description}" for tool in self.tools]
@@ -344,6 +349,10 @@ class SourceQAService:
             memory = self._chat_memory
         return memory
 
+    def _create_crew_runnable(self):
+        """Creates a CrewAI runnable instance that can be used"""
+        return CrewAIRunnable(crews=agents_crew).runnable()
+
     def _create_agent_runnable(self, chat_history_loader):
         """Creates the agent runnable"""
         agent_qa_prompt = agent_prompt(self.qa_template_agent)
@@ -436,7 +445,8 @@ class SourceQAService:
         chat_history_loader = self._load_chat_history(self._get_memory())
 
         if "agent" in profile.lower():
-            _runnable = self._create_agent_runnable(chat_history_loader)
+            # _runnable = self._create_agent_runnable(chat_history_loader)
+            _runnable = self._create_crew_runnable()[0]
         else:
             # Condense Question Chain
             condense_question_prompt = PromptTemplate.from_template(
@@ -490,7 +500,7 @@ class SourceQAService:
                 name="Chat Only",
                 markdown_description="Run Sage in Chat only mode and interact with provided sources",
                 icon="https://picsum.photos/200",
-                default=True,
+                default=False,
                 starters=[
                     cl.Starter(
                         label="Home - Get Started",
@@ -501,6 +511,7 @@ class SourceQAService:
                 ],
             ),
             cl.ChatProfile(
+                default=True,
                 name="Agent Mode",
                 markdown_description="Sage runs as an AI Agent with access to external tools and data sources.",
                 icon="https://picsum.photos/250",
@@ -692,9 +703,13 @@ class SourceQAService:
         _answer = None
         text_elements = []  # type: List[cl.Text]
 
+        run_name = getattr(runnable, "config", {}).get("run_name", "")
+
         async for chunk in runnable.astream(
             query,
             config=RunnableConfig(
+                metadata={"run_name": run_name},
+                run_name=run_name,
                 callbacks=[
                     cl.AsyncLangchainCallbackHandler(
                         stream_final_answer=True,
@@ -705,7 +720,7 @@ class SourceQAService:
                             "tool_input",
                         ],
                     )
-                ]
+                ],
             ),
         ):
             _answer = chunk.get("answer")
