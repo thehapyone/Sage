@@ -6,7 +6,6 @@ from chainlit import Starter
 from pydantic import (
     BaseModel,
     Field,
-    ValidationError,
     model_validator,
 )
 

@@ -78,8 +78,8 @@ class AgentConfig(Agent):
                 task_prompt += self.i18n.slice("memory").format(memory=memory)
 
         tools = tools or self.tools
-        parsed_tools = self._parse_tools(tools)  # type: ignore # Argument 1 to "_parse_tools" of "Agent" has incompatible type "list[Any] | None"; expected "list[Any]"
 
+        parsed_tools = self._parse_tools(tools or [])  # type: ignore # Argument 1 to "_parse_tools" of "Agent" has incompatible type "list[Any] | None"; expected "list[Any]"
         self.create_agent_executor(tools=tools)
         self.agent_executor.tools = parsed_tools
         self.agent_executor.task = task
@@ -87,6 +87,11 @@ class AgentConfig(Agent):
         self.agent_executor.tools_description = render_text_description(parsed_tools)
         ## Overridden due to name mangling as __tools_names is a private method
         self.agent_executor.tools_names = self._Agent__tools_names(parsed_tools)
+
+        if self.crew and self.crew._train:
+            task_prompt = self._training_handler(task_prompt=task_prompt)
+        else:
+            task_prompt = self._use_trained_data(task_prompt=task_prompt)
 
         ## Overridden
         result = self.agent_executor.invoke(
@@ -100,6 +105,13 @@ class AgentConfig(Agent):
 
         if self.max_rpm:
             self._rpm_controller.stop_rpm_counter()
+
+        # If there was any tool in self.tools_results that had result_as_answer
+        # set to True, return the results of the last tool that had
+        # result_as_answer set to True
+        for tool_result in self.tools_results:  # type: ignore # Item "None" of "list[Any] | None" has no attribute "__iter__" (not iterable)
+            if tool_result.get("result_as_answer", False):
+                result = tool_result["result"]
 
         return result
 

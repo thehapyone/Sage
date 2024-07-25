@@ -188,7 +188,7 @@ class Source:
 
         try:
             if ranker_config.type == "cohere":
-                from langchain.retrievers.document_compressors import CohereRerank
+                from langchain_cohere import CohereRerank
 
                 _compressor = CohereRerank(
                     top_n=ranker_config.top_n,

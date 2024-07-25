@@ -2,9 +2,6 @@
 from typing import Sequence
 
 import chainlit as cl
-from asyncer import asyncify
-from chainlit import AsyncLangchainCallbackHandler
-from crewai import Crew
 from langchain.schema.runnable import (
     RunnableConfig,
     RunnableLambda,
@@ -21,17 +18,6 @@ class CrewAIRunnable:
     def _get_run_name(config: RunnableConfig) -> str | None:
         return config.get("metadata", {}).get("run_name") or config.get("run_name")
 
-    def update_agents(self, crew: CrewConfig, config: RunnableConfig):
-        """Update the agents attributes"""
-        extra_callbacks = config.get("callbacks").handlers
-        config["run_name"] = self._get_run_name(config)
-        for agent in crew.agents:
-            if agent.callbacks:
-                agent.callbacks.extend(extra_callbacks)
-            else:
-                agent.callbacks = extra_callbacks
-            agent.runnable_config = config
-
     def get_crew(self, config: RunnableConfig) -> CrewConfig:
         """Retrieve a crew by name"""
         crew_name = self._get_run_name(config)
@@ -41,6 +27,18 @@ class CrewAIRunnable:
             if crew.name == crew_name:
                 return crew
         raise ValueError(f"Crew with name {crew_name} not found")
+
+    def update_agents(self, crew: CrewConfig, config: RunnableConfig):
+        """Update the agents attributes"""
+        for agent in crew.agents:
+            new_config = config.copy()
+            extra_callbacks = new_config.get("callbacks").handlers
+            new_config["run_name"] = agent.role
+            if agent.callbacks:
+                agent.callbacks.extend(extra_callbacks)
+            else:
+                agent.callbacks = extra_callbacks
+            agent.runnable_config = new_config
 
     @staticmethod
     def _format_runnable_response(result: str) -> dict:
@@ -63,7 +61,7 @@ class CrewAIRunnable:
         self.update_agents(crew, config)
         async with cl.Step(name=crew.name, type="tool") as step:
             step.input = x
-            result = await asyncify(crew.kickoff)(self._format_crew_input(x))
+            result = await crew.kickoff_async(self._format_crew_input(x))
         return self._format_runnable_response(result)
 
     def runnable(self) -> Sequence[RunnableLambda]:

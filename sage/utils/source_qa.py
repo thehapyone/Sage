@@ -396,7 +396,7 @@ class SourceQAService:
         qa_answer = RunnableMap(
             answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
             sources=lambda x: self._format_sources(x["docs"]),
-        )
+        ).with_config(run_name="Sage Assistant")
 
         # create the complete chain
         _runnable = _inputs | _retrieved_docs | qa_answer
@@ -460,7 +460,7 @@ class SourceQAService:
                     "chat_history": chat_history_loader,
                 }
                 | RunnableLambda(standalone_chain_router).with_config(
-                    run_name="CondenseQuestion"
+                    run_name="Condenser"
                 )
             )
 
@@ -469,7 +469,7 @@ class SourceQAService:
                 docs=itemgetter("standalone") | retriever,
                 question=itemgetter("standalone"),
             ).with_config(
-                run_name="FetchSources",
+                run_name="Source Retriever",
             )
 
             # construct the context inputs
@@ -540,7 +540,6 @@ class SourceQAService:
         while files is None:
             files = await cl.AskFileMessage(
                 content=intro_message,
-                disable_feedback=True,
                 accept={
                     "text/plain": [".txt"],
                     "application/pdf": [".pdf"],
@@ -592,9 +591,7 @@ class SourceQAService:
             )
             return await self._get_retriever(hash_key)
 
-        await cl.Message(
-            id=root_id, content=intro_message, disable_feedback=True
-        ).send()
+        await cl.Message(id=root_id, content=intro_message).send()
 
         source_actions = self.generate_source_actions(sources_metadata)
 
@@ -603,7 +600,6 @@ class SourceQAService:
         if source_actions:
             action_response = await cl.AskActionMessage(
                 content="To start a conversation, choose a data source. If no selection is made before the time runs out, the default is 🙅‍♂️/🙅‍♀️ No Sources ⛔",
-                disable_feedback=True,
                 timeout=300,
                 actions=[
                     cl.Action(
@@ -626,7 +622,7 @@ class SourceQAService:
 
     async def _handle_default_mode(self, intro_message: str) -> VectorStoreRetriever:
         """Handles initialization for the default mode, which sets up the no retriever."""
-        await cl.Message(content=intro_message, disable_feedback=True).send()
+        await cl.Message(content=intro_message).send()
         return await self._get_retriever("none")
 
     @cl.on_chat_start
@@ -713,6 +709,12 @@ class SourceQAService:
                 callbacks=[
                     cl.AsyncLangchainCallbackHandler(
                         stream_final_answer=True,
+                        to_ignore=[
+                            "Runnable",
+                            "<lambda>",
+                            "CustomLiteLLM",
+                            "_Exception",
+                        ],
                         answer_prefix_tokens=[
                             "<final_answer>",
                             "<tool>",
