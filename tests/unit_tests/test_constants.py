@@ -38,8 +38,7 @@ sample_config_data = {
 
 mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
 mock_lite_llm = Mock(name="CustomLiteLLM")
-mock_lite_llm_embedding = Mock(name="LiteLLMEmbeddings")
-mock_lite_llm_embedding.return_value.embed_query.return_value = [0] * 768
+mock_lite_llm_embedding = Mock(name="Embeddings", return_value=(Mock(), 798))
 mock_logger_spec = Mock(name="logger")
 
 
@@ -51,9 +50,9 @@ def mock_path(monkeypatch):
 
 @pytest.fixture
 def mock_models(monkeypatch):
-    monkeypatch.setattr("sage.utils.supports.CustomLiteLLM", mock_lite_llm)
+    monkeypatch.setattr("sage.utils.supports.load_language_model", mock_lite_llm)
     monkeypatch.setattr(
-        "sage.utils.supports.LiteLLMEmbeddings", mock_lite_llm_embedding
+        "sage.utils.supports.load_embedding_model", mock_lite_llm_embedding
     )
 
 
@@ -77,7 +76,6 @@ def mock_logger(monkeypatch):
 
 def test_successful_config_load(mock_logger, mock_path, mock_models, mock_common):
     # Import the constants module to apply the mocks
-    # reload(constants)
     import sage.constants as constants
 
     reload(constants)
@@ -97,8 +95,8 @@ def test_successful_config_load(mock_logger, mock_path, mock_models, mock_common
     "exception, mock_patch_target",
     [
         (FileNotFoundError, "toml.load"),
-        (ConfigException("validator error"), "sage.utils.validator.Config"),
-        (KeyError("key is not found"), "sage.utils.validator.Config"),
+        (ConfigException("validator error"), "sage.validators.config_toml.Config"),
+        (KeyError("key is not found"), "sage.validators.config_toml.Config"),
     ],
 )
 def test_config_load_exceptions(

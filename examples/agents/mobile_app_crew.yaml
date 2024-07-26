@@ -1,0 +1,45 @@
+name: MobileAppCrew
+
+process: sequential
+
+agents:
+  - role: Product Manager
+    goal: Define the product vision and roadmap
+    backstory: Experienced product manager with a history of successfully leading mobile app development projects from conception to launch.
+
+  - role: UX/UI Designer
+    goal: Design user-friendly and visually appealing app interfaces
+    backstory: Skilled designer with expertise in creating engaging and intuitive mobile app designs.
+
+  - role: Frontend Developer
+    goal: Implement the app's user interface and ensure a seamless user experience
+    backstory: Frontend developer proficient in mobile app development frameworks such as Flutter and React Native.
+
+  - role: Backend Developer
+    goal: Develop server-side logic and integrate with the app frontend
+    backstory: Backend specialist with strong skills in creating scalable and secure server-side applications.
+
+  - role: QA Engineer
+    goal: Ensure the app is bug-free and performs optimally
+    backstory: Quality assurance engineer with a meticulous eye for detail and experience in mobile app testing.
+
+tasks:
+  - description: "Define the app's features, target audience, and roadmap based on market research. Input data: {input}"
+    agent: Product Manager
+    expected_output: A comprehensive product requirements document (PRD) outlining the app's features, target audience, and development roadmap.
+
+  - description: "Create wireframes and high-fidelity mockups for the app's user interface based on the PRD. Input data: {input}"
+    agent: UX/UI Designer
+    expected_output: Detailed wireframes and mockups that visualize the app's user interface and user experience.
+
+  - description: "Develop the app's frontend using the provided designs and ensure a smooth user experience. Input data: {input}"
+    agent: Frontend Developer
+    expected_output: A functional mobile app frontend that aligns with the UX/UI designs and is ready for backend integration.
+
+  - description: "Implement the backend functionality and integrate it with the app frontend. Input data: {input}"
+    agent: Backend Developer
+    expected_output: A fully functional backend system that supports the app's frontend and provides necessary services and APIs.
+
+  - description: "Conduct thorough testing to identify and fix bugs, ensuring the app performs optimally. Input data: {input}"
+    agent: QA Engineer
+    expected_output: A detailed QA report highlighting any bugs found and confirming that they have been fixed, ensuring the app is ready for launch.

@@ -4,13 +4,10 @@ from typing import Any, Callable, Coroutine, List, Optional, Sequence, Tuple
 
 from asyncer import asyncify
 from html2text import HTML2Text
-from langchain.agents.output_parsers import XMLAgentOutputParser
 from langchain.callbacks.manager import Callbacks
-from langchain.prompts import AIMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
-from langchain.schema import AgentAction, AgentFinish, Document
+from langchain.schema import Document
 from langchain.schema.embeddings import Embeddings
-from langchain.tools import Tool
 from langchain_community.chat_models import ChatLiteLLM
 from langchain_community.docstore.base import AddableMixin
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -18,6 +15,8 @@ from langchain_community.vectorstores.faiss import FAISS
 from litellm import aembedding, embedding
 from markdown import markdown
 from sentence_transformers import CrossEncoder
+
+from sage.validators.config_toml import Config
 
 text_maker = HTML2Text()
 text_maker.ignore_links = False
@@ -209,73 +208,6 @@ def markdown_to_text_using_html2text(markdown_text: str) -> str:
     return text_maker.handle(html).replace("\\", "")
 
 
-def convert_intermediate_steps(intermediate_steps: dict):
-    """
-    Convert intermediate steps from agents into string outputs
-    """
-    log = ""
-    for action, observation in intermediate_steps:
-        log += (
-            f"<tool>{action.tool}</tool>"
-            f"<tool_input>{action.tool_input}</tool_input>"
-            f"<observation>{observation}</observation>"
-        )
-    return log
-
-
-def agent_prompt(instructions: str) -> ChatPromptTemplate:
-    """Generate a prompt template for XML agents"""
-    return ChatPromptTemplate.from_template(
-        instructions
-    ) + AIMessagePromptTemplate.from_template("{intermediate_steps}")
-
-
-def convert_tools(tools: List[Tool]):
-    """Logic for converting tools to string to for usage in prompt"""
-    result = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
-    return result
-
-
-class CustomXMLAgentOutputParser(XMLAgentOutputParser):
-    """Parses tool invocations and final answers in XML format.
-
-    Expects output to be in one of two formats.
-
-    If the output signals that an action should be taken,
-    should be in the below format. This will result in an AgentAction
-    being returned.
-
-    ```
-    <tool>search</tool>
-    <tool_input>what is 2 + 2</tool_input>
-    ```
-
-    If the output signals that a final answer should be given,
-    should be in the below format. This will result in an AgentFinish
-    being returned.
-
-    ```
-    <final_answer>Foo</final_answer>
-    ```
-    """
-
-    def parse(self, text: str) -> AgentAction | AgentFinish:
-        if "</tool>" in text:
-            tool, tool_input = text.split("</tool>")
-            _tool = tool.split("<tool>")[1]
-            _tool_input = tool_input.split("<tool_input>")[1]
-            if "</tool_input>" in _tool_input:
-                _tool_input = _tool_input.split("</tool_input>")[0]
-            return AgentAction(tool=_tool, tool_input=_tool_input, log=text)
-        elif "<final_answer>" in text:
-            _, answer = text.split("<final_answer>")
-            if "</final_answer>" in answer:
-                answer = answer.split("</final_answer>")[0]
-            return AgentFinish(return_values={"output": answer}, log=text)
-        else:
-            return AgentFinish(return_values={"output": text}, log=text)
-
-
 def execute_concurrently(
     func: Callable, items: List, result_type: str = "append", max_workers: int = 10
 ) -> List:
@@ -378,3 +310,46 @@ async def aexecute_concurrently(
             results.extend(result)
 
     return results
+
+
+def load_language_model(logger, model_name: str) -> CustomLiteLLM:
+    """
+    Helper method for loading language model
+    """
+    try:
+        llm_model = CustomLiteLLM(model_name=model_name, streaming=True, max_retries=0)
+        # Attempts to use the provider to capture any potential missing configuration error
+        llm_model.invoke("Hi")
+    except Exception as e:
+        logger.error(
+            f"Error initializing the language model '{model_name}'. Please check all required variables are set. "
+            "Provider docs here - https://litellm.vercel.app/docs/providers \n"
+        )
+        raise e
+    else:
+        logger.info(f"Loaded the language model {model_name}")
+    return llm_model
+
+
+def load_embedding_model(logger, config: Config):
+    """Embedding model loading and dimension calculation logic"""
+    if config.embedding.type == "huggingface":
+        embedding_model = LocalEmbeddings(
+            cache_folder=str(config.core.data_dir) + "/models",
+            model_kwargs={"device": "cpu", "trust_remote_code": True},
+            model_name=config.embedding.model,
+        )
+    elif config.embedding.type == "litellm":
+        embedding_model = LiteLLMEmbeddings(
+            model=config.embedding.model, dimensions=config.embedding.dimension
+        )
+    else:
+        raise ValueError(f"Unsupported embedding type: {config.embedding.type}")
+
+    embed_dimension = config.embedding.dimension
+    if embed_dimension is None:
+        embed_dimension = len(embedding_model.embed_query("dummy"))
+
+    logger.info(f"Loaded the embedding model {config.embedding.model}")
+
+    return embedding_model, embed_dimension

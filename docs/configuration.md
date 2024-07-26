@@ -15,7 +15,14 @@ Here's how you can configure starters:
    - `icon`: A URL to an image that will appear as an icon for the starter in the UI.
    - `source`: (Optional) A string that denotes the source to be concatenated with the `message` when sent to Sage.
 
-Starters are configured via a yaml file that is set via the environment variable `SAGE_STARTER_PATH=/path/to/starters.yaml`
+Starters are configured via a yaml file that is set in the sage config.toml file under the core section like below
+
+```toml
+[core]
+...
+starters_path = "/path/to/starters.yaml"
+...
+```
 
 ### Example Starters Configuration
 
@@ -37,6 +44,90 @@ starters:
 ```
 When the user selects a starter, the message (concatenated with the source, if provided) is sent to Sage, triggering the respective action or query as if the user had typed the message themself.
 
+## Agents & Crew Configuration
+
+Configuring agents/crews for utilization is straightforward. Each Crew is defined in its own configuration YAML file, and all Crews are placed in a specified directory.
+
+### Steps to Configure Agents & Crews
+
+1. **Create Crews Directory**
+    - First, define and create a directory to hold all your Crews. For example:
+      ```sh
+      mkdir agents
+      ```
+    
+2. **Create Crew Files**
+    - Create one or more crew files and add them to the created directory.
+
+3. **Update Sage Configuration**
+    - Update the Sage TOML configuration file to point to the location of the agents directory under the core section:
+      ```toml
+      [core]
+      ...
+      agents_dir = "/path/to/agents/directory"
+      ...
+      ```
+
+**Note**: Sage will treat any `.yaml` or `.yml` files in that directory as potential crew configurations.
+
+### Crew Layout
+
+All options that can be used in the Crew Layout are based on the CrewAI definition. Please visit the [CrewAI Documentation](https://docs.crewai.com/) to explore all available options. 
+
+_Some options like `llm` are automatically populated when the application starts._
+
+This structure allows you to specify the agents and tasks for your crew, ensuring each agent has a clear role, goal, and backstory, and each task is clearly described and assigned to the appropriate agent.
+
+#### Basic Template
+
+```yaml
+name: <string>  # The name of the crew
+
+agents:  # A list of agents for the crew
+  - role: <string>  # Role of the agent (must be unique within the crew)
+    goal: <string>  # Goal of the agent
+    backstory: <string>  # Backstory of the agent
+    ...
+
+tasks:  # A list of tasks
+  - description: <string>  # The task description that will be assigned to the agent. Must include an {input} placeholder for chat inputs.
+    agent: <string>  # The agent role assigned to this task
+    expected_output: <string>  # Description of the agent's expected output
+    ...
+```
+
+Example Crew Configuration
+
+```yaml
+name: GameStartup  # The name of the crew
+
+agents:  # A list of agents for the crew
+  - role: Game Designer
+    goal: Design engaging and innovative game mechanics
+    backstory: An expert with over a decade of experience in game design and is known for creating unique and popular game mechanics.
+
+  - role: Marketing Strategist
+    goal: Develop a marketing strategy to launch the game successfully
+    backstory: You have worked on several successful game launches and excel at creating buzz and engaging the gaming community.
+
+tasks:  # A list of tasks
+  - description: Research and design the core mechanics of games. This is the game instructions: {input}
+    agent: Game Designer
+    expected_output: A detailed report on the game mechanics including sketches and flowcharts
+
+  - description: Conduct a competitor analysis for similar games. Game details: {input}
+    agent: Marketing Strategist
+    expected_output: A report on competitor strengths, weaknesses, and market positioning
+
+  - description: Develop the initial concept art and prototypes for the game. Game details: {input}
+    agent: Game Designer
+    expected_output: Concept art and prototype sketches
+
+  - description: Create a comprehensive marketing plan for the game launch. Game details: {input}
+    agent: Marketing Strategist
+    expected_output: A complete marketing strategy document with timelines, channels, and key messages
+```
+
 ## Configuration File
 
 The primary way to configure Sage is through a `config.toml` file located in the root directory of the application. This file contains various sections that correspond to different parts of the application, such as core settings, source connections, and model configurations.
@@ -52,6 +143,8 @@ The `[core]` section of the configuration file specifies the fundamental setting
 data_dir = "/path/to/data/directory"
 logging_level = "INFO" # Can be DEBUG, INFO, WARNING, ERROR, or CRITICAL
 user_agent = "Sage.ai"
+starters_path = "/path/to/starters.yaml"
+agents_dir = "/path/to/agents/directory"
 ```
 
 ## Upload Configuration

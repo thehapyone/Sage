@@ -21,7 +21,7 @@ from sage.constants import (
 from sage.utils.exceptions import SourceException
 from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
 from sage.utils.supports import CustomFAISS as FAISS
-from sage.utils.validator import ConfluenceModel, Files, GitlabModel, Web
+from sage.validators.config_toml import ConfluenceModel, Files, GitlabModel, Web
 
 
 async def get_faiss_indexes(faiss_dir: Path) -> List[str]:
