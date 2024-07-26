@@ -44,8 +44,6 @@ starters:
 ```
 When the user selects a starter, the message (concatenated with the source, if provided) is sent to Sage, triggering the respective action or query as if the user had typed the message themself.
 
-# Configuration Documentation
-
 ## Agents & Crew Configuration
 
 Configuring agents/crews for utilization is straightforward. Each Crew is defined in its own configuration YAML file, and all Crews are placed in a specified directory.
