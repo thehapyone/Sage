@@ -1,6 +1,6 @@
 name: GameStartup
 
-process: hierarchical
+process: sequential
 
 agents:
   - role: Senior Software Engineer

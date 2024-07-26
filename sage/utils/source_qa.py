@@ -29,7 +29,7 @@ from sage.constants import (
     logger,
     validated_config,
 )
-from sage.utils.exceptions import SourceException
+from sage.utils.exceptions import AgentsException, SourceException
 from sage.utils.sources import Source
 from sage.utils.supports import (
     CustomXMLAgentOutputParser,
@@ -134,55 +134,6 @@ class SourceQAService:
     ...continue for additional sources, only if relevant and necessary.  
     """
 
-    qa_template_agent: str = """
-    As Sage, I am tasked to provide factual answers and engage in conversations, distinguishing between informational queries and casual discussions.
-    For AI-related topics, sources aren't needed, but for others, a neutral, journalistic approach is required.
-
-    In crafting responses, I will:
-    - Employ creativity where suitable.
-    - Verify abbreviations with given context.
-    - Merge observations from 'tools' into a cohesive answer without assumptions.
-    - Stay unbiased, presenting facts without personal opinions.
-    - Rely on my internal knowledge when relevant and disclose when it's used.
-    
-    Here is the current chat history - use if relevant:
-    <chat_history>
-    {chat_history}
-    <chat_history/>
-
-    <available_tools>{tools}</available_tools>
-
-    For queries benefiting from external tools, I will iteratively use tools in <available_tools> for each query aspect.
-    The steps are:
-    1. Decompose the question into parts requiring tool information.
-    2. For each part, engage the appropriate tool with <tool> and <tool_input> tags, awaiting <observation> outputs.
-    3. Assemble all observations into a comprehensive response.
-    4. Deliver the final answer with the <final_answer> tag, whether complete, partial, or noting any limitations.
-
-    Example:
-    User asks about weather in multiple cities and a currency conversion.
-
-    Process:
-    1. Segment the question.
-    2. Query each part with relevant tools:
-    <tool>weather</tool><tool_input>Weather in City</tool_input>
-    3. Compile observations.
-    <observation>Snow showers with temperatures around -3°C (27°F).</observation>
-    4. Respond with:
-    <final_answer>
-    - Weather in City: ...
-    - 1 USD to EUR: ...
-    </final_answer>
-
-    Important:
-    - Use <final_answer> to conclude the response after addressing all question components.
-
-    Remember:
-    - Iteratively apply tools until all parts are covered. If information is missing, note it in the final response.
-    - Utilize tools autonomously, and if unable to answer, still conclude with <final_answer>.
-
-    Question: {question}
-    """
 
     def __init__(self, mode: str = "tool", tools: List[Tool] = []) -> None:
         self._mode = mode
@@ -349,45 +300,10 @@ class SourceQAService:
             memory = self._chat_memory
         return memory
 
-    def _create_crew_runnable(self):
+    def _create_crew_runnable(self) -> dict[str, RunnableLambda]:
         """Creates a CrewAI runnable instance that can be used"""
         return CrewAIRunnable(crews=agents_crew).runnable()
 
-    def _create_agent_runnable(self, chat_history_loader):
-        """Creates the agent runnable"""
-        agent_qa_prompt = agent_prompt(self.qa_template_agent)
-        # create the agent engine
-        _agent = (
-            {
-                "question": lambda x: x["question"],
-                "chat_history": lambda x: x["chat_history"],
-                "intermediate_steps": lambda x: convert_intermediate_steps(
-                    x["intermediate_steps"]
-                ),
-            }
-            | agent_qa_prompt.partial(tools=convert_tools(self.tools))
-            | LLM_MODEL.bind(stop=["</tool_input>", "</final_answer>"])
-            | CustomXMLAgentOutputParser()
-        )
-        _agent_runner = AgentExecutor(
-            agent=_agent,
-            tools=self.tools,
-            verbose=False,
-            handle_parsing_errors=self._handle_error,
-        ).with_config(run_name="AgentExecutor") | itemgetter("output")
-
-        # construct the question and answer model
-        _agent_input = {
-            "chat_history": chat_history_loader,
-            "question": lambda x: x["question"],
-        }
-
-        # create the agent chain
-        _runnable = RunnableMap(
-            answer=_agent_input | _agent_runner,
-            sources=lambda x: [],
-        )
-        return _runnable
 
     def _create_chat_runnable(self, _inputs, _retrieved_docs, _context):
         """Implementation for creating chat runnable"""
@@ -402,7 +318,11 @@ class SourceQAService:
         _runnable = _inputs | _retrieved_docs | qa_answer
         return _runnable
 
-    def _setup_runnable(self, retriever: VectorStoreRetriever, profile: str):
+    def _setup_runnable(
+        self,
+        retriever: VectorStoreRetriever | None = None,
+        runnable: RunnableLambda | None = None,
+    ):
         """
         Configures and initializes the runnable model based on the specified retriever and profile.
 
@@ -422,8 +342,7 @@ class SourceQAService:
 
         Parameters:
             retriever: An instance of VectorStoreRetriever used to retrieve documents relevant to the question.
-            profile: A string that specifies the profile for configuring the question-answering model.
-                    If 'agent' is included in the profile string, an agent-based approach is used.
+            runnable: An instance of runnable that has already be configured
 
         Side effects:
             - Sets up a complete question-answering runnable model based on the operation mode and profile.
@@ -441,57 +360,56 @@ class SourceQAService:
             # Otherwise, return the standalone chain.
             return _standalone_chain
 
+        if runnable:
+            if self.mode == "chat":
+                cl.user_session.set("runnable", runnable)
+            else:
+                self._runnable = runnable
+            return
+
         # Loads the chat history
         chat_history_loader = self._load_chat_history(self._get_memory())
 
-        if "agent" in profile.lower():
-            # _runnable = self._create_agent_runnable(chat_history_loader)
-            _runnable = self._create_crew_runnable()[0]
-        else:
-            # Condense Question Chain
-            condense_question_prompt = PromptTemplate.from_template(
-                self.condensed_template
-            )
-            _standalone_chain = condense_question_prompt | LLM_MODEL | StrOutputParser()
+        # Condense Question Chain
+        condense_question_prompt = PromptTemplate.from_template(self.condensed_template)
+        _standalone_chain = condense_question_prompt | LLM_MODEL | StrOutputParser()
 
-            _inputs = RunnableMap(
-                standalone={
-                    "question": lambda x: x["question"],
-                    "chat_history": chat_history_loader,
-                }
-                | RunnableLambda(standalone_chain_router).with_config(
-                    run_name="Condenser"
-                )
-            )
+        _inputs = RunnableMap(
+            standalone={
+                "question": lambda x: x["question"],
+                "chat_history": chat_history_loader,
+            }
+            | RunnableLambda(standalone_chain_router).with_config(run_name="Condenser")
+        )
 
-            # retrieve the documents
-            _retrieved_docs = RunnableMap(
-                docs=itemgetter("standalone") | retriever,
-                question=itemgetter("standalone"),
-            ).with_config(
-                run_name="Source Retriever",
-            )
+        # retrieve the documents
+        _retrieved_docs = RunnableMap(
+            docs=itemgetter("standalone") | retriever,
+            question=itemgetter("standalone"),
+        ).with_config(
+            run_name="Source Retriever",
+        )
 
-            # construct the context inputs
-            _context = RunnableMap(
-                context=lambda x: self._format_docs(x["docs"]),
-                chat_history=chat_history_loader,
-                question=itemgetter("question"),
-            )
-            _runnable = self._create_chat_runnable(_inputs, _retrieved_docs, _context)
+        # construct the context inputs
+        _context = RunnableMap(
+            context=lambda x: self._format_docs(x["docs"]),
+            chat_history=chat_history_loader,
+            question=itemgetter("question"),
+        )
+        _runnable = self._create_chat_runnable(_inputs, _retrieved_docs, _context)
 
         if self.mode == "chat":
             cl.user_session.set("runnable", _runnable)
         else:
             self._runnable = _runnable
 
-    async def asetup_runnable(self, profile: str = "chat only"):
+    async def asetup_runnable(self):
         """Setup the runnable model for the chat"""
         retriever = await self._get_retriever()
         if not retriever:
             raise SourceException("No source retriever found")
 
-        self._setup_runnable(retriever, profile)
+        self._setup_runnable(retriever=retriever)
 
     @cl.set_chat_profiles
     async def chat_profile():
@@ -524,12 +442,17 @@ class SourceQAService:
         ]
 
     @staticmethod
-    def generate_source_actions(metadata: dict) -> List[cl.Action]:
-        """Generate a list of actions representing the available sources"""
-        action_name = "source_actions"
+    def generate_ui_actions(
+        metadata: dict, action_name: str = "source_actions"
+    ) -> List[cl.Action]:
+        """Generate a list of actions representing the available sources or crews"""
         actions = [
-            cl.Action(name=action_name, value=source_hash, label=source_label)
-            for source_hash, source_label in metadata.items()
+            cl.Action(
+                name=action_name,
+                value=data_key,
+                label=data_value if action_name == "source_actions" else data_key,
+            )
+            for data_key, data_value in metadata.items()
         ]
         return actions
 
@@ -593,7 +516,7 @@ class SourceQAService:
 
         await cl.Message(id=root_id, content=intro_message).send()
 
-        source_actions = self.generate_source_actions(sources_metadata)
+        source_actions = self.generate_ui_actions(sources_metadata)
 
         action_response = None
 
@@ -620,6 +543,52 @@ class SourceQAService:
         selected_hash = action_response.get("value") if action_response else "none"
         return await self._get_retriever(selected_hash)
 
+    async def _handle_agent_only_mode(
+        self, intro_message: str, root_id: str = None, crew_label: str = None
+    ) -> tuple[RunnableLambda, RunnableLambda]:
+        """
+        Handles initialization for 'Agent Only' mode, where users select a crew to chat with.
+
+        Returns a tuple containing a black retriever instance and an optional instance for the crew
+        """
+        # Get the crew names that will be used to create the source actions
+        crews_metadata = self._create_crew_runnable()
+
+        if crew_label:
+            crew_instance = crews_metadata.get(crew_label, None)
+            if crew_instance:
+                return RunnableLambda(lambda x: []), crew_instance
+            raise AgentsException(f"The crew {crew_label} can not be found")
+
+        await cl.Message(id=root_id, content=intro_message).send()
+
+        crew_actions = self.generate_ui_actions(crews_metadata, "crew_actions")
+
+        action_response = None
+
+        if crew_actions:
+            action_response = await cl.AskActionMessage(
+                content="To start, please choose a crew to work with. If no selection is made before the time runs out, the default is 'No Agents ⛔'",
+                timeout=300,
+                actions=[
+                    cl.Action(
+                        name="crew_actions",
+                        value="none",
+                        label="No Agents ⛔",
+                    ),
+                    *crew_actions,
+                ],
+            ).send()
+
+        selected_crew = action_response.get("value") if action_response else "none"
+
+        if selected_crew == "none":
+            return RunnableLambda(lambda x: []), None
+
+        # Get the crew runnable
+        runnable = crews_metadata.get(selected_crew)
+        return RunnableLambda(lambda x: []), runnable
+
     async def _handle_default_mode(self, intro_message: str) -> VectorStoreRetriever:
         """Handles initialization for the default mode, which sets up the no retriever."""
         await cl.Message(content=intro_message).send()
@@ -640,12 +609,17 @@ class SourceQAService:
 
         intro_message = self._generate_welcome_message(chat_profile)
 
-        if chat_profile == "File Mode":
+        runnable = None
+
+        if chat_profile == "Agent Mode":
+            retriever, runnable = await self._handle_agent_only_mode(intro_message)
+
+        elif chat_profile == "File Mode":
             retriever = await self._handle_file_mode(intro_message)
         else:
             retriever = await self._handle_default_mode(intro_message)
 
-        self._setup_runnable(retriever, chat_profile)
+        self._setup_runnable(retriever=retriever, runnable=runnable)
 
     @staticmethod
     def _get_starter_source_label(message: str) -> Tuple[str, str]:
@@ -677,7 +651,7 @@ class SourceQAService:
             if message.content == "/home":
                 intro_message = self._generate_welcome_message(chat_profile)
                 retriever = await self._handle_chat_only_mode(intro_message, message.id)
-                self._setup_runnable(retriever, chat_profile)
+                self._setup_runnable(retriever=retriever)
                 return
 
             message.content, source_label = self._get_starter_source_label(
@@ -687,7 +661,7 @@ class SourceQAService:
 
             # Now we should set the retriever for the other messages
             retriever = await self._handle_chat_only_mode("", source_label=source_label)
-            self._setup_runnable(retriever, chat_profile)
+            self._setup_runnable(retriever=retriever)
 
         runnable: RunnableSequence = cl.user_session.get("runnable")
         memory: ConversationBufferWindowMemory = cl.user_session.get("memory")

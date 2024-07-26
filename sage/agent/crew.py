@@ -64,11 +64,12 @@ class CrewAIRunnable:
             result = await crew.kickoff_async(self._format_crew_input(x))
         return self._format_runnable_response(result)
 
-    def runnable(self) -> Sequence[RunnableLambda]:
+    def runnable(self) -> dict[str, RunnableLambda]:
         """Create runnable instance for all available crews"""
-        return [
-            RunnableLambda(self._crew, afunc=self._acrew).with_config(
+        all_instances = {
+            crew.name: RunnableLambda(self._crew, afunc=self._acrew).with_config(
                 run_name=crew.name
             )
             for crew in self.avaiable_crews
-        ]
+        }
+        return all_instances

@@ -19,3 +19,9 @@ class SourceException(Exception):
     """
     An exception handler for sources
     """
+
+
+class AgentsException(Exception):
+    """
+    An exception handler for agents
+    """
