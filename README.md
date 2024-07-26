@@ -91,6 +91,86 @@ Configuring starters is straightforward and requires editing a YAML configuratio
 
 Learn more about [starters configuration](docs/configuration.md#starters-configuration)
 
+### Agent Mode: Build Autonomous AI agents
+
+Agent Mode in Sage allows you to create specialized AI agents that autonomously perform defined roles and tasks. Leveraging the CrewAI framework, these agents collaborate to manage and execute complex projects seamlessly.
+
+**Key Features**:
+ - Role Definition: Specify unique roles with goals and backstories.
+ - Task Management: Assign clear, actionable tasks to agents.
+
+![agent_mode](docs/agent_mode.png)
+
+In Agent Mode, you can define and create crews by specifying their configuration in a YAML file. Here's a quick example below:
+
+```yaml
+name: BadassGameTeam
+
+process: sequential
+
+agents:
+  - role: Senior Software Engineer
+    goal: Create software as needed
+    backstory: |
+      You are a Senior Software Engineer at a leading tech think tank.
+      Your expertise in programming in python and you always do your best to
+      produce perfect, working, and complete code.
+  
+  - role: Software Quality Control Engineer
+    goal: create prefect code, by analyzing the code that is given for errors
+    backstory: |
+      You are a software engineer that specializes in checking code
+      for errors. You have an eye for detail and a knack for finding hidden bugs.
+      You check for missing imports, variable declarations, mismatched brackets and syntax errors.
+      You also check for security vulnerabilities, and logic errors
+
+tasks:
+  - description: "You will create a game using python. This is the game instructions: '{input}'"
+    agent: Senior Software Engineer
+    expected_output: A fully working complete python code. No need for explanation and nothing else either
+
+  - description: |
+      You are helping create a game using python. This is the game instructions: '{input}' 
+      Using the code you got, check for errors. Check for logic errors, syntax errors, missing imports, variable declarations, mismatched brackets, and security vulnerabilities.
+    agent: Software Quality Control Engineer
+    expected_output: A fully working complete python code. No need for explanation and nothing else either
+
+```
+
+#### Potential Use Cases and Benefits
+
+1. **Game Development**
+   - **Use Case**: Configure agents to handle various game development tasks like designing mechanics, conducting competitor analysis, and creating marketing strategies.
+   - **Impact**: Streamlines the development process, enhances collaboration, and fosters innovation.
+
+2. **Content Creation**
+   - **Use Case**: Use agents to generate blog posts, social media content, graphics, and videos.
+   - **Impact**: Ensures consistent content production, scales efforts, and maintains brand voice.
+
+3. **Customer Support**
+   - **Use Case**: Deploy agents to address customer queries, troubleshoot issues, provide product information, and gather feedback.
+   - **Impact**: Improves response times, offers personalized support, and collects valuable user insights.
+
+4. **Project Management**
+   - **Use Case**: Utilize agents for project planning, task assignment, progress tracking, risk analysis, and milestone reporting.
+   - **Impact**: Enhances organization, boosts productivity, and improves accountability.
+
+5. **Market Research**
+   - **Use Case**: Engage agents for market analysis, competitor study, customer needs assessment, and trend identification.
+   - **Impact**: Informs strategic planning, provides a competitive advantage, and enhances decision-making.
+
+6. **Education and Training**
+   - **Use Case**: Configure agents to design curriculums, create educational content, provide tutoring, and assess student performance.
+   - **Impact**: Offers customized learning, boosts engagement, and tracks student progress efficiently.
+
+
+Enjoy the power and flexibility of orchestrating AI agents with Sage and CrewAI!
+Learm more about [agents configuration](docs/configuration.md) and see various [examples here](/examples/)
+
+Sage is fully compatible with existing CrewAI definitions, making it easy to port your agents into Sage.
+
+> Tools and Memory support is still in_progress.
+
 ## Getting Started with Sage
 
 Begin your journey with Sage in just a few steps:
