@@ -5,7 +5,6 @@ from operator import itemgetter
 from typing import List, Sequence, Tuple
 
 import chainlit as cl
-from langchain.agents import AgentExecutor
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.document import Document
@@ -31,12 +30,6 @@ from sage.constants import (
 )
 from sage.utils.exceptions import AgentsException, SourceException
 from sage.utils.sources import Source
-from sage.utils.supports import (
-    CustomXMLAgentOutputParser,
-    agent_prompt,
-    convert_intermediate_steps,
-    convert_tools,
-)
 
 
 async def check_for_data_updates() -> bool:
@@ -134,7 +127,6 @@ class SourceQAService:
     ...continue for additional sources, only if relevant and necessary.  
     """
 
-
     def __init__(self, mode: str = "tool", tools: List[Tool] = []) -> None:
         self._mode = mode
         self.tools = tools
@@ -181,17 +173,6 @@ class SourceQAService:
         if not profile:
             return ""
 
-        if self.tools and "agent" in profile.lower():
-            tools_prep = "\n  ".join(
-                [f"- {tool.name}: {tool.description}" for tool in self.tools]
-            )
-            tools_message = (
-                "I have access to external tools and can be used when applicable:\n"
-                f"  {tools_prep}\n\n"
-            )
-        else:
-            tools_message = ""
-
         if "file" in profile.lower():
             message = (
                 f"{greeting} and welcome!\n"
@@ -205,8 +186,10 @@ class SourceQAService:
         elif "agent" in profile.lower():
             message = (
                 f"{greeting} and welcome!\n"
-                "I am Sage, your AI Agent capable of various functionalities. How may I be of service to you today?\n\n"
-                f"{tools_message}"
+                "I am Sage, your AI assistant, here to help you orchestrate AI agents using the CrewAI framework.\n\n"
+                "CrewAI empowers agents to work together seamlessly, tackling complex tasks through collaborative intelligence.\n"
+                "**Note**: Each crew behaves based on its configuration, and responses may take some time.\n\n"
+                "To get started, choose a crew from the list below. Then, send your message to the agents and wait for them to kickstart their tasks."
             )
         else:
             message = (
@@ -303,7 +286,6 @@ class SourceQAService:
     def _create_crew_runnable(self) -> dict[str, RunnableLambda]:
         """Creates a CrewAI runnable instance that can be used"""
         return CrewAIRunnable(crews=agents_crew).runnable()
-
 
     def _create_chat_runnable(self, _inputs, _retrieved_docs, _context):
         """Implementation for creating chat runnable"""
