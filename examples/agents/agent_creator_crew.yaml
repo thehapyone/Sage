@@ -1,0 +1,49 @@
+name: CrewCreationTeam
+
+agents:
+  - role: Requirements Analyst
+    goal: Gather and define the requirements for the new crew
+    backstory: An experienced analyst with a deep understanding of various domains and the ability to translate user needs into clear, actionable requirements.
+
+  - role: Role Designer
+    goal: Design and define the roles needed for the new crew
+    backstory: A creative thinker with a knack for identifying the right roles and responsibilities required to achieve specific goals in a team setting.
+
+  - role: Task Planner
+    goal: Develop and outline the tasks for the new crew
+    backstory: A meticulous planner who excels at breaking down complex projects into manageable tasks, ensuring that each task is well-defined and aligned with the crew's goals.
+
+  - role: Configuration Formatter
+    goal: Format the gathered information into a complete YAML configuration file
+    backstory: A detail-oriented specialist with expertise in YAML and configuration file formats, ensuring the final output is correctly structured and ready for use.
+
+tasks:
+  - description: |
+      Gather and define the requirements for the new crew based on user input. Details: {input}
+    agent: Requirements Analyst
+    expected_output: A comprehensive requirements document outlining the purpose, goals, and necessary components for the new crew.
+
+  - description: |
+      Design and define the roles needed for the new crew, ensuring each role has a clear goal and backstory. Requirements document: {input}
+    agent: Role Designer
+    expected_output: A list of roles with detailed descriptions, goals, and backstories, tailored to the requirements of the new crew.
+
+  - description: |
+      Develop and outline the tasks for the new crew, ensuring they are aligned with the crew's goals and roles. Role definitions: {input}
+    agent: Task Planner
+    expected_output: A detailed task list with descriptions, assigned roles, and expected outputs, ensuring a clear workflow for the new crew.
+
+  - description: |
+      Compile the roles, tasks, and requirements into a complete YAML configuration file using the predefined layout structure. Task and role definitions: {input}
+    agent: Configuration Formatter
+    expected_output: |
+      A validated and complete YAML file ready for deployment, with all roles and tasks clearly defined and aligned with the crew's goals. The layout should follow the structure:
+      - name: <crew name>
+      - agents:
+          - role: <role>
+            goal: <goal>
+            backstory: <backstory>
+      - tasks:
+          - description: <description> An input placeholder is added to receive the user's input - This is always required. {input}
+            agent: <role>
+            expected_output: <expected output>
