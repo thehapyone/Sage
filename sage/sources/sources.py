@@ -16,7 +16,7 @@ from sage.constants import (
 )
 from sage.utils.exceptions import SourceException
 from sage.utils.labels import generate_source_label
-from sage.utils.source_manager import (
+from sage.sources.source_manager import (
     SourceManager,
     convert_sources_to_string,
     get_faiss_indexes,

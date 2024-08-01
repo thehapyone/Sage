@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from sage.constants import SENTINEL_PATH, logger, sources_config
-from sage.utils.sources import Source
+from sage.sources.sources import Source
 
 
 async def notify_chat_service():

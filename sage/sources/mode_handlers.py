@@ -11,7 +11,7 @@ from sage.sources.utils import (
     get_retriever,
 )
 from sage.utils.exceptions import AgentsException
-from sage.utils.sources import Source
+from sage.sources.sources import Source
 
 
 class ChatModeHandlers:

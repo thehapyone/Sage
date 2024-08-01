@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 
 from sage.sources.utils import get_time_of_day_greeting
-from sage.utils.sources import Source
+from sage.sources.sources import Source
 
 
 @dataclass
