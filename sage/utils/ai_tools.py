@@ -4,7 +4,7 @@ from typing import List
 from langchain.tools import Tool
 
 from sage.constants import LLM_MODEL as llm
-from sage.utils.source_qa import SourceQAService
+from sage.sources.qa import SourceQAService
 
 
 def load_duck_search() -> List[Tool]:
