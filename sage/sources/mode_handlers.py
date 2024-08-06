@@ -6,12 +6,12 @@ from langchain.schema.vectorstore import VectorStoreRetriever
 
 from sage.constants import validated_config
 from sage.sources.runnable import RunnableBase
+from sage.sources.sources import Source
 from sage.sources.utils import (
     generate_ui_actions,
     get_retriever,
 )
 from sage.utils.exceptions import AgentsException
-from sage.sources.sources import Source
 
 
 class ChatModeHandlers:

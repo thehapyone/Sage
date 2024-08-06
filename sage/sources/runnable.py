@@ -1,6 +1,6 @@
 from operator import itemgetter
 
-import chainlit as cl
+from chainlit.user_session import UserSession, user_session
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -22,13 +22,14 @@ from sage.utils.exceptions import SourceException
 
 
 class RunnableBase:
-    def __init__(self, mode: str = "tool"):
+    def __init__(self, mode: str = "tool", user_session: UserSession = user_session):
         if mode.lower() not in ["chat", "tool"]:
             raise ValueError(
                 f"{mode} is not supported. Supported modes are: chat and tool"
             )
         self.mode = mode
         self._runnable = None
+        self._user_session = user_session
 
     def create_crew_runnable(self) -> dict[str, RunnableLambda]:
         """Creates a CrewAI runnable instance that can be used"""
@@ -69,16 +70,15 @@ class RunnableBase:
             )
 
         if runnable:
-            target = cl.user_session if self.mode == "chat" else self
             (
-                target.set("runnable", runnable)
+                self._user_session.set("runnable", runnable)
                 if self.mode == "chat"
                 else setattr(self, "_runnable", runnable)
             )
             return
 
         # Loads the chat history
-        chat_history_loader = load_chat_history(self.mode, cl.user_session)
+        chat_history_loader = load_chat_history(self.mode, self._user_session)
 
         # Condense Question Chain
         _standalone_chain = ChatPrompt().condense_prompt | LLM_MODEL | StrOutputParser()
@@ -105,9 +105,8 @@ class RunnableBase:
         )
         _runnable = self._create_chat_runnable(_inputs, _retrieved_docs, _context)
 
-        target = cl.user_session if self.mode == "chat" else self
         (
-            target.set("runnable", _runnable)
+            self._user_session.set("runnable", _runnable)
             if self.mode == "chat"
             else setattr(self, "_runnable", _runnable)
         )
