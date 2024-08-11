@@ -4,7 +4,7 @@ from langchain.schema.runnable import (
 )
 from langchain.schema.vectorstore import VectorStoreRetriever
 
-from sage.constants import validated_config
+from sage.constants import agents_crew, validated_config
 from sage.sources.runnable import RunnableBase
 from sage.sources.sources import Source
 from sage.sources.utils import (
@@ -114,7 +114,7 @@ class ChatModeHandlers:
         Returns a tuple containing a black retriever instance and an optional instance for the crew
         """
         # Get the crew names that will be used to create the source actions
-        crews_metadata = self._runnable_handler.create_crew_runnable()
+        crews_metadata = self._runnable_handler.create_crew_runnable(agents_crew)
 
         if crew_label:
             crew_instance = crews_metadata.get(crew_label, None)

@@ -13,13 +13,15 @@ from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.tools import Tool
 
 from sage.constants import (
+    LLM_MODEL,
     chat_starters,
     logger,
 )
 from sage.models.chat_prompt import ChatPrompt
 from sage.sources.mode_handlers import ChatModeHandlers
 from sage.sources.runnable import RunnableBase
-from sage.sources.utils import get_memory
+from sage.sources.sources import Source
+from sage.sources.utils import get_memory, get_time_of_day_greeting
 
 
 class SourceQAService:
@@ -34,7 +36,7 @@ class SourceQAService:
 
     def __init__(self, mode: str = "tool", tools: List[Tool] = []) -> None:
         self.tools = tools
-        self._runnable_handlers = RunnableBase(mode)
+        self._runnable_handlers = RunnableBase(LLM_MODEL, mode)
         self._mode_handlers = ChatModeHandlers(self._runnable_handlers)
         self.mode = self._runnable_handlers.mode
 
@@ -44,7 +46,11 @@ class SourceQAService:
         return ConversationBufferWindowMemory()
 
     def get_intro_message(self, profile: str):
-        return ChatPrompt().generate_welcome_message(profile)
+        return ChatPrompt().generate_welcome_message(
+            greeting=get_time_of_day_greeting(),
+            source_repr=Source().sources_to_string(),
+            profile=profile,
+        )
 
     @cl.set_chat_profiles
     async def chat_profile():
@@ -228,7 +234,7 @@ class SourceQAService:
         model_prompt = ChatPrompt()
         return Tool(
             name=model_prompt.tool_name,
-            description=model_prompt.tool_description,
+            description=model_prompt.tool_description(Source().sources_to_string()),
             func=None,
             coroutine=self._run,
         )

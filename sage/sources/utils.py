@@ -1,16 +1,16 @@
 # Source Utility Functions
+import asyncio
 from datetime import datetime
+from logging import Logger
 from operator import itemgetter
-from typing import Sequence
+from typing import Any, Sequence
 
 import chainlit as cl
+from anyio import Path
 from chainlit.user_session import UserSession
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema.document import Document
 from langchain.schema.runnable import RunnableLambda
-
-from sage.constants import SENTINEL_PATH, logger
-from sage.sources.sources import Source
 
 
 def format_docs(docs: Sequence[Document]) -> str:
@@ -62,30 +62,30 @@ def get_time_of_day_greeting() -> str:
         return "Hello"
 
 
-async def check_for_data_updates() -> bool:
+async def check_for_data_updates(sentinel: Path, logger: Logger) -> bool:
     """Check the data loader for any update"""
-    if await SENTINEL_PATH.exists():
-        content = await SENTINEL_PATH.read_text()
+    if await sentinel.exists():
+        content = await sentinel.read_text()
         if content == "updated":
             logger.info("Data update detected, reloading the retriever database")
-            await SENTINEL_PATH.write_text("")
+            await sentinel.write_text("")
             return True
     return False
 
 
-async def get_retriever(source_hash: str = "none"):
+async def get_retriever(source: Any, source_hash: str = "none"):
     """Loads a retrieval model from the source engine"""
     if source_hash == "none":
-        return await Source().load(source_hash)
+        return await source.load(source_hash)
 
     loading_msg = cl.Message(
         content="Please bear with me for a moment. I'm preparing the data source - might take some time depending on the size of the source..."
     )
     await loading_msg.send()
-    await cl.sleep(1)
+    await asyncio.sleep(1)
 
     await check_for_data_updates()
-    retriever = await Source().load(source_hash)
+    retriever = await source.load(source_hash)
 
     loading_msg.content = "All set! You're good to go - start by entering your query."
     await loading_msg.update()

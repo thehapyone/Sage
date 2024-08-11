@@ -2,9 +2,6 @@ from dataclasses import dataclass
 
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 
-from sage.sources.sources import Source
-from sage.sources.utils import get_time_of_day_greeting
-
 
 @dataclass
 class ChatPrompt:
@@ -36,7 +33,7 @@ class ChatPrompt:
     REMEMBER:
      - The inquiry is not meant for you at all. Don't refer new meanings or distort the original inquiry.
      - Always keep the original language. Not all inquires are questions.
-     
+    
     <chat_history>
     {chat_history}
     <chat_history/>
@@ -87,18 +84,33 @@ class ChatPrompt:
     qa_prompt = ChatPromptTemplate.from_template(qa_template_chat)
     """The prompt template for the chat complete chain"""
 
-    @property
-    def tool_description(self) -> str:
-        """Generate a description for the source qa tool"""
-        source_description = Source().sources_to_string().replace("\n  ", " ")
+    def tool_description(self, source_repr: str) -> str:
+        """
+        Generates a description for the source QA tool
+
+        Args:
+            source_repr (str): A source metadata in a string representation in strings
+
+        Returns:
+            str: A tool description
+        """
+        source_description = source_repr.replace("\n  ", " ")
         description = f"{self.description_pre}\n. I have access to the following sources: {source_description}"
         return description
 
     @staticmethod
-    def generate_welcome_message(profile: str = "chat"):
-        """Generate and format an introduction message."""
-        greeting = get_time_of_day_greeting()
-        sources = Source().sources_to_string()
+    def generate_welcome_message(
+        greeting: str, source_repr: str, profile: str = "chat"
+    ):
+        """
+        Generate and format an introduction message.
+
+        Args:
+            greeting (str): A time of day greeting message
+            source_repr (str): A source metadata in a string representation in strings
+            profile (str): The chat mode profile
+
+        """
 
         if not profile:
             return ""
@@ -126,7 +138,7 @@ class ChatPrompt:
                 f"{greeting} and welcome!\n"
                 "I am Sage, your AI assistant, here to support you with information and insights. How may I assist you today?\n\n"
                 "I can provide you with data and updates from a variety of sources including:\n"
-                f"  {sources}\n\n"
+                f"  {source_repr}\n\n"
                 "To get started, simply select an option below; then begin typing your query or ask for help to see what I can do."
             )
         return message.strip()

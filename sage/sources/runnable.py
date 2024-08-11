@@ -1,4 +1,5 @@
 from operator import itemgetter
+from typing import Sequence
 
 from chainlit.user_session import UserSession, user_session
 from langchain.schema.output_parser import StrOutputParser
@@ -10,7 +11,6 @@ from langchain.schema.runnable import (
 from langchain.schema.vectorstore import VectorStoreRetriever
 
 from sage.agent.crew import CrewAIRunnable
-from sage.constants import LLM_MODEL, agents_crew
 from sage.models.chat_prompt import ChatPrompt
 from sage.sources.utils import (
     format_docs,
@@ -19,10 +19,17 @@ from sage.sources.utils import (
     load_chat_history,
 )
 from sage.utils.exceptions import SourceException
+from sage.utils.supports import CustomLiteLLM
+from sage.validators.crew_ai import CrewConfig
 
 
 class RunnableBase:
-    def __init__(self, mode: str = "tool", user_session: UserSession = user_session):
+    def __init__(
+        self,
+        llm_model: CustomLiteLLM,
+        mode: str = "tool",
+        user_session: UserSession = user_session,
+    ):
         if mode.lower() not in ["chat", "tool"]:
             raise ValueError(
                 f"{mode} is not supported. Supported modes are: chat and tool"
@@ -30,10 +37,13 @@ class RunnableBase:
         self.mode = mode
         self._runnable = None
         self._user_session = user_session
+        self.base_model = llm_model
 
-    def create_crew_runnable(self) -> dict[str, RunnableLambda]:
+    def create_crew_runnable(
+        self, crews: Sequence[CrewConfig]
+    ) -> dict[str, RunnableLambda]:
         """Creates a CrewAI runnable instance that can be used"""
-        return CrewAIRunnable(crews=agents_crew).runnable()
+        return CrewAIRunnable(crews=crews).runnable()
 
     def _create_chat_runnable(
         self, _inputs, _retrieved_docs, _context
@@ -43,7 +53,7 @@ class RunnableBase:
 
         # construct the question and answer model
         qa_answer = RunnableMap(
-            answer=_context | qa_prompt | LLM_MODEL | StrOutputParser(),
+            answer=_context | qa_prompt | self.base_model | StrOutputParser(),
             sources=lambda x: format_sources(x["docs"]),
         ).with_config(run_name="Sage Assistant")
 
@@ -81,7 +91,9 @@ class RunnableBase:
         chat_history_loader = load_chat_history(self.mode, self._user_session)
 
         # Condense Question Chain
-        _standalone_chain = ChatPrompt().condense_prompt | LLM_MODEL | StrOutputParser()
+        _standalone_chain = (
+            ChatPrompt().condense_prompt | self.base_model | StrOutputParser()
+        )
 
         _inputs = RunnableMap(
             standalone={
