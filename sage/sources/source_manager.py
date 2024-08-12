@@ -18,8 +18,8 @@ from sage.constants import (
     logger,
     sources_config,
 )
+from sage.sources.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
 from sage.utils.exceptions import SourceException
-from sage.utils.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
 from sage.utils.supports import CustomFAISS as FAISS
 from sage.validators.config_toml import ConfluenceModel, Files, GitlabModel, Web
 

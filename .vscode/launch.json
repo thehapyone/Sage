@@ -33,7 +33,8 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
-            "args": "-v ${file}",
+            "justMyCode": false,
+            "args": "-vv -v ${file}",
         },
     ]
 }

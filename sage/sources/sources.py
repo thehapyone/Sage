@@ -14,13 +14,13 @@ from sage.constants import (
     sources_config,
     validated_config,
 )
-from sage.utils.exceptions import SourceException
-from sage.utils.labels import generate_source_label
-from sage.utils.source_manager import (
+from sage.sources.source_manager import (
     SourceManager,
     convert_sources_to_string,
     get_faiss_indexes,
 )
+from sage.utils.exceptions import SourceException
+from sage.utils.labels import generate_source_label
 from sage.utils.supports import CustomFAISS as FAISS
 from sage.utils.supports import aexecute_concurrently, asyncify
 from sage.validators.config_toml import ConfluenceModel, Files, GitlabModel, Web

@@ -12,7 +12,17 @@ from pydantic import (
 from sage.utils.exceptions import ConfigException
 
 
-class StarterConfig(BaseModel, Starter):
+# Define an intermediate base class combining features of both metaclasses
+class CombinedMeta(BaseModel.__class__, Starter.__class__):
+    pass
+
+
+# Derive the intermediate base from the combined metaclass
+class BaseStarter(BaseModel, Starter, metaclass=CombinedMeta):
+    pass
+
+
+class StarterConfig(BaseStarter):
     label: str
     message: str
     icon: Optional[str] = None
