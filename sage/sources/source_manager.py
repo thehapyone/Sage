@@ -173,15 +173,14 @@ class SourceManager:
                 url=source.server,
                 username=source.username,
                 api_key=source.password.get_secret_value(),
-            )
-
-            confluence_documents = loader.load(
                 space_key=space,
                 include_attachments=False,
                 limit=200,
                 keep_markdown_format=True,
                 content_format=ContentFormat.VIEW,
             )
+
+            confluence_documents = loader.load()
             logger.debug(
                 f"Processed {len(confluence_documents)} documents from the confluence source"
             )
