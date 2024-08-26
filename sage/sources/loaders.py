@@ -463,7 +463,6 @@ class WebLoader(UnstructuredURLLoader):
 
             await worker()
 
-        visited_links.discard(base_url)
         logger.debug(f"Total links detected: {len(visited_links)}")
 
         # Now we loads the data into a document objects

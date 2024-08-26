@@ -44,6 +44,7 @@ class Source:
         self.source_refresh_list: List[dict] = list()
 
         self.manager = SourceManager(source_dir=self.source_dir)
+        self.force_data_refresh = False
 
     @staticmethod
     def sources_to_string():
@@ -77,9 +78,23 @@ class Source:
     async def _append_to_refresh_list(
         self, source_type: str, identifier: str, identifier_key: str
     ):
-        """Add source to the refresh list"""
+        """
+        Add a source to the refresh list if it needs to be refreshed.
+
+        This method checks whether a source should be added to the refresh list
+        based on its hash. The check is performed by comparing the hash of the
+        source with existing metadata. If metadata does not exist locally or
+        if data refresh is forced, the source is added to the refresh list.
+
+        Args:
+            source_type (str): The type of the source (e.g. 'confluence', 'gitlab', 'web').
+            identifier (str): The specific identifier for the source
+                (e.g. space key for Confluence, group name or project name for Gitlab, or a URL for web sources).
+            identifier_key (str): The key associated with the identifier
+                (e.g. 'spaces' for Confluence, 'groups' or 'projects' for Gitlab, or 'links' for web sources).
+        """
         source_hash = self._get_source_hash(source_type, identifier)
-        if not await self._source_exist_locally(source_hash):
+        if self.force_data_refresh or not await self._source_exist_locally(source_hash):
             self.source_refresh_list.append(
                 {
                     "hash": source_hash,
@@ -142,10 +157,18 @@ class Source:
             await self._save_source_metadata(source_ref, hash)
             logger.info(f"Done with source {source_ref}")
 
-    async def run(self) -> None:
+    async def run(self, refresh: bool = False) -> None:
         """
         Process each source in the self.source_refresh_list.
+
+        Args:
+            refresh (bool, optional): A flag for reindexing the data sources.
+
         """
+        if refresh:
+            logger.info("Sources will now be reindexed")
+            self.force_data_refresh = refresh
+
         await self.check_sources_exist()
 
         if len(self.source_refresh_list) == 0:
@@ -155,6 +178,9 @@ class Source:
         await aexecute_concurrently(
             func=self.add_source, items=self.source_refresh_list, input_type="dict"
         )
+
+        # Disable data refresh
+        self.force_data_refresh = False
 
     @staticmethod
     def _combine_dbs(dbs: List[FAISS]) -> FAISS:
