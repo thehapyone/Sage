@@ -129,19 +129,18 @@ class ChatModeHandlers:
 
         action_response = None
 
-        if crew_actions:
-            action_response = await cl.AskActionMessage(
-                content="To start, please choose a crew to work with. If no selection is made before the time runs out, the default is 'No Agents ⛔'",
-                timeout=300,
-                actions=[
-                    cl.Action(
-                        name="crew_actions",
-                        value="none",
-                        label="No Agents ⛔",
-                    ),
-                    *crew_actions,
-                ],
-            ).send()
+        action_response = await cl.AskActionMessage(
+            content="To start, please choose a crew to work with. If no selection is made before the time runs out, the default is 'No Agents ⛔'",
+            timeout=300,
+            actions=[
+                cl.Action(
+                    name="crew_actions",
+                    value="none",
+                    label="No Agents ⛔",
+                ),
+                *crew_actions,
+            ],
+        ).send()
 
         selected_crew = action_response.get("value") if action_response else "none"
 
