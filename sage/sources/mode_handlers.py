@@ -15,8 +15,9 @@ from sage.utils.exceptions import AgentsException
 
 
 class ChatModeHandlers:
-    def __init__(self, runnable_handler: RunnableBase):
+    def __init__(self, runnable_handler: RunnableBase, source: Source = Source()):
         self._runnable_handler = runnable_handler
+        self.source = source
 
     async def handle_file_mode(self, intro_message: str) -> VectorStoreRetriever:
         """Handles initialization for 'File Mode', where users upload files for the chat."""
@@ -52,7 +53,7 @@ class ChatModeHandlers:
         await cl.sleep(1)
 
         # Get the files retriever
-        retriever = await Source().load_files_retriever(files)
+        retriever = await self.source.load_files_retriever(files)
         # Let the user know that the system is ready
         file_names = "\n  ".join([file.name for file in files])
         msg.content = (
@@ -68,13 +69,13 @@ class ChatModeHandlers:
     ) -> VectorStoreRetriever:
         """Handles initialization for 'Chat Only' mode, where users select a source to chat with."""
         # Get the sources labels that will be used to create the source actions
-        sources_metadata = await Source().get_labels_and_hash()
+        sources_metadata = await self.source.get_labels_and_hash()
 
         if source_label:
             hash_key = next(
                 (k for k, v in sources_metadata.items() if v == source_label), "none"
             )
-            return await get_retriever(hash_key)
+            return await get_retriever(source=self.source, source_hash=hash_key)
 
         await cl.Message(id=root_id, content=intro_message).send()
 
@@ -103,7 +104,7 @@ class ChatModeHandlers:
 
         # initialize retriever with the selected source action
         selected_hash = action_response.get("value") if action_response else "none"
-        return await get_retriever(selected_hash)
+        return await get_retriever(source=self.source, source_hash=selected_hash)
 
     async def handle_agent_only_mode(
         self, intro_message: str, root_id: str = None, crew_label: str = None
@@ -154,4 +155,4 @@ class ChatModeHandlers:
     async def handle_default_mode(self, intro_message: str) -> VectorStoreRetriever:
         """Handles initialization for the default mode, which sets up the no retriever."""
         await cl.Message(content=intro_message).send()
-        return await get_retriever("none")
+        return await get_retriever(source=self.source, source_hash="none")

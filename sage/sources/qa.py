@@ -59,7 +59,7 @@ class SourceQAService:
                 name="Chat Only",
                 markdown_description="Run Sage in Chat only mode and interact with provided sources",
                 icon="https://picsum.photos/200",
-                default=False,
+                default=True,
                 starters=[
                     cl.Starter(
                         label="Home - Get Started",
@@ -70,7 +70,7 @@ class SourceQAService:
                 ],
             ),
             cl.ChatProfile(
-                default=True,
+                default=False,
                 name="Agent Mode",
                 markdown_description="Sage runs as an AI Agent with access to external tools and data sources.",
                 icon="https://picsum.photos/250",

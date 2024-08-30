@@ -62,15 +62,20 @@ def get_time_of_day_greeting() -> str:
         return "Hello"
 
 
-async def check_for_data_updates(sentinel: Path, logger: Logger) -> bool:
-    """Check the data loader for any update"""
-    if await sentinel.exists():
-        content = await sentinel.read_text()
-        if content == "updated":
-            logger.info("Data update detected, reloading the retriever database")
-            await sentinel.write_text("")
-            return True
-    return False
+async def check_for_data_updates() -> bool:
+    """Check the data loader for any updates."""
+    from sage.constants import SENTINEL_PATH as sentinel, logger
+
+    if not await sentinel.exists():
+        return False
+
+    content = await sentinel.read_text()
+    if content != "updated":
+        return False
+
+    logger.info("Data update detected, reloading the retriever database")
+    await sentinel.write_text("")
+    return True
 
 
 async def get_retriever(source: Any, source_hash: str = "none"):
