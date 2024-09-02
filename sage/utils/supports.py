@@ -139,7 +139,6 @@ class BgeRerank(BaseDocumentCompressor):
     model_args: dict = {
         "cache_dir": cache_dir,
         "resume_download": True,
-        "revision": revision,
     }
     model: Optional[CrossEncoder] = None
     """CrossEncoder instance to use for reranking."""
@@ -156,6 +155,7 @@ class BgeRerank(BaseDocumentCompressor):
         if self.model is None:
             self.model = CrossEncoder(
                 self.name,
+                revision=self.revision,
                 tokenizer_args=self.model_args,
                 automodel_args=self.model_args,
             )
