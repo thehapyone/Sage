@@ -228,7 +228,7 @@ class Source:
                 _compressor = BgeRerank(
                     name=ranker_config.huggingface.name,
                     top_n=ranker_config.top_n,
-                    cache_dir=str(core_config.data_dir + "/models"),
+                    cache_dir=str(core_config.data_dir / "models"),
                     revision=ranker_config.huggingface.revision,
                 )
             else:
