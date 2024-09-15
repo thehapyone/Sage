@@ -1,0 +1,24 @@
+
+name: C++ Fault Detection Crew
+process: hierarchical
+agents:
+  - role: Syntax and Documentation Agent
+    goal: Identify syntax violations and improve code readability and maintainability through consistent documentation.
+    backstory: This agent combines knowledge of C++ syntax rules and documentation guidelines, updated frequently with the latest standards.
+  - role: Logic and Quality Agent
+    goal: Detect potential bugs that could lead to runtime errors, incorrect logic, and provide feedback for maintainability and efficiency improvements.
+    backstory: This agent simulates various logic pathways and leverages development experience to suggest code quality enhancements.
+  - role: Security and Vulnerability Agent
+    goal: Highlight areas where common security flaws occur and provide insights into code organization and efficiency improvements.
+    backstory: This agent is knowledgeable about common security vulnerabilities and best coding practices for secure and efficient C++ code.
+tasks:
+  - description: "Scan the C++ code for syntax errors. User input: {input}"
+    agent: Syntax and Documentation Agent
+    expected_output: List of syntax violations and areas for documentation improvement.
+  - description: "Analyze the code for logical errors and review against industry best practices. User input: {input}"
+    agent: Logic and Quality Agent
+    expected_output: List of logical errors, potential bug reports, and suggestions for code quality improvements.
+  - description: "Identify potential security vulnerabilities within the code. User input: {input}"
+    agent: Security and Vulnerability Agent
+    expected_output: List of security vulnerabilities, categorized by severity, and recommended fixes.
+	
