@@ -24,12 +24,6 @@ text_maker.ignore_images = True
 text_maker.ignore_emphasis = True
 
 
-class CustomLiteLLM(ChatLiteLLM):
-    """Override the default LiteLLM model to allow setting infinity max_tokens"""
-
-    max_tokens: Optional[int] = None
-
-
 class LiteLLMEmbeddings(Embeddings):
     """An embedding class powered by LiteLLM"""
 
@@ -312,12 +306,12 @@ async def aexecute_concurrently(
     return results
 
 
-def load_language_model(logger, model_name: str) -> CustomLiteLLM:
+def load_language_model(logger, model_name: str) -> ChatLiteLLM:
     """
     Helper method for loading language model
     """
     try:
-        llm_model = CustomLiteLLM(model_name=model_name, streaming=True, max_retries=0)
+        llm_model = ChatLiteLLM(model_name=model_name, streaming=True, max_retries=0)
         # Attempts to use the provider to capture any potential missing configuration error
         llm_model.invoke("Hi")
     except Exception as e:

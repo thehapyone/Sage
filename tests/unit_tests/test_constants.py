@@ -37,7 +37,7 @@ sample_config_data = {
 }
 
 mock_path_mkdir = AsyncMock(name="path.mkdir", return_value=True)
-mock_lite_llm = Mock(name="CustomLiteLLM")
+mock_lite_llm = Mock(name="ChatLiteLLM")
 mock_lite_llm_embedding = Mock(name="Embeddings", return_value=(Mock(), 798))
 mock_logger_spec = Mock(name="logger")
 

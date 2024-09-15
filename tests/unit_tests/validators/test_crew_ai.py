@@ -51,7 +51,7 @@ tasks:
     """
 
 
-mock_llm = Mock(name="CustomLiteLLM")
+mock_llm = Mock(name="ChatLiteLLM")
 
 
 @pytest.fixture

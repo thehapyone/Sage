@@ -19,14 +19,14 @@ from sage.sources.utils import (
     load_chat_history,
 )
 from sage.utils.exceptions import SourceException
-from sage.utils.supports import CustomLiteLLM
+from sage.utils.supports import ChatLiteLLM
 from sage.validators.crew_ai import CrewConfig
 
 
 class RunnableBase:
     def __init__(
         self,
-        llm_model: CustomLiteLLM,
+        llm_model: ChatLiteLLM,
         mode: str = "tool",
         user_session: UserSession = user_session,
     ):
