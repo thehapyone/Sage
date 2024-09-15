@@ -11,7 +11,9 @@ from pydantic import (
     model_validator,
 )
 
+from sage.agent.memory import EnhanceLongTermMemory, LTMSQLiteStorage
 from sage.utils.exceptions import ConfigException
+from sage.validators.config_toml import Core
 
 
 class TaskConfig(Task):
@@ -116,6 +118,27 @@ class AgentConfig(Agent):
         return result
 
 
+def configure_long_term_memory(
+    db_storage_path: str, name: str
+) -> EnhanceLongTermMemory:
+    """Configure the long term memory storage for agents.
+
+    This function initializes and configures an instance of `EnhanceLongTermMemory`
+    using a SQLite storage class. The SQLite database file is created in the specified
+    directory, nested under the given name.
+
+    Args:
+        db_storage_path (str): The base path where the long term memory storage database should be created.
+        name (str): The subdirectory name under the base path to store the long term memory database.
+
+    Returns:
+        EnhanceLongTermMemory: An instance of `EnhanceLongTermMemory` configured with a SQLite storage backend.
+    """
+    db_path = Path(db_storage_path) / name / "long_term_memory_storage.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return EnhanceLongTermMemory(storage=LTMSQLiteStorage(db_path=str(db_path)))
+
+
 class CrewConfig(Crew):
     """Generates a Crew profile from the loaded configuration"""
 
@@ -128,6 +151,22 @@ class CrewConfig(Crew):
         description="Whether the crew should use memory to store memories of it's execution",
     )
     manager_llm: Any
+    db_storage_path: str = Field(
+        description="Path for the memory storage database location"
+    )
+
+    @model_validator(mode="after")
+    def create_crew_memory(self) -> "Crew":
+        """Set private attributes."""
+        if self.memory:
+            self._long_term_memory = configure_long_term_memory(
+                self.db_storage_path, self.name
+            )
+            # self._short_term_memory = ShortTermMemory(
+            #     crew=self, embedder_config=self.embedder
+            # )
+            # self._entity_memory = EntityMemory(crew=self, embedder_config=self.embedder)
+        return self
 
     @field_validator("agents")
     @classmethod
@@ -170,8 +209,9 @@ class CrewConfig(Crew):
         return values
 
 
-def load_and_validate_agents_yaml(agent_dir: str | None, llm_model: Any) -> list:
+def load_and_validate_agents_yaml(config: Core, llm_model: Any) -> list:
     """Validates and loads all available agents configuration files."""
+    agent_dir = config.agents_dir
     if agent_dir is None:
         return []
 
@@ -190,6 +230,7 @@ def load_and_validate_agents_yaml(agent_dir: str | None, llm_model: Any) -> list
             f"The agents dir '{agent_dir}' does not contain any YAML files"
         )
 
+    crew_storage_path = config.data_dir / "crewai"
     # Load respective agent files
     crew_list = []
     try:
@@ -199,7 +240,11 @@ def load_and_validate_agents_yaml(agent_dir: str | None, llm_model: Any) -> list
                 if data is None:
                     raise ConfigException(f"The file '{file_path}' is empty")
                 # Validate the data with Pydantic
-                crew_model = CrewConfig(**data, manager_llm=llm_model)
+                crew_model = CrewConfig(
+                    **data,
+                    manager_llm=llm_model,
+                    db_storage_path=str(crew_storage_path),
+                )
                 crew_list.append(crew_model)
     except yaml.YAMLError as exc:
         raise ConfigException(f"Error parsing YAML: {exc}")

@@ -68,7 +68,7 @@ SENTINEL_PATH = validated_config.core.data_dir / "data_updated.flag"
 
 # Load any available agents
 try:
-    agents_crew = load_and_validate_agents_yaml(core_config.agents_dir, LLM_MODEL)
+    agents_crew = load_and_validate_agents_yaml(core_config, LLM_MODEL)
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(3)

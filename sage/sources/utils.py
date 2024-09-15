@@ -1,12 +1,10 @@
 # Source Utility Functions
 import asyncio
 from datetime import datetime
-from logging import Logger
 from operator import itemgetter
 from typing import Any, Sequence
 
 import chainlit as cl
-from anyio import Path
 from chainlit.user_session import UserSession
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema.document import Document
@@ -64,7 +62,8 @@ def get_time_of_day_greeting() -> str:
 
 async def check_for_data_updates() -> bool:
     """Check the data loader for any updates."""
-    from sage.constants import SENTINEL_PATH as sentinel, logger
+    from sage.constants import SENTINEL_PATH as sentinel
+    from sage.constants import logger
 
     if not await sentinel.exists():
         return False

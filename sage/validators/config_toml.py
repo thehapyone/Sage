@@ -1,7 +1,7 @@
 import asyncio
 import base64
-import os
 import logging
+import os
 from typing import List, Literal, Optional
 
 from anyio import Path
@@ -255,8 +255,11 @@ class Core(BaseModel):
     @model_validator(mode="after")
     def set_crewai_telemetry(self) -> "Core":
         """Enable or disable CrewAI telemetry by setting the correct environment variable."""
-        os.environ.setdefault("OTEL_SDK_DISABLED", str(self.disable_crewai_telemetry).lower())
+        os.environ.setdefault(
+            "OTEL_SDK_DISABLED", str(self.disable_crewai_telemetry).lower()
+        )
         return self
+
 
 class EmbeddingsConfig(BaseModel):
     type: Literal["litellm", "huggingface"]
