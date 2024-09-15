@@ -400,6 +400,18 @@ def test_core_logging_level_validation():
     assert core.logging_level == "Level INVALID_LEVEL"
 
 
+# def test_core_crewai_telemetry():
+#     import os
+
+#     # Test OTEL_SDK_DISABLED is disabled by default
+#     core = Core()
+#     assert os.environ.get("OTEL_SDK_DISABLED") == "true"
+
+#     # Test OTEL_SDK_DISABLED is enabled
+#     core = Core(disable_crewai_telemetry=False)
+#     assert os.environ.get("OTEL_SDK_DISABLED") == "false"
+
+
 ###############################################################################
 ##################### Unit Tests for the EmbeddingsConfig #####################
 
