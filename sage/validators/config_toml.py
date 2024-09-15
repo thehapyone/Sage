@@ -235,16 +235,10 @@ class Core(BaseModel):
 
     disable_crewai_telemetry: Optional[bool] = True
 
-    @model_validator(mode="after")
-    def disable_crewai_telemetry(self) -> "Core":
-        """Enable or disable CrewAI telemetry by setting the correct environment variable."""
-        os.environ.setdefault("OTEL_SDK_DISABLED", str(self.disable_crewai_telemetry).lower())
-        return self
-
     @field_validator("logging_level")
     @classmethod
     def set_logging_level(cls, v: str | int):
-        return logging._nameToLevel(v)
+        return logging.getLevelName(v)
 
     @model_validator(mode="before")
     @classmethod
@@ -258,6 +252,11 @@ class Core(BaseModel):
         values["data_dir"] = Path(_data_dir)
         return values
 
+    @model_validator(mode="after")
+    def set_crewai_telemetry(self) -> "Core":
+        """Enable or disable CrewAI telemetry by setting the correct environment variable."""
+        os.environ.setdefault("OTEL_SDK_DISABLED", str(self.disable_crewai_telemetry).lower())
+        return self
 
 class EmbeddingsConfig(BaseModel):
     type: Literal["litellm", "huggingface"]
