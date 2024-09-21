@@ -1,5 +1,5 @@
 # A series of enhance CrewAI Memory implementation
-import asyncio
+import shutil
 from typing import Any, Dict
 
 from pathlib import Path
@@ -40,20 +40,24 @@ class CustomRAGStorage(Storage):
     def __init__(
         self, crew_name: str, data_dir: Path, model: Any, dimension: int
     ) -> None:
-        # Initialize the source manager instance
-        self._create_data_dir(data_dir)
+        self.crew_name = crew_name
+        self.data_dir = data_dir
+        self.refresh_needed = False
+        self._faiss_db: None | FAISS = None
+
+        # Ensure the data directory exists
+        self._create_data_dir()
+        
+        # Initialize the source manager
         self.manager = SourceManager(
             embedding_model=model,
             model_dimension=dimension,
             source_dir=data_dir,
             record_manager_dir=data_dir,
         )
-        self.crew_name = crew_name
-        self.refresh_needed = False
-        self._faiss_db: None | FAISS = None
 
-    def _create_data_dir(self, dir: Path):
-        Path(dir).mkdir(exist_ok=True)
+    def _create_data_dir(self):
+        Path(self.data_dir).mkdir(exist_ok=True)
 
     def save(self, value: Any, metadata: Dict[str, Any]) -> None:
         self.manager.add_sync(
@@ -87,3 +91,10 @@ class CustomRAGStorage(Storage):
             for doc, _ in docs_and_scores
         ]
         return results
+
+    def reset(self) -> None:
+        try:
+            shutil.rmtree(self.data_dir)
+        except Exception as e:
+            raise Exception(f"An error occurred while resetting the memory: {e}")
+        self._create_data_dir()
