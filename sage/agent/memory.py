@@ -110,7 +110,7 @@ class CustomRAGStorage(Storage):
             query, k=limit, score_threshold=score_threshold
         )
         results = [
-            {"content": doc.page_content, "metadata": doc.metadata}
+            {"context": doc.page_content, "metadata": doc.metadata}
             for doc, _ in docs_and_scores
         ]
         return results
