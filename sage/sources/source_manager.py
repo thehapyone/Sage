@@ -16,16 +16,13 @@ from langchain_community.document_loaders.confluence import (
     ContentFormat,
 )
 
-from sage.constants import (
-    EMBED_DIMENSION,
-    EMBEDDING_MODEL,
-    logger,
-    sources_config,
-)
 from sage.sources.loaders import CustomConfluenceLoader, GitlabLoader, WebLoader
 from sage.utils.exceptions import SourceException
+from sage.utils.logger import CustomLogger
 from sage.utils.supports import CustomFAISS as FAISS
 from sage.validators.config_toml import ConfluenceModel, Files, GitlabModel, Web
+
+logger = CustomLogger()
 
 
 async def get_faiss_indexes(faiss_dir: AsyncPath | SyncPath) -> List[str]:
@@ -41,7 +38,7 @@ async def get_faiss_indexes(faiss_dir: AsyncPath | SyncPath) -> List[str]:
     return indexes
 
 
-def convert_sources_to_string():
+def convert_sources_to_string(sources_config: dict):
     """Helper to format the sources dictionary into a readable string."""
     source_messages = []
     for source_name, source_info in vars(sources_config).items():
@@ -64,6 +61,7 @@ def convert_sources_to_string():
                 f"- Relevant documentation and resources available at: {links}"
             )
     return "\n  ".join(source_messages)
+
 
 class AsyncRunner:
     """
@@ -96,6 +94,7 @@ class AsyncRunner:
         self.loop.call_soon_threadsafe(self.loop.stop)
         self.thread.join()
 
+
 class SourceManager:
     """
     Helper class for creating and adding sources.
@@ -103,21 +102,29 @@ class SourceManager:
     """
 
     def __init__(
-        self, source_dir: Path, record_manager_dir: Path | None = None
+        self,
+        embedding_model: Any,
+        model_dimension: int,
+        source_dir: Path,
+        record_manager_dir: Path | None = None,
     ) -> None:
         """
         Initialize SourceManager with directories for source and record manager files.
 
         Args:
+            embedding_model (Any): The model used for embedding.
+            model_dimension (int): The dimension of the model.
             source_dir (Path): The base directory for sources.
             record_manager_dir (Path, optional): The directory for recording manager files. Defaults to None.
         """
         self._async_runner = AsyncRunner()
+        self.embedding_model = embedding_model
+        self.model_dimension = model_dimension
         self.source_dir = source_dir
-        self._record_manager_file: Path = (
+        self._record_manager_file = (
             record_manager_dir or source_dir
         ) / "dbs_record_manager.sql"
-        self.faiss_dir: Path = source_dir / "faiss"
+        self.faiss_dir = source_dir / "faiss"
 
     async def _get_or_create_faiss_db(self, source_hash: str) -> FAISS:
         """Create or return any existing FAISS Database if available on the local disk"""
@@ -125,8 +132,8 @@ class SourceManager:
         if source_hash not in faiss_dbs_paths:
             # create an empty db and return it
             db = FAISS(
-                embedding_function=EMBEDDING_MODEL,
-                index=IndexFlatL2(EMBED_DIMENSION),
+                embedding_function=self.embedding_model,
+                index=IndexFlatL2(self.model_dimension),
                 docstore=InMemoryDocstore(),
                 index_to_docstore_id={},
             )
@@ -135,7 +142,7 @@ class SourceManager:
         db = FAISS.load_local(
             folder_path=str(self.faiss_dir),
             index_name=source_hash,
-            embeddings=EMBEDDING_MODEL,
+            embeddings=self.embedding_model,
             allow_dangerous_deserialization=True,
         )
         return db
@@ -178,7 +185,7 @@ class SourceManager:
             await self._get_or_create_faiss_db(source_hash)
             if save_db
             else await FAISS.afrom_documents(
-                documents=documents, embedding=EMBEDDING_MODEL
+                documents=documents, embedding=self.embedding_model
             )
         )
 
@@ -251,7 +258,7 @@ class SourceManager:
     async def _add_confluence(
         self,
         hash: str,
-        source: ConfluenceModel,
+        data: ConfluenceModel,
         space: str,
         cleanup: str | None = "full",
     ):
@@ -260,7 +267,7 @@ class SourceManager:
 
         Args:
             hash (str): The source hash
-            source (ConfluenceModel): Confluence data model
+            data (ConfluenceModel): Confluence data model
             space (str): The confluence space to save
 
         Raises:
@@ -268,9 +275,9 @@ class SourceManager:
         """
         try:
             loader = CustomConfluenceLoader(
-                url=source.server,
-                username=source.username,
-                api_key=source.password.get_secret_value(),
+                url=data.server,
+                username=data.username,
+                api_key=data.password.get_secret_value(),
                 space_key=space,
                 include_attachments=False,
                 limit=200,
@@ -293,7 +300,7 @@ class SourceManager:
     async def _add_gitlab_source(
         self,
         hash: str,
-        source: GitlabModel,
+        data: GitlabModel,
         groups: List[str] = [],
         projects: List[str] = [],
         cleanup: str | None = "full",
@@ -303,12 +310,12 @@ class SourceManager:
         """
         try:
             loader = GitlabLoader(
-                base_url=source.server,
+                base_url=data.server,
                 groups=groups,
                 projects=projects,
-                private_token=source.password,
+                private_token=data.password,
                 ssl_verify=True,
-                max_concurrency=source.max_concurrency,
+                max_concurrency=data.max_concurrency,
             )
 
             documents = await loader.load()
@@ -322,14 +329,14 @@ class SourceManager:
             )
 
     async def _add_web_source(
-        self, hash: str, source: Web, link: str, cleanup: str | None = "full"
+        self, hash: str, data: Web, link: str, cleanup: str | None = "full"
     ):
         """
         Adds and saves a web data source
 
         Args:
             hash (str): The source hash
-            source (Web): Web data model
+            data (Web): Web data model
             link (str): The source link value
 
         Raises:
@@ -337,12 +344,12 @@ class SourceManager:
         """
         try:
             loader = WebLoader(
-                nested=source.nested,
-                ssl_verify=source.ssl_verify,
+                nested=data.nested,
+                ssl_verify=data.ssl_verify,
                 urls=[link],
-                headers=source.headers,
-                max_concurrency=source.max_concurrency,
-                max_depth=source.max_depth,
+                headers=data.headers,
+                max_concurrency=data.max_concurrency,
+                max_depth=data.max_depth,
             )
 
             documents = await loader.load()
@@ -364,7 +371,7 @@ class SourceManager:
         self,
         hash: str,
         path: str,
-        source: Files = None,
+        data: Files = None,
         save_db: bool = True,
         cleanup: str | None = "full",
     ) -> FAISS | None:
@@ -373,7 +380,7 @@ class SourceManager:
 
         Args:
             hash (str): The source hash
-            source (Files): Files data model
+            data (Files): Files data model
 
         Raises:
             SourceException: Exception raised interacting with the files
@@ -415,47 +422,49 @@ class SourceManager:
             source_type (str): The type of source.
             identifier (str): Identifier of the source.
             identifier_type (str, optional): The type of identifier. Defaults to None.
-            data (Any, optional): An optional data field. Defaults to None.
+            data (Any): The data field. Defaults to None.
             cleanup (str | None, optional): An optional cleanup policy. Defaults to "full".
 
         Raises:
             SourceException: Raised if the source type is not known.
         """
-        if source_type == "text":
-            await self._add_text(
-                hash=hash,
-                data=data,
-                metadata=identifier,
-                cleanup=cleanup,
-            )
-        elif source_type == "confluence":
-            await self._add_confluence(
-                hash=hash,
-                source=sources_config.confluence,
-                space=identifier,
-                cleanup=cleanup,
-            )
-        elif source_type == "web":
-            await self._add_web_source(
-                hash=hash, source=sources_config.web, link=identifier, cleanup=cleanup
-            )
-        elif source_type == "gitlab":
-            if identifier_type == "groups":
-                await self._add_gitlab_source(
-                    hash=hash,
-                    source=sources_config.gitlab,
-                    groups=[identifier],
-                    cleanup=cleanup,
-                )
-            else:
-                await self._add_gitlab_source(
-                    hash=hash,
-                    source=sources_config.gitlab,
-                    projects=[identifier],
-                    cleanup=cleanup,
-                )
-        else:
+        handlers = {
+            "text": self._add_text,
+            "confluence": self._add_confluence,
+            "web": self._add_web_source,
+            "gitlab": self._add_gitlab_source,
+        }
+
+        if source_type not in handlers:
             raise SourceException(f"Unknown source type: {source_type}")
+
+        handler = handlers[source_type]
+
+        if source_type == "gitlab":
+            gitlab_kwargs = {
+                "hash": hash,
+                "source": data,
+                "cleanup": cleanup,
+            }
+            if identifier_type == "groups":
+                gitlab_kwargs["groups"] = [identifier]
+            else:
+                gitlab_kwargs["projects"] = [identifier]
+            await handler(**gitlab_kwargs)
+        else:
+            common_kwargs = {
+                "hash": hash,
+                "cleanup": cleanup,
+                "data": data,
+            }
+            if source_type == "text":
+                common_kwargs["metadata"] = identifier
+            elif source_type == "confluence":
+                common_kwargs["space"] = identifier
+            elif source_type == "web":
+                common_kwargs["link"] = identifier
+
+            await handler(**common_kwargs)
 
     def add_sync(
         self,

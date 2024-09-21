@@ -1,5 +1,5 @@
 from hashlib import md5
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from anyio import Path
 from chainlit.types import AskFileResponse
@@ -8,6 +8,7 @@ from langchain.schema.runnable import RunnableLambda
 from langchain.schema.vectorstore import VectorStoreRetriever
 
 from sage.constants import (
+    EMBED_DIMENSION,
     EMBEDDING_MODEL,
     core_config,
     logger,
@@ -43,13 +44,17 @@ class Source:
     def __init__(self) -> None:
         self.source_refresh_list: List[dict] = list()
 
-        self.manager = SourceManager(source_dir=self.source_dir)
+        self.manager = SourceManager(
+            embedding_model=EMBEDDING_MODEL,
+            model_dimension=EMBED_DIMENSION,
+            source_dir=self.source_dir,
+        )
         self.force_data_refresh = False
 
     @staticmethod
     def sources_to_string():
         """Helper to format the sources dictionary into a readable string."""
-        return convert_sources_to_string()
+        return convert_sources_to_string(sources_config)
 
     @staticmethod
     def _get_hash(input: str) -> str:
@@ -94,15 +99,30 @@ class Source:
                 (e.g. 'spaces' for Confluence, 'groups' or 'projects' for Gitlab, or 'links' for web sources).
         """
         source_hash = self._get_source_hash(source_type, identifier)
-        if self.force_data_refresh or not await self._source_exist_locally(source_hash):
-            self.source_refresh_list.append(
-                {
-                    "hash": source_hash,
-                    "source_type": source_type,
-                    "identifier": identifier,
-                    "identifier_type": identifier_key,
-                }
-            )
+        if not self.force_data_refresh and await self._source_exist_locally(
+            source_hash
+        ):
+            return
+
+        source_data_mapping = {
+            "confluence": sources_config.confluence,
+            "web": sources_config.web,
+            "gitlab": sources_config.gitlab,
+        }
+
+        data = source_data_mapping.get(source_type)
+        if data is None:
+            raise SourceException(f"Unknown source type: {source_type}")
+
+        self.source_refresh_list.append(
+            {
+                "hash": source_hash,
+                "source_type": source_type,
+                "identifier": identifier,
+                "identifier_type": identifier_key,
+                "data": data,
+            }
+        )
 
     async def _check_source(
         self,
@@ -130,7 +150,12 @@ class Source:
                 await self._check_source(source_type, source_data, "links")
 
     async def add_source(
-        self, hash: str, source_type: str, identifier: str, identifier_type: str
+        self,
+        hash: str,
+        source_type: str,
+        identifier: str,
+        identifier_type: str,
+        data: Any,
     ) -> None:
         """
         Adds and saves a data source
@@ -148,7 +173,9 @@ class Source:
         source_ref = f"{source_type}: {identifier_type}={identifier}"
         logger.info(f"Processing source {source_ref} ...")
         try:
-            await self.manager.add(hash, source_type, identifier, identifier_type)
+            await self.manager.add(
+                hash, source_type, identifier, identifier_type, data=data
+            )
         except Exception as e:
             logger.error(f"An error has occurred processing source {source_ref}")
             logger.error(str(e), exc_info=True)

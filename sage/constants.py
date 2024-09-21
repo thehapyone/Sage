@@ -17,8 +17,7 @@ from sage.validators.starters import load_and_validate_starters_yaml
 config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
 
 # Initialize the logger
-app_name = "codesage.ai"
-logger = CustomLogger(name=app_name)
+logger = CustomLogger()
 
 
 # Create the main data directory

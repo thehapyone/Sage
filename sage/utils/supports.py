@@ -1,5 +1,7 @@
 import asyncio
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import wraps
 from typing import Any, Callable, Coroutine, List, Optional, Sequence, Tuple
 
 from asyncer import asyncify
@@ -22,6 +24,8 @@ text_maker = HTML2Text()
 text_maker.ignore_links = False
 text_maker.ignore_images = True
 text_maker.ignore_emphasis = True
+
+app_name = "sage.ai"
 
 
 class LiteLLMEmbeddings(Embeddings):
@@ -347,3 +351,41 @@ def load_embedding_model(logger, config: Config):
     logger.info(f"Loaded the embedding model {config.embedding.model}")
 
     return embedding_model, embed_dimension
+
+
+def singleton(cls):
+    """
+    Thread-safe Singleton decorator to ensure that only one instance of a class is created.
+
+    This decorator can be applied to any class to enforce the singleton pattern. It maintains a
+    dictionary of instances and uses a threading lock to ensure that only one instance of the class
+    is created, even in a multi-threaded environment.
+
+    Args:
+        cls (type): The class to be decorated as a singleton.
+
+    Returns:
+        type: The singleton class instance.
+
+    Example:
+        @singleton
+        class MyClass:
+            def __init__(self):
+                self.value = 42
+
+        obj1 = MyClass()
+        obj2 = MyClass()
+        assert obj1 is obj2  # Both are the same instance.
+    """
+    instances = {}
+    lock = threading.Lock()
+
+    @wraps(cls)
+    def get_instance(*args, **kwargs):
+        if cls not in instances:
+            with lock:
+                if cls not in instances:
+                    instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+
+    return get_instance

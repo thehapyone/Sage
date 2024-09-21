@@ -1,5 +1,7 @@
 import logging
 
+from sage.utils.supports import app_name, singleton
+
 
 class CustomFormatter(logging.Formatter):
     grey = "\x1b[42;20m"
@@ -23,12 +25,13 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+@singleton
 class CustomLogger(logging.Logger):
     """
     A custom logger that uses the custom formatter
     """
 
-    def __init__(self, name: str = __name__, level: int = logging.INFO) -> None:
+    def __init__(self, name: str = app_name, level: int = logging.INFO) -> None:
         """
         Args:
             name (str, optional): A custom name for the logger. Defaults to __name__.
