@@ -1,9 +1,8 @@
 # A series of enhance CrewAI Memory implementation
-import shutil
+from pathlib import Path
 from typing import Any, Dict
 
-from pathlib import Path
-from crewai.memory import LongTermMemory, ShortTermMemory
+from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
 from crewai.memory.storage.interface import Storage
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
 from crewai.memory.storage.rag_storage import RAGStorage
@@ -32,22 +31,38 @@ class EnhanceShortTermMemory(ShortTermMemory):
         )
 
 
+class EnhanceEntityMemory(EntityMemory):
+    """A EntityMemory instance support custom storage class"""
+
+    def __init__(self, crew=None, embedder_config=None, storage=None):
+        self.storage = (
+            storage
+            if storage
+            else RAGStorage(type="entities", embedder_config=embedder_config, crew=crew)
+        )
+
+
 class CustomRAGStorage(Storage):
     """
     A RAG storage class for sage-based memory management.
     """
 
     def __init__(
-        self, crew_name: str, data_dir: Path, model: Any, dimension: int
+        self,
+        crew_name: str,
+        storage_type: str,
+        data_dir: Path,
+        model: Any,
+        dimension: int,
     ) -> None:
-        self.crew_name = crew_name
+        self.hash = f"{crew_name}-{storage_type}"
         self.data_dir = data_dir
         self.refresh_needed = False
         self._faiss_db: None | FAISS = None
 
         # Ensure the data directory exists
         self._create_data_dir()
-        
+
         # Initialize the source manager
         self.manager = SourceManager(
             embedding_model=model,
@@ -61,7 +76,7 @@ class CustomRAGStorage(Storage):
 
     def save(self, value: Any, metadata: Dict[str, Any]) -> None:
         self.manager.add_sync(
-            hash=self.crew_name,
+            hash=self.hash,
             source_type="text",
             identifier=metadata,
             data=value,
@@ -94,7 +109,15 @@ class CustomRAGStorage(Storage):
 
     def reset(self) -> None:
         try:
-            shutil.rmtree(self.data_dir)
+            self.manager.add_sync(
+                hash=self.hash,
+                source_type="text",
+                identifier={},
+                data="",
+                cleanup="full",
+            )
+            self.refresh_needed = True
         except Exception as e:
-            raise Exception(f"An error occurred while resetting the memory: {e}")
-        self._create_data_dir()
+            raise Exception(
+                f"An error occurred while resetting the {self.hash} memory: {e}"
+            )

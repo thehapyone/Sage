@@ -76,5 +76,3 @@ try:
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(3)
-
-print("dad")

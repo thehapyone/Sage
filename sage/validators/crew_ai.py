@@ -13,6 +13,7 @@ from pydantic import (
 
 from sage.agent.memory import (
     CustomRAGStorage,
+    EnhanceEntityMemory,
     EnhanceLongTermMemory,
     EnhanceShortTermMemory,
     LTMSQLiteStorage,
@@ -173,12 +174,23 @@ class CrewConfig(Crew):
                 embedder_config=None,
                 storage=CustomRAGStorage(
                     crew_name=self.name,
+                    storage_type="short_term",
                     data_dir=crew_data_dir,
                     model=self.embedder["model"],
                     dimension=self.embedder["dimension"],
                 ),
             )
-            # self._entity_memory = EntityMemory(crew=self, embedder_config=self.embedder)
+            self._entity_memory = EnhanceEntityMemory(
+                crew=self,
+                embedder_config=None,
+                storage=CustomRAGStorage(
+                    crew_name=self.name,
+                    storage_type="entities",
+                    data_dir=crew_data_dir,
+                    model=self.embedder["model"],
+                    dimension=self.embedder["dimension"],
+                ),
+            )
         return self
 
     @field_validator("agents")
