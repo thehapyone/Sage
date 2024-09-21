@@ -62,7 +62,7 @@ class CrewAIRunnable:
         async with cl.Step(name=crew.name, type="tool") as step:
             step.input = x
             result = await crew.kickoff_async(self._format_crew_input(x))
-        return self._format_runnable_response(result)
+        return self._format_runnable_response(result.raw)
 
     def runnable(self) -> dict[str, RunnableLambda]:
         """Create runnable instance for all available crews"""
