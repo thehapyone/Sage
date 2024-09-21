@@ -1,4 +1,5 @@
 # A series of enhance CrewAI Memory implementation
+import hashlib
 from pathlib import Path
 from typing import Any, Dict
 
@@ -55,7 +56,7 @@ class CustomRAGStorage(Storage):
         model: Any,
         dimension: int,
     ) -> None:
-        self.hash = f"{crew_name}-{storage_type}"
+        self.hash = self._generate_hash(crew_name, storage_type)
         self.data_dir = data_dir
         self.refresh_needed = False
         self._faiss_db: None | FAISS = None
@@ -71,6 +72,13 @@ class CustomRAGStorage(Storage):
             record_manager_dir=data_dir,
         )
 
+    def _normalize(self, input_str: str) -> str:
+        return input_str.strip().lower()
+
+    def _generate_hash(self, crew_name: str, storage_type: str) -> str:
+        md5_hash = hashlib.md5(self._normalize(crew_name).encode('utf-8')).hexdigest()
+        return f"{self._normalize(storage_type)}-{md5_hash}"
+
     def _create_data_dir(self):
         Path(self.data_dir).mkdir(exist_ok=True)
 
@@ -85,7 +93,7 @@ class CustomRAGStorage(Storage):
         self.refresh_needed = True
 
     def _load_faiss_database(self) -> FAISS:
-        return self.manager._get_or_create_faiss_db_sync(self.crew_name)
+        return self.manager._get_or_create_faiss_db_sync(self.hash)
 
     def search(
         self,

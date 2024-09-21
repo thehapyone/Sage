@@ -244,7 +244,7 @@ class SourceManager:
         """
         try:
             documents = [
-                Document(page_content=data, metadata={**metadata, "hash": hash})
+                Document(page_content=data, metadata={**metadata, "source": hash})
             ]
             logger.debug(f"Processed {len(documents)} documents from the text source")
 
