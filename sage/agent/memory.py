@@ -1,7 +1,12 @@
 # A series of enhance CrewAI Memory implementation
-from crewai.memory.long_term.long_term_memory import LongTermMemory
+import asyncio
+from typing import Any, Dict
+
+from anyio import Path
+from crewai.memory import LongTermMemory, ShortTermMemory
 from crewai.memory.storage.interface import Storage
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
+from crewai.memory.storage.rag_storage import RAGStorage
 
 
 class EnhanceLongTermMemory(LongTermMemory):
@@ -9,3 +14,16 @@ class EnhanceLongTermMemory(LongTermMemory):
 
     def __init__(self, storage: Storage = LTMSQLiteStorage()):
         self.storage = storage
+
+
+class EnhanceShortTermMemory(ShortTermMemory):
+    """A shortTermmemory instance support custom storage class"""
+
+    def __init__(self, crew=None, embedder_config=None, storage=None):
+        self.storage = (
+            storage
+            if storage
+            else RAGStorage(
+                type="short_term", embedder_config=embedder_config, crew=crew
+            )
+        )
