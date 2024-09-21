@@ -65,7 +65,6 @@ def convert_sources_to_string():
             )
     return "\n  ".join(source_messages)
 
-
 class AsyncRunner:
     """
     Helper class to run asynchronous coroutines in a separate thread.
@@ -82,26 +81,20 @@ class AsyncRunner:
     """
 
     def __init__(self):
-        # Create a new event loop for this thread
         self.loop = asyncio.new_event_loop()
-        # Start the event loop in a new daemon thread
-        self.thread = threading.Thread(target=self.start_loop, daemon=True)
+        self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
 
-    def start_loop(self):
+    def _run_loop(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
     def run(self, coro):
-        # Submit the coroutine to the event loop and wait for the result
-        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-        return future.result()
+        return asyncio.run_coroutine_threadsafe(coro, self.loop).result()
 
     def shutdown(self):
-        # Cleanly shutdown the event loop and thread
         self.loop.call_soon_threadsafe(self.loop.stop)
         self.thread.join()
-
 
 class SourceManager:
     """
