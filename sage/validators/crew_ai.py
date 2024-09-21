@@ -11,7 +11,12 @@ from pydantic import (
     model_validator,
 )
 
-from sage.agent.memory import EnhanceLongTermMemory, LTMSQLiteStorage
+from sage.agent.memory import (
+    CustomRAGStorage,
+    EnhanceLongTermMemory,
+    EnhanceShortTermMemory,
+    LTMSQLiteStorage,
+)
 from sage.utils.exceptions import ConfigException
 from sage.validators.config_toml import Core
 
@@ -162,9 +167,17 @@ class CrewConfig(Crew):
             self._long_term_memory = configure_long_term_memory(
                 self.db_storage_path, self.name
             )
-            # self._short_term_memory = ShortTermMemory(
-            #     crew=self, embedder_config=self.embedder
-            # )
+            crew_data_dir = Path(self.db_storage_path) / self.name
+            self._short_term_memory = EnhanceShortTermMemory(
+                crew=self,
+                embedder_config=None,
+                storage=CustomRAGStorage(
+                    crew_name=self.name,
+                    data_dir=crew_data_dir,
+                    model=self.embedder["model"],
+                    dimension=self.embedder["dimension"],
+                ),
+            )
             # self._entity_memory = EntityMemory(crew=self, embedder_config=self.embedder)
         return self
 
@@ -209,7 +222,9 @@ class CrewConfig(Crew):
         return values
 
 
-def load_and_validate_agents_yaml(config: Core, llm_model: Any) -> list:
+def load_and_validate_agents_yaml(
+    config: Core, llm_model: Any, embedding_model: Any, dimension: int
+) -> list:
     """Validates and loads all available agents configuration files."""
     agent_dir = config.agents_dir
     if agent_dir is None:
@@ -243,6 +258,7 @@ def load_and_validate_agents_yaml(config: Core, llm_model: Any) -> list:
                 crew_model = CrewConfig(
                     **data,
                     manager_llm=llm_model,
+                    embedder={"model": embedding_model, "dimension": dimension},
                     db_storage_path=str(crew_storage_path),
                 )
                 crew_list.append(crew_model)
