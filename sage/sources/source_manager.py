@@ -177,7 +177,7 @@ class SourceManager:
         documents: List[Document],
         save_db: bool = True,
         cleanup: str | None = "full",
-    ) -> None:
+    ) -> FAISS:
         """Creates and saves a vector store index DB to file."""
         logger.debug(f"Creating vector store for source with hash - {source_hash}")
 
@@ -206,6 +206,7 @@ class SourceManager:
             logger.debug(
                 f"Successfully created vector store for source with hash - {source_hash}"
             )
+        return db
 
     @staticmethod
     def get_text_splitter() -> RecursiveCharacterTextSplitter:
