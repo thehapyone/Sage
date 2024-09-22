@@ -1,5 +1,7 @@
 name: PythonRefactorCrew
 
+memory: True
+
 agents:
   - role: Code Analyzer
     goal: Analyze the existing codebase and identify areas for improvement
