@@ -3,44 +3,10 @@ import hashlib
 from pathlib import Path
 from typing import Any, Dict
 
-from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
 from crewai.memory.storage.interface import Storage
-from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
-from crewai.memory.storage.rag_storage import RAGStorage
 
 from sage.sources.source_manager import SourceManager
 from sage.utils.supports import CustomFAISS as FAISS
-
-
-class EnhanceLongTermMemory(LongTermMemory):
-    """A longtermMemory instance support custom storage class"""
-
-    def __init__(self, storage: Storage = LTMSQLiteStorage()):
-        self.storage = storage
-
-
-class EnhanceShortTermMemory(ShortTermMemory):
-    """A shortTermmemory instance support custom storage class"""
-
-    def __init__(self, crew=None, embedder_config=None, storage=None):
-        self.storage = (
-            storage
-            if storage
-            else RAGStorage(
-                type="short_term", embedder_config=embedder_config, crew=crew
-            )
-        )
-
-
-class EnhanceEntityMemory(EntityMemory):
-    """A EntityMemory instance support custom storage class"""
-
-    def __init__(self, crew=None, embedder_config=None, storage=None):
-        self.storage = (
-            storage
-            if storage
-            else RAGStorage(type="entities", embedder_config=embedder_config, crew=crew)
-        )
 
 
 class CustomRAGStorage(Storage):
