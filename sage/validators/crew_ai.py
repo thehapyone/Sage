@@ -12,6 +12,7 @@ from pydantic import (
 )
 from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
+from crewai.llm import LLM
 
 from sage.agent.memory import (
     CustomRAGStorage,
@@ -34,7 +35,6 @@ class TaskConfig(Task):
 
 
 class AgentConfig(Agent):
-    llm: Any
     allow_delegation: bool = Field(
         default=False, description="Allow delegation of tasks to agents"
     )
@@ -74,7 +74,6 @@ class CrewConfig(Crew):
         default=False,
         description="Whether the crew should use memory to store memories of it's execution",
     )
-    manager_llm: Any
     db_storage_path: str = Field(
         description="Path for the memory storage database location"
     )
@@ -122,13 +121,44 @@ class CrewConfig(Crew):
     @model_validator(mode="before")
     @classmethod
     def validate_and_assign_agents_to_task(cls, values) -> dict:
+        """
+        Validates and assigns agents to their respective tasks within a crew configuration.
+
+        This method performs the following actions:
+        1. Checks if all agents provided in the configuration are properly instantiated.
+        2. If agents are provided as dictionaries, it instantiates them as `AgentConfig` objects,
+           using the manager's LLM if the agent's LLM is not specified.
+        3. Creates a dictionary of agents keyed by their roles for quick lookup.
+        4. For each task in the configuration, it matches the task's agent with a corresponding
+           agent in the configuration:
+           a. Raises a `ConfigException` if an agent assigned to a task does not exist.
+           b. Updates the task to reference the instantiated agent object.
+
+        Args:
+            values (dict): The initial configuration values that include agents and tasks.
+
+        Returns:
+            dict: The updated configuration with tasks referencing instantiated agent objects.
+
+        Raises:
+            ConfigException: If a task references an agent that does not exist in the configuration.
+        """
         agents = values.get("agents", [])
 
         # Ensure agents are properly instantiated
         if all(isinstance(agent, dict) for agent in agents):
             agents = [
                 (
-                    AgentConfig(**agent, llm=values.get("manager_llm"))
+                    AgentConfig(
+                        **{
+                            **agent,
+                            "llm": (
+                                agent.get("llm")
+                                if agent.get("llm")
+                                else values.get("manager_llm")
+                            ),
+                        }
+                    )
                     if isinstance(agent, dict)
                     else agent
                 )
@@ -176,6 +206,7 @@ def load_and_validate_agents_yaml(
         )
 
     crew_storage_path = config.data_dir / "crewai"
+    crew_llm = LLM(model=llm_model.model_name)
     # Load respective agent files
     crew_list = []
     try:
@@ -187,7 +218,7 @@ def load_and_validate_agents_yaml(
                 # Validate the data with Pydantic
                 crew_model = CrewConfig(
                     **data,
-                    manager_llm=llm_model,
+                    manager_llm=crew_llm,
                     embedder={"model": embedding_model, "dimension": dimension},
                     db_storage_path=str(crew_storage_path),
                 )
