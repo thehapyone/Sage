@@ -1,6 +1,7 @@
 # test_validator.py
 
 import base64
+import os
 from logging import getLevelName
 from pathlib import Path
 
@@ -373,6 +374,7 @@ def test_core_default_values():
     assert core.user_agent == "codesage.ai"
     assert core.starters_path is None
     assert core.agents_dir is None
+    assert core.disable_crewai_telemetry is True
 
 
 def test_core_custom_values():
@@ -398,6 +400,19 @@ def test_core_logging_level_validation():
     # Test invalid level
     core = Core(logging_level="INVALID_LEVEL")
     assert core.logging_level == "Level INVALID_LEVEL"
+
+
+def test_core_crewai_telemetry():
+    # Test OTEL_SDK_DISABLED is disabled by default
+    os.environ.pop("OTEL_SDK_DISABLED", None)
+    _ = Core()
+    assert os.environ.get("OTEL_SDK_DISABLED") == "true"
+
+    # Test OTEL_SDK_DISABLED is enabled
+    os.environ.pop("OTEL_SDK_DISABLED", None)
+    _ = Core(disable_crewai_telemetry=False)
+    assert os.environ.get("OTEL_SDK_DISABLED") == "false"
+    os.environ.pop("OTEL_SDK_DISABLED", None)
 
 
 ###############################################################################

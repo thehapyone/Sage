@@ -51,7 +51,7 @@ tasks:
     """
 
 
-mock_llm = Mock(name="CustomLiteLLM")
+mock_llm = Mock(name="ChatLiteLLM")
 
 
 @pytest.fixture
@@ -88,6 +88,17 @@ def mock_standard_agent():
     return AgentConfig(
         role="SampleAgent", goal="MockAgent", backstory="SomeAgent", llm=mock_llm
     )
+
+
+test_dimension = 784
+embedding_model = Mock("embedding model")
+
+
+@pytest.fixture
+def mock_config():
+    config = MagicMock("config")
+    config.data_dir = Path("/data")
+    return config
 
 
 # Tests for TaskConfig
@@ -128,53 +139,78 @@ def test_agent_config_valid():
 
 
 # Tests for CrewConfig
-def test_load_and_validate_agents_wrong_dir():
+def test_load_and_validate_agents_wrong_dir(mock_config):
     with pytest.raises(
         ConfigException, match="The agents dir 'dummy_path' does not exist"
     ):
-        load_and_validate_agents_yaml("dummy_path", mock_llm)
+        mock_config.agents_dir = "dummy_path"
+        load_and_validate_agents_yaml(
+            mock_config, mock_llm, embedding_model, dimension=test_dimension
+        )
 
 
-def test_load_and_validate_agents_none_dir():
-    crew = load_and_validate_agents_yaml(None, mock_llm)
+def test_load_and_validate_agents_none_dir(mock_config):
+    mock_config.agents_dir = None
+    crew = load_and_validate_agents_yaml(
+        mock_config, mock_llm, embedding_model, test_dimension
+    )
     assert crew == []
 
 
-def test_load_and_validate_agents_yaml_not_directory(mock_path_exists):
+def test_load_and_validate_agents_yaml_not_directory(mock_config, mock_path_exists):
     with patch("pathlib.Path.is_dir", return_value=False):
         with pytest.raises(
             ConfigException, match="The agents dir 'not_a_dir' is not a directory"
         ):
-            load_and_validate_agents_yaml("not_a_dir", mock_llm)
+            mock_config.agents_dir = "not_a_dir"
+            load_and_validate_agents_yaml(
+                mock_config, mock_llm, embedding_model, test_dimension
+            )
 
 
-def test_load_and_validate_agents_yaml_no_yaml_files(mock_path_is_dir_and_exists):
+def test_load_and_validate_agents_yaml_no_yaml_files(
+    mock_config, mock_path_is_dir_and_exists
+):
     with patch("pathlib.Path.glob", return_value=[]):
         with pytest.raises(ConfigException) as excinfo:
-            load_and_validate_agents_yaml("empty_dir", mock_llm)
+            mock_config.agents_dir = "empty_dir"
+            load_and_validate_agents_yaml(
+                mock_config, mock_llm, embedding_model, test_dimension
+            )
         assert "The agents dir 'empty_dir' does not contain any YAML files" in str(
             excinfo.value
         )
 
 
-def test_load_and_validate_agents_yaml_parsing_error(mock_path_is_dir_and_exists):
+def test_load_and_validate_agents_yaml_parsing_error(
+    mock_config, mock_path_is_dir_and_exists
+):
     with patch("pathlib.Path.glob", return_value=[Path("invalid.yaml")]), patch(
         "sage.validators.crew_ai.open", mock_open(read_data="invalid: yaml: content")
     ):
         with pytest.raises(ConfigException) as excinfo:
-            load_and_validate_agents_yaml("some_dir", mock_llm)
+            mock_config.agents_dir = "some_dir"
+            load_and_validate_agents_yaml(
+                mock_config, mock_llm, embedding_model, test_dimension
+            )
         assert "Error parsing YAML:" in str(excinfo.value)
 
 
 def test_load_and_validate_agents_yaml_validation_error(
-    mock_path_is_dir_and_exists, mock_path_glob, agent_yaml_with_validation_errors
+    mock_path_is_dir_and_exists,
+    mock_path_glob,
+    agent_yaml_with_validation_errors,
+    mock_config,
 ):
     with patch(
         "sage.validators.crew_ai.open",
         mock_open(read_data=agent_yaml_with_validation_errors),
     ):
         with pytest.raises(ConfigException) as excinfo:
-            load_and_validate_agents_yaml("valid_but_invalid_crew.yaml", mock_llm)
+            mock_config.agents_dir = "valid_but_invalid_crew.yaml"
+            load_and_validate_agents_yaml(
+                mock_config, mock_llm, embedding_model, test_dimension
+            )
         assert "Validation error in agent YAML:" in str(excinfo.value)
         assert "Task description must include '{input}' placeholder." in str(
             excinfo.value
@@ -182,7 +218,7 @@ def test_load_and_validate_agents_yaml_validation_error(
 
 
 def test_load_and_validate_agents_yaml_wrong_agnent_matching(
-    mock_path_is_dir_and_exists, mock_path_glob
+    mock_path_is_dir_and_exists, mock_path_glob, mock_config
 ):
     wrong_agent_matching = """
     name: GameStartup
@@ -208,7 +244,10 @@ def test_load_and_validate_agents_yaml_wrong_agnent_matching(
         mock_open(read_data=wrong_agent_matching),
     ):
         with pytest.raises(ConfigException) as excinfo:
-            load_and_validate_agents_yaml("valid_but_invalid_crew.yaml", mock_llm)
+            mock_config.agents_dir = "valid_but_invalid_crew.yaml"
+            load_and_validate_agents_yaml(
+                mock_config, mock_llm, embedding_model, test_dimension
+            )
         assert "Validation error in agent YAML:" in str(excinfo.value)
         assert (
             "Agent 'Game Engineer' assigned to task 'Build game - {input}' does not exist"
@@ -217,10 +256,13 @@ def test_load_and_validate_agents_yaml_wrong_agnent_matching(
 
 
 def test_load_and_validate_agents_yaml_success(
-    mock_path_is_dir_and_exists, mock_path_glob, valid_agent_yaml
+    mock_path_is_dir_and_exists, mock_path_glob, valid_agent_yaml, mock_config
 ):
     with patch("sage.validators.crew_ai.open", mock_open(read_data=valid_agent_yaml)):
-        crew_models = load_and_validate_agents_yaml("some_dir", mock_llm)
+        mock_config.agents_dir = "some_dir"
+        crew_models = load_and_validate_agents_yaml(
+            mock_config, mock_llm, embedding_model, test_dimension
+        )
         assert len(crew_models) == 1
         crew = crew_models[0]
         assert crew.name == "GameStartup"

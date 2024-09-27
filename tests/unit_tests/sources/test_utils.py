@@ -1,13 +1,11 @@
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
-from anyio import Path
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema.document import Document
 
 from sage.sources.utils import (
-    check_for_data_updates,
     format_docs,
     format_sources,
     generate_ui_actions,

@@ -1,7 +1,7 @@
 import asyncio
 import base64
+import logging
 import os
-from logging import getLevelName
 from typing import List, Literal, Optional
 
 from anyio import Path
@@ -233,10 +233,12 @@ class Core(BaseModel):
     starters_path: Optional[str] = None
     agents_dir: Optional[str] = None
 
+    disable_crewai_telemetry: Optional[bool] = True
+
     @field_validator("logging_level")
     @classmethod
     def set_logging_level(cls, v: str | int):
-        return getLevelName(v)
+        return logging.getLevelName(v)
 
     @model_validator(mode="before")
     @classmethod
@@ -249,6 +251,14 @@ class Core(BaseModel):
             return values
         values["data_dir"] = Path(_data_dir)
         return values
+
+    @model_validator(mode="after")
+    def set_crewai_telemetry(self) -> "Core":
+        """Enable or disable CrewAI telemetry by setting the correct environment variable."""
+        os.environ.setdefault(
+            "OTEL_SDK_DISABLED", str(self.disable_crewai_telemetry).lower()
+        )
+        return self
 
 
 class EmbeddingsConfig(BaseModel):

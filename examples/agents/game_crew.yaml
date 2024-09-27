@@ -1,7 +1,8 @@
 name: GameStartup
 
-process: sequential
+process: hierarchical
 
+memory: True
 agents:
   - role: Senior Software Engineer
     goal: Create software as needed
@@ -21,6 +22,7 @@ agents:
   - role: Chief Software Quality Control Engineer
     goal: Ensure that the code does the job that it is supposed to do
     backstory: You feel that programmers always do only half the job, so you are super dedicate to make high quality code.
+    allow_delegation: true
 
 tasks:
   - description: "You will create a game using python. This is the game instructions: '{input}'"

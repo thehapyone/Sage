@@ -181,7 +181,7 @@ class SourceQAService:
                         to_ignore=[
                             "Runnable",
                             "<lambda>",
-                            "CustomLiteLLM",
+                            "ChatLiteLLM",
                             "_Exception",
                         ],
                         answer_prefix_tokens=[

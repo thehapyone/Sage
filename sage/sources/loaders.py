@@ -18,15 +18,15 @@ from langchain_community.document_loaders import ConfluenceLoader, UnstructuredU
 from langchain_community.document_loaders.base import BaseLoader
 from pydantic import BaseModel, SecretStr
 
-from sage.constants import (
-    app_name,
-    logger,
-)
 from sage.utils.exceptions import SourceException
+from sage.utils.logger import CustomLogger
 from sage.utils.supports import (
     aexecute_concurrently,
+    app_name,
     markdown_to_text_using_html2text,
 )
+
+logger = CustomLogger()
 
 
 class CustomConfluenceLoader(ConfluenceLoader):

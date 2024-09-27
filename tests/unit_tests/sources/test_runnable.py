@@ -9,7 +9,7 @@ mock_session = MockSession()
 
 new_mock = MagicMock()
 
-mock_llm = MagicMock(name="CustomLiteLLM")
+mock_llm = MagicMock(name="ChatLiteLLM")
 
 # Define other mock instances
 mock_retriever = MagicMock()

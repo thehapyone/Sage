@@ -1,4 +1,6 @@
-name: CrewCreationTeam
+name: Crew Creation Team
+
+memory: True
 
 agents:
   - role: Requirements Analyst
