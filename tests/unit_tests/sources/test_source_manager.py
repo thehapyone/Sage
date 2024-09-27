@@ -1,12 +1,14 @@
 import asyncio
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-from anyio import Path as AsyncPath
 from pathlib import Path as SyncPath
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from anyio import Path as AsyncPath
+
 from sage.sources.source_manager import (
     AsyncRunner,
-    SourceManager,
     Document,
+    SourceManager,
     convert_sources_to_string,
     get_faiss_indexes,
 )
@@ -59,12 +61,11 @@ def test_get_faiss_indexes_sync():
 
 @pytest.mark.anyio
 async def test_faiss_db_integration(source_manager):
-
     source_hash = "mock_source_hash"
 
     with patch(
         "sage.sources.source_manager.get_faiss_indexes", return_value=[source_hash]
-    ) as mock_get_faiss_indexes:
+    ):
         # mock_get_faiss_indexes.return_value.set_result([source_hash])
 
         with patch("sage.sources.source_manager.FAISS") as mock_faiss_constructor:
@@ -87,7 +88,6 @@ async def test_faiss_db_integration(source_manager):
 
 @pytest.mark.anyio
 async def test_record_manager_integration(source_manager):
-
     source_hash = "mock_source_hash"
 
     with patch("sage.sources.source_manager.SQLRecordManager") as mock_SQLRecordManager:
@@ -103,7 +103,6 @@ async def test_record_manager_integration(source_manager):
 
 @pytest.mark.anyio
 async def test_add_source_integration(source_manager):
-
     hash = "mock_hash"
     documents = [Document(page_content="content", metadata={"key": "value"})]
 
@@ -113,7 +112,6 @@ async def test_add_source_integration(source_manager):
         "sage.sources.source_manager.SourceManager._create_and_save_db",
         return_value=mock_db,
     ) as mock_create_and_save_db:
-
         db = await source_manager._add_source(hash, documents)
         assert db is mock_db
         mock_create_and_save_db.assert_awaited_once()
@@ -136,7 +134,6 @@ def mock_documents():
 
 @pytest.mark.anyio
 async def test_add_text_integration(source_manager, mock_documents, mock_add_source):
-
     hash = "mock_hash"
     data = "mock_data"
     metadata = {"key": "value"}
@@ -160,7 +157,6 @@ async def test_add_confluence_integration(
         "sage.sources.source_manager.CustomConfluenceLoader.load",
         return_value=mock_documents,
     ) as mock_loader_load:
-
         await source_manager._add_confluence(hash, data, space)
 
         mock_loader_load.assert_called_once
@@ -194,7 +190,6 @@ async def test_add_gitlab_source_integration(
 async def test_add_web_source_integration(
     source_manager, mock_add_source, mock_documents
 ):
-
     hash = "mock_hash"
     data = MagicMock()
     link = "mock_link"
@@ -202,7 +197,6 @@ async def test_add_web_source_integration(
     with patch(
         "sage.sources.source_manager.WebLoader.load", return_value=mock_documents
     ) as mock_loader_load:
-
         await source_manager._add_web_source(hash, data, link)
         mock_loader_load.assert_called_once
         mock_add_source.assert_awaited_once

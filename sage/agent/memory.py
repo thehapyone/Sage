@@ -76,7 +76,7 @@ class CustomRAGStorage(Storage):
         return input_str.strip().lower()
 
     def _generate_hash(self, crew_name: str, storage_type: str) -> str:
-        md5_hash = hashlib.md5(self._normalize(crew_name).encode('utf-8')).hexdigest()
+        md5_hash = hashlib.md5(self._normalize(crew_name).encode("utf-8")).hexdigest()
         return f"{self._normalize(storage_type)}-{md5_hash}"
 
     def _create_data_dir(self):

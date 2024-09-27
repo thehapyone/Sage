@@ -145,7 +145,7 @@ logging_level = "INFO" # Can be DEBUG, INFO, WARNING, ERROR, or CRITICAL
 user_agent = "Sage.ai"
 starters_path = "/path/to/starters.yaml"
 agents_dir = "/path/to/agents/directory"
-disable_crewai_telemetry = true # Enables or disable the default crewau_telemetry. Default is True
+disable_crewai_telemetry = true # Enables or disable the default crewai telemetry. Default is True
 ```
 
 ## Upload Configuration
