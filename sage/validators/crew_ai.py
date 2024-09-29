@@ -217,10 +217,16 @@ def load_and_validate_agents_yaml(
                     raise ConfigException(f"The file '{file_path}' is empty")
                 # Validate the data with Pydantic
                 crew_model = CrewConfig(
-                    **data,
-                    manager_llm=crew_llm,
-                    embedder={"model": embedding_model, "dimension": dimension},
-                    db_storage_path=str(crew_storage_path),
+                    {
+                        **data,
+                        "manager_llm": (
+                            data.get("manager_llm")
+                            if data.get("manager_llm")
+                            else crew_llm
+                        ),
+                        "embedder": {"model": embedding_model, "dimension": dimension},
+                        "db_storage_path": str(crew_storage_path),
+                    }
                 )
                 crew_list.append(crew_model)
     except yaml.YAMLError as exc:
