@@ -217,7 +217,7 @@ def load_and_validate_agents_yaml(
                     raise ConfigException(f"The file '{file_path}' is empty")
                 # Validate the data with Pydantic
                 crew_model = CrewConfig(
-                    {
+                    **{
                         **data,
                         "manager_llm": (
                             data.get("manager_llm")

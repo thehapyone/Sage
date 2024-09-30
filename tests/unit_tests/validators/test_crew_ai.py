@@ -217,7 +217,7 @@ def test_load_and_validate_agents_yaml_validation_error(
         )
 
 
-def test_load_and_validate_agents_yaml_wrong_agnent_matching(
+def test_load_and_validate_agents_yaml_wrong_agent_matching(
     mock_path_is_dir_and_exists, mock_path_glob, mock_config
 ):
     wrong_agent_matching = """
