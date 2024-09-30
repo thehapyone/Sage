@@ -74,7 +74,9 @@ Configuring agents/crews for utilization is straightforward. Each Crew is define
 
 All options that can be used in the Crew Layout are based on the CrewAI definition. Please visit the [CrewAI Documentation](https://docs.crewai.com/) to explore all available options. 
 
-_Some options like `llm` are automatically populated when the application starts._
+The following options are dynamically injected when the application starts
+ - if `memory:True`, then all memory instances are automatically initialized
+ - If no LLM are defined for the crew (`manager_llm`) and the agents (`llm`), the application injects the default sage LLM for all agents and crews
 
 This structure allows you to specify the agents and tasks for your crew, ensuring each agent has a clear role, goal, and backstory, and each task is clearly described and assigned to the appropriate agent.
 
