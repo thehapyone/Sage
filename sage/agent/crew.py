@@ -6,8 +6,35 @@ from langchain.schema.runnable import (
     RunnableConfig,
     RunnableLambda,
 )
+from crewai.crews.crew_output import CrewOutput
 
 from sage.validators.crew_ai import CrewConfig
+
+
+def format_crew_results(output: CrewOutput) -> str:
+    tasks_output = output.tasks_output
+    result = []
+    header = "# 📊 Result Summary\n\n---\n"
+
+    for index, task in enumerate(tasks_output):
+        agent_heading = f"## 👨‍💼 Agent: **{task.agent}**\n"
+        task_description = f"**📝 Summary:** {task.summary if task.summary else 'No summary provided'}\n"
+
+        # Use consistent fenced code blocks for task.raw
+        agent_output = f"### 🔍 Final Answer:\n```markdown\n{task.raw}\n```\n"
+
+        _raw = f"{agent_heading}{task_description}{agent_output}"
+
+        # Only add the separator if it's not the last task
+        if index < len(tasks_output) - 1:
+            _raw += "---\n"
+
+        result.append(_raw)
+
+    concatenated_output = "".join(result)
+    final_output = f"{header}{concatenated_output}"
+
+    return final_output
 
 
 class CrewAIRunnable:
@@ -41,8 +68,8 @@ class CrewAIRunnable:
             agent.runnable_config = new_config
 
     @staticmethod
-    def _format_runnable_response(result: str) -> dict:
-        return {"answer": result}
+    def _format_runnable_response(result: CrewOutput) -> dict:
+        return {"answer": format_crew_results(result)}
 
     @staticmethod
     def _format_crew_input(request: dict) -> dict:
@@ -51,18 +78,18 @@ class CrewAIRunnable:
     def _crew(self, x: dict, config: RunnableConfig) -> dict:
         """Synchronous crew execution"""
         crew = self.get_crew(config)
-        self.update_agents(crew, config)
+        # self.update_agents(crew, config)
         result = crew.kickoff(self._format_crew_input(x))
         return self._format_runnable_response(result)
 
     async def _acrew(self, x: dict, config: RunnableConfig) -> dict:
         """Asynchronous crew execution"""
         crew = self.get_crew(config)
-        self.update_agents(crew, config)
+        # self.update_agents(crew, config)
         async with cl.Step(name=crew.name, type="tool") as step:
             step.input = x
             result = await crew.kickoff_async(self._format_crew_input(x))
-        return self._format_runnable_response(result.raw)
+        return self._format_runnable_response(result)
 
     def runnable(self) -> dict[str, RunnableLambda]:
         """Create runnable instance for all available crews"""
