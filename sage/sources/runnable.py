@@ -73,11 +73,11 @@ class RunnableBase:
 
         def standalone_chain_router(x: dict):
             """Helper for routing to the standalone chain"""
-            return (
-                x.get("question")
-                if isinstance(retriever, RunnableLambda) or not x.get("chat_history")
-                else _standalone_chain
-            )
+            if isinstance(retriever, RunnableLambda):
+                return x.get("question")
+            if not x.get("chat_history"):
+                return x.get("question")
+            return _standalone_chain
 
         if runnable:
             (
