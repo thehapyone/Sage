@@ -318,7 +318,7 @@ class Source:
             file = await rename_file_path(file)
             file_source = Files(paths=[file.path])
             db = await self.manager._add_files_source(
-                hash=file.id, source=file_source, path=file.path, save_db=False
+                hash=file.id, data=file_source, path=file.path, save_db=False
             )
             return db
 
