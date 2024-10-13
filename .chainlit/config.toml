@@ -69,7 +69,7 @@ github = "https://github.com/thehapyone/Sage"
 
 # Specify a CSS file that can be used to customize the user interface.
 # The CSS file can be served from the public directory or via an external link.
-# custom_css = '/public/stylesheet.css'
+custom_css = '/public/stylesheet.css'
 
 # Specify a Javascript file that can be used to customize the user interface.
 # The Javascript file can be served from the public directory.
@@ -87,34 +87,33 @@ github = "https://github.com/thehapyone/Sage"
 # custom_build = "./public/build"
 
 [UI.theme]
-    default = "dark"
+    default = "light"
     #layout = "wide"
     #font_family = "Inter, sans-serif"
+
 # Override default MUI light theme. (Check theme.ts)
 [UI.theme.light]
-    #background = "#FAFAFA"
-    #paper = "#FFFFFF"
-
+    background = "#172433"
+    paper = "#000000"
     [UI.theme.light.primary]
-        #main = "#F80061"
-        #dark = "#980039"
-        #light = "#FFE7EB"
+        main = "#54b58f"
+        dark = "#172433"
+        light = "#fefefe"
     [UI.theme.light.text]
-        #primary = "#212121"
-        #secondary = "#616161"
+        primary = "#fefefe"
+        secondary = "#ccc6c6"
 
 # Override default MUI dark theme. (Check theme.ts)
 [UI.theme.dark]
-    #background = "#FAFAFA"
-    #paper = "#FFFFFF"
+    #background = "#172433"
+    #paper = "#000000"
 
     [UI.theme.dark.primary]
-        #main = "#F80061"
+        main = "#54b58f"
         #dark = "#980039"
         #light = "#FFE7EB"
     [UI.theme.dark.text]
         #primary = "#EEEEEE"
         #secondary = "#BDBDBD"
-
 [meta]
 generated_by = "1.2.0"
