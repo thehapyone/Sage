@@ -2,11 +2,11 @@
 from typing import Sequence
 
 import chainlit as cl
+from crewai.crews.crew_output import CrewOutput
 from langchain.schema.runnable import (
     RunnableConfig,
     RunnableLambda,
 )
-from crewai.crews.crew_output import CrewOutput
 
 from sage.validators.crew_ai import CrewConfig
 
@@ -28,6 +28,7 @@ def format_crew_results(output: CrewOutput) -> str:
     final_output = f"{header}{_raw}"
 
     return final_output
+
 
 class CrewAIRunnable:
     def __init__(self, crews: Sequence[CrewConfig]):

@@ -134,10 +134,7 @@ class BgeRerank(BaseDocumentCompressor):
     """Number of documents to return."""
     cache_dir: str = None
     revision: str = None
-    model_args: dict = {
-        "cache_dir": cache_dir,
-        "resume_download": True,
-    }
+    model_args: dict = {"cache_dir": cache_dir}
     model: Optional[CrossEncoder] = None
     """CrossEncoder instance to use for reranking."""
 
