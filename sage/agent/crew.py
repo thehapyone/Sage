@@ -12,30 +12,22 @@ from sage.validators.crew_ai import CrewConfig
 
 
 def format_crew_results(output: CrewOutput) -> str:
-    tasks_output = output.tasks_output
-    result = []
+    task = output.tasks_output[-1]
     header = "# 📊 Result Summary\n\n---\n"
 
-    for index, task in enumerate(tasks_output):
-        agent_heading = f"## 👨‍💼 Agent: **{task.agent}**\n"
-        task_description = f"**📝 Summary:** {task.summary if task.summary else 'No summary provided'}\n"
+    agent_heading = f"## 👨‍💼 Agent: **{task.agent}**\n"
+    task_description = (
+        f"**📝 Summary:** {task.summary if task.summary else 'No summary provided'}\n"
+    )
 
-        # Use consistent fenced code blocks for task.raw
-        agent_output = f"### 🔍 Final Answer:\n```markdown\n{task.raw}\n```\n"
+    # Use consistent fenced code blocks for task.raw
+    agent_output = f"### 🔍 Final Answer:\n{task.raw}\n"
 
-        _raw = f"{agent_heading}{task_description}{agent_output}"
+    _raw = f"{agent_heading}{task_description}{agent_output}"
 
-        # Only add the separator if it's not the last task
-        if index < len(tasks_output) - 1:
-            _raw += "---\n"
-
-        result.append(_raw)
-
-    concatenated_output = "".join(result)
-    final_output = f"{header}{concatenated_output}"
+    final_output = f"{header}{_raw}"
 
     return final_output
-
 
 class CrewAIRunnable:
     def __init__(self, crews: Sequence[CrewConfig]):
