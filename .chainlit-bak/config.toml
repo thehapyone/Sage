@@ -9,7 +9,7 @@ user_env = []
 session_timeout = 3600
 
 # Enable third parties caching (e.g LangChain cache)
-cache = true
+cache = false
 
 # Authorized origins
 allow_origins = ["*"]
@@ -26,9 +26,6 @@ latex = false
 
 # Automatically tag threads with the current chat profile (if a chat profile is used)
 auto_tag_thread = true
-
-# Allow users to edit their own messages
-edit_message = true
 
 # Authorize users to spontaneously upload files with messages
 [features.spontaneous_file_upload]
@@ -51,25 +48,30 @@ edit_message = true
     # Sample rate of the audio
     sample_rate = 44100
 
+edit_message = true
+
 [UI]
-# Name of the assistant.
+# Name of the app and chatbot.
 name = "Sage"
 
-# Description of the assistant. This is used for HTML tags.
+# Show the readme while the thread is empty.
+show_readme_as_default = true
+
+# Description of the app and chatbot. This is used for HTML tags.
 description = "A conversational AI assistant simplifying data interactions with intuitive ease"
 
 # Large size content are by default collapsed for a cleaner ui
 default_collapse_content = true
 
 # Chain of Thought (CoT) display mode. Can be "hidden", "tool_call" or "full".
-cot = "tool_call"
+hide_cot = false
 
 # Link to your github repo. This will add a github button in the UI's header.
 github = "https://github.com/thehapyone/Sage"
 
 # Specify a CSS file that can be used to customize the user interface.
 # The CSS file can be served from the public directory or via an external link.
-# custom_css = '/public/stylesheet.css'
+custom_css = '/public/stylesheet.css'
 
 # Specify a Javascript file that can be used to customize the user interface.
 # The Javascript file can be served from the public directory.
@@ -87,29 +89,29 @@ github = "https://github.com/thehapyone/Sage"
 # custom_build = "./public/build"
 
 [UI.theme]
-    default = "dark"
+    default = "light"
     #layout = "wide"
     #font_family = "Inter, sans-serif"
+
 # Override default MUI light theme. (Check theme.ts)
 [UI.theme.light]
-    #background = "#FAFAFA"
-    #paper = "#FFFFFF"
-
+    background = "#172433"
+    paper = "#000000"
     [UI.theme.light.primary]
-        #main = "#F80061"
-        #dark = "#980039"
-        #light = "#FFE7EB"
+        main = "#54b58f"
+        dark = "#172433"
+        light = "#fefefe"
     [UI.theme.light.text]
-        #primary = "#212121"
-        #secondary = "#616161"
+        primary = "#fefefe"
+        secondary = "#ccc6c6"
 
 # Override default MUI dark theme. (Check theme.ts)
 [UI.theme.dark]
-    #background = "#FAFAFA"
-    #paper = "#FFFFFF"
+    #background = "#172433"
+    #paper = "#000000"
 
     [UI.theme.dark.primary]
-        #main = "#F80061"
+        main = "#54b58f"
         #dark = "#980039"
         #light = "#FFE7EB"
     [UI.theme.dark.text]
@@ -117,4 +119,4 @@ github = "https://github.com/thehapyone/Sage"
         #secondary = "#BDBDBD"
 
 [meta]
-generated_by = "1.2.0"
+generated_by = "1.1.400rc1"

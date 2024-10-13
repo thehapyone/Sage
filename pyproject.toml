@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sage"
-version = "0.0.9"
+version = "0.0.13"
 description = "Sage: A conversational AI assistant simplifying data interactions with intuitive ease"
 authors = ["Ayo Ayibiowu <charles.ayibiowu@hotmail.com>"]
 license = "Apache-2.0 license"
@@ -10,8 +10,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 anyio = "^3.7.1"
-asyncer = "^0.0.2"
-chainlit = "1.1.306"
+asyncer = "^0.0.7"
 duckduckgo-search = "4.1.1"
 aiohttp = "^3.9.1"
 faiss-cpu = "1.7.4"
@@ -37,14 +36,14 @@ croniter = "^2.0.2"
 atlassian-python-api = "^3.41.11"
 aiosqlite = "^0.20.0"
 litellm = "^1.46.0"
-dataclasses-json = "0.5.14"
+dataclasses-json = "^0.6.7"
 crewai = "^0.67.1"
 cohere = "^5.6.1"
 langchain = "^0.2.9"
 langchain-core = "^0.2.23"
 langchain-community = "^0.2.7"
 langchain-cohere = "^0.1.9"
-jsonpatch = "^1.33"
+chainlit = "1.2.0"
 
 [tool.poetry.group.tests]
 optional = true
