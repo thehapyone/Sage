@@ -8,7 +8,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.11,<3.12"
 anyio = "^3.7.1"
 asyncer = "^0.0.2"
 chainlit = "1.1.306"
@@ -44,6 +44,7 @@ langchain = "^0.2.9"
 langchain-core = "^0.2.23"
 langchain-community = "^0.2.7"
 langchain-cohere = "^0.1.9"
+jsonpatch = "^1.33"
 
 [tool.poetry.group.tests]
 optional = true
