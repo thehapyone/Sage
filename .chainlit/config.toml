@@ -9,7 +9,7 @@ user_env = []
 session_timeout = 3600
 
 # Enable third parties caching (e.g LangChain cache)
-cache = false
+cache = true
 
 # Authorized origins
 allow_origins = ["*"]
@@ -26,6 +26,9 @@ latex = false
 
 # Automatically tag threads with the current chat profile (if a chat profile is used)
 auto_tag_thread = true
+
+# Allow users to edit their own messages
+edit_message = true
 
 # Authorize users to spontaneously upload files with messages
 [features.spontaneous_file_upload]
@@ -48,23 +51,18 @@ auto_tag_thread = true
     # Sample rate of the audio
     sample_rate = 44100
 
-edit_message = true
-
 [UI]
-# Name of the app and chatbot.
+# Name of the assistant.
 name = "Sage"
 
-# Show the readme while the thread is empty.
-show_readme_as_default = true
-
-# Description of the app and chatbot. This is used for HTML tags.
+# Description of the assistant. This is used for HTML tags.
 description = "A conversational AI assistant simplifying data interactions with intuitive ease"
 
 # Large size content are by default collapsed for a cleaner ui
 default_collapse_content = true
 
 # Chain of Thought (CoT) display mode. Can be "hidden", "tool_call" or "full".
-hide_cot = false
+cot = "tool_call"
 
 # Link to your github repo. This will add a github button in the UI's header.
 github = "https://github.com/thehapyone/Sage"
@@ -117,6 +115,5 @@ custom_css = '/public/stylesheet.css'
     [UI.theme.dark.text]
         #primary = "#EEEEEE"
         #secondary = "#BDBDBD"
-
 [meta]
-generated_by = "1.1.400rc1"
+generated_by = "1.2.0"

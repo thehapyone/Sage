@@ -9,6 +9,9 @@ translations
 .coverage
 coverage.xml
 
+## Chainlit deps
+.langchain.db
+
 ## Sage data dir
 data
 

@@ -122,17 +122,6 @@ img[alt="logo"] {
 }
 
 
-/* Color for the highlights in the AI text */
-.MuiBox-root code {
-    background-color: #0f0f0f !important;
-}
-
-/* Color for the highlights in the AI text code language header */
-.css-1ltnmms {
-    background-color: #0f0f0f !important;
-    color: #d3e2df !important;
-}
-
 /* Color chat profile description */
 .css-1x11djl {
     color: #54b58f !important;
@@ -157,4 +146,10 @@ img[alt="logo"] {
 /* SVG logo color*/
 .MuiSvgIcon-root {
     color: white !important;
+}
+
+/* Color for the highlights in the AI text code language header */
+.css-1ltnmms {
+    background-color: #0f0f0f !important;
+    color: #d3e2df !important;
 }
