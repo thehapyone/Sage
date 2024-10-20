@@ -49,11 +49,15 @@ class RunnableBase:
         self, _inputs, _retrieved_docs, _context
     ) -> RunnableSequence:
         """Implementation for creating chat runnable"""
-        qa_prompt = ChatPrompt().qa_prompt
 
         # construct the question and answer model
         qa_answer = RunnableMap(
-            answer=_context | qa_prompt | self.base_model | StrOutputParser(),
+            answer=_context
+            | RunnableLambda(ChatPrompt().modality_prompt_router).with_config(
+                run_name="Modality-Router"
+            )
+            | self.base_model
+            | StrOutputParser(),
             sources=lambda x: format_sources(x["docs"]),
         ).with_config(run_name="Sage Assistant")
 
@@ -100,13 +104,15 @@ class RunnableBase:
                 "question": lambda x: x["question"],
                 "chat_history": chat_history_loader,
             }
-            | RunnableLambda(standalone_chain_router).with_config(run_name="Condenser")
+            | RunnableLambda(standalone_chain_router).with_config(run_name="Condenser"),
+            image_data=itemgetter("image_data"),
         )
 
         # retrieve the documents
         _retrieved_docs = RunnableMap(
             docs=itemgetter("standalone") | retriever,
             question=itemgetter("standalone"),
+            image_data=itemgetter("image_data"),
         ).with_config(run_name="Source Retriever")
 
         # rconstruct the context inputs
@@ -114,6 +120,7 @@ class RunnableBase:
             context=lambda x: format_docs(x["docs"]),
             chat_history=chat_history_loader,
             question=itemgetter("question"),
+            image_data=itemgetter("image_data"),
         )
         _runnable = self._create_chat_runnable(_inputs, _retrieved_docs, _context)
 

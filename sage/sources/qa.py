@@ -162,8 +162,11 @@ class SourceQAService:
         memory = get_memory(self.mode, cl.user_session)
 
         msg = cl.Message(content="")
+        ## Process and prepare image data
+        images = [file for file in message.elements if file.mime.startswith("image")]
 
-        query = {"question": message.content}
+        query = {"question": message.content, "image_data": images if images else None}
+
         _sources = None
         _answer = None
         text_elements: list[cl.Text] = []
