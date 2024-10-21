@@ -32,8 +32,8 @@ edit_message = true
 
 # Authorize users to spontaneously upload files with messages
 [features.spontaneous_file_upload]
-    enabled = false
-    accept = ["*/*"]
+    enabled = true
+    accept = ["image/jpeg", "image/png", "image/gif"]
     max_files = 20
     max_size_mb = 500
 

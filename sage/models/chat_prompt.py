@@ -1,3 +1,4 @@
+import base64
 from dataclasses import dataclass
 
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
@@ -42,7 +43,7 @@ class ChatPrompt:
     Standalone question::
     """
 
-    qa_template_chat: str = """
+    qa_system_prompt: str = """
     As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
     You must differentiate between questions that require answers and standard user chat conversations. In standard conversation, especially when discussing your own nature as an AI, footnotes or sources are not required, as the information is based on your programmed capabilities and functions. Your responses should adhere to a journalistic style, characterized by neutrality and reliance on factual, verifiable information.
     
@@ -59,6 +60,17 @@ class ChatPrompt:
     - Avoid adding any sources in the footnotes when the response does not reference specific context.
     - Citations must not be inserted anywhere in the answer, only listed in a 'Footnotes' section at the end of the response.
     
+    REMEMBER: No in-line citations and no citation repetition. State sources in the 'Footnotes' section. For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
+    
+    Footnotes:
+    [1] - Brief summary of the first source. (Less than 10 words)
+    [2] - Brief summary of the second source.
+    ...continue for additional sources, only if relevant and necessary.
+    """
+
+    qa_user_prompt: str = """
+    Question: {question}
+
     <context>
     {context}
     </context>
@@ -67,21 +79,11 @@ class ChatPrompt:
     <chat_history>
     {chat_history}
     <chat_history/>
-
-    Question: {question}
-
-    REMEMBER: No in-line citations and no citation repetition. State sources in the 'Footnotes' section. For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
-    
-    Footnotes:
-    [1] - Brief summary of the first source. (Less than 10 words)
-    [2] - Brief summary of the second source.
-    ...continue for additional sources, only if relevant and necessary.  
     """
 
     # The prompt template for the condense question chain
     condense_prompt = PromptTemplate.from_template(condensed_template)
 
-    qa_prompt = ChatPromptTemplate.from_template(qa_template_chat)
     """The prompt template for the chat complete chain"""
 
     def tool_description(self, source_repr: str) -> str:
@@ -142,3 +144,89 @@ class ChatPrompt:
                 "To get started, simply select an option below; then begin typing your query or ask for help to see what I can do."
             )
         return message.strip()
+
+    def encode_image(self, image_path: str) -> str:
+        """
+        Encodes an image file into a base64 string.
+
+        This function reads an image file from the provided file path,
+        encodes its binary data into a base64 format, and returns the
+        encoded string.
+
+        Args:
+            image_path (str): The path to the image file to be encoded.
+
+        Returns:
+            str: The base64 encoded string representation of the image.
+        """
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+
+    def create_qa_prompt(
+        self, system_prompt, user_prompt, additional_user_prompts: list = None
+    ):
+        """
+        Creates a structured QA prompt template for the chat system.
+
+        This method returns a `ChatPromptTemplate` object by combining the
+        provided system-level prompt and user-level prompt messages. Additionally,
+        it can incorporate a list of extra user prompts, such as images or other media.
+
+        Args:
+            system_prompt (str): The primary prompt intended for the system's context.
+            user_prompt (str): The main prompt intended for the user's input.
+            additional_user_prompts (list, optional): A list of additional user prompts. Each entry
+                                                      in the list should be a dictionary specifying
+                                                      the type and content of the prompt.
+
+        Returns:
+            ChatPromptTemplate: A template object containing the fully structured prompt,
+                                ready to be used in the chat system.
+        """
+        user_messages = [{"type": "text", "text": user_prompt}]
+        if additional_user_prompts:
+            user_messages.extend(additional_user_prompts)
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                ("user", user_messages),
+            ]
+        )
+
+    def modality_prompt_router(self, x: dict) -> ChatPromptTemplate:
+        """
+        Routes to the appropriate QA prompt template based on the presence of image data.
+
+        This function checks if the provided dictionary `x` contains image data and returns
+        the corresponding QA prompt template. If no image data is present, it returns the
+        standard QA prompt (`qa_prompt`). If image data is present, it processes each image
+        by encoding it to base64 and appending it to the additional user prompts, then
+        creates a new QA prompt (`qa_prompt_modality`) with the included image information.
+        Args:
+            x (dict): A dictionary that may contain image data with keys as follows:
+                      - "image_data": A list of dictionaries, each containing:
+                          - "mime": The MIME type of the image (e.g., 'image/jpeg').
+                          - "path": The file path to the image to be encoded.
+        """
+        images = x.get("image_data")
+
+        if not images:
+            # Standard Prompt Template
+            return self.create_qa_prompt(self.qa_system_prompt, self.qa_user_prompt)
+
+        images_content = [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{image.mime};base64,{self.encode_image(image.path)}"
+                },
+            }
+            for image in images
+        ]
+
+        # Prompt Template for Multi-Modality (Includes Image Data)
+        return self.create_qa_prompt(
+            system_prompt=self.qa_system_prompt,
+            user_prompt=self.qa_user_prompt,
+            additional_user_prompts=images_content,
+        )
