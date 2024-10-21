@@ -136,7 +136,9 @@ class SourceQAService:
         )
         self._runnable_handlers.setup_runnable(retriever=retriever)
 
-    async def _handle_starter_message_if_needed(self, message: cl.Message) -> None:
+    async def _handle_starter_message_if_needed(
+        self, message: cl.Message
+    ) -> bool | None:
         """Handle the starter message if it's the first interaction."""
         starter_message = cl.user_session.get("starter_message", True)
         chat_profile = cl.user_session.get("chat_profile")
@@ -146,7 +148,7 @@ class SourceQAService:
 
             if message.content == "/home":
                 await self._handle_home_command(message, chat_profile)
-                return
+                return True
 
             content, source_label = self._get_starter_source_label(message.content)
             message.content = content
@@ -172,7 +174,6 @@ class SourceQAService:
     ) -> cl.Message:
         """Process the query through the runnable and stream the answer."""
         run_name = getattr(runnable, "config", {}).get("run_name", "")
-        answer = None
         sources = None
 
         final_message = cl.Message(content="")
@@ -202,7 +203,6 @@ class SourceQAService:
             ),
         ):
             if chunk_answer := chunk.get("answer"):
-                answer = chunk_answer
                 # Stream the answer token by token
                 await self._stream_answer(chunk_answer, final_message)
 
@@ -228,9 +228,7 @@ class SourceQAService:
 
         return final_message
 
-    def _update_memory(
-        self, user_message: cl.Message, ai_message: cl.Message
-    ) -> None:
+    def _update_memory(self, user_message: cl.Message, ai_message: cl.Message) -> None:
         """Update the conversation memory with the latest messages."""
         memory = get_memory(self.mode, cl.user_session)
         memory.chat_memory.add_ai_message(ai_message.content)
@@ -242,7 +240,8 @@ class SourceQAService:
         if self.mode == "tool":
             raise ValueError("Tool mode is not supported here")
 
-        await self._handle_starter_message_if_needed(user_message)
+        if await self._handle_starter_message_if_needed(user_message):
+            return
 
         runnable = cl.user_session.get("runnable")
 
