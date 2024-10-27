@@ -3,6 +3,7 @@ import asyncio
 import os
 import sys
 
+import nltk
 import toml
 from pydantic import ValidationError
 
@@ -18,6 +19,11 @@ config_path = os.getenv("SAGE_CONFIG_PATH", "config.toml")
 
 # Initialize the logger
 logger = CustomLogger()
+
+# NLTK Download
+nltk.download("punkt")
+nltk.download("punkt_tab")
+nltk.download("averaged_perceptron_tagger_eng")
 
 
 # Create the main data directory
