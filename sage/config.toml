@@ -56,16 +56,10 @@ password = "your_web_password"
 paths = ["/path/to/file1", "/path/to/file2"]
 
 [reranker]
-type = "huggingface"
 top_n = 5
-
-[reranker.cohere]
-name = "your_cohere_reranker_name"
-password = "your_cohere_password"
-
-[reranker.huggingface]
-name = "your_huggingface_reranker_name"
-revision = "your_huggingface_revision"
+model = "cohere/rerank-english-v2.0"
+#model = "BAAI/bge-reranker-large"
+revision = "55611d7bca2a7133960a6d3b71e083071bbfc312"
 
 [embedding]
 type = "huggingface"

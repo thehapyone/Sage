@@ -10,14 +10,12 @@ from pydantic import SecretStr, ValidationError
 
 from sage.utils.exceptions import ConfigException
 from sage.validators.config_toml import (
-    CohereReRanker,
     Config,
     ConfluenceModel,
     Core,
     EmbeddingsConfig,
     Files,
     GitlabModel,
-    HuggingFaceReRanker,
     Jira_Config,
     LLMConfig,
     ModelValidateType,
@@ -434,95 +432,30 @@ def test_embedding_config_no_default_values():
 
 
 ###############################################################################
-##################### Unit Tests for the CohereReRanker #######################
-
-
-def test_cohere_reranker_password_validation(monkeypatch):
-    monkeypatch.setenv("COHERE_API_KEY", "test_cohere_password")
-    reranker = CohereReRanker(name="cohere_reranker")
-    assert reranker.password.get_secret_value() == "test_cohere_password"
-
-    monkeypatch.delenv("COHERE_API_KEY", raising=False)
-    with pytest.raises(ConfigException) as exc_info:
-        CohereReRanker(name="cohere_reranker")
-    assert "The COHERE_API_KEY | config password is missing. " in str(exc_info.value)
-
-
-###############################################################################
-##################### Unit Tests for the HuggingFaceReRanker ##################
-
-
-def test_huggingface_reranker_creation():
-    reranker = HuggingFaceReRanker(name="hf_reranker", revision="v1")
-    assert reranker.name == "hf_reranker"
-    assert reranker.revision == "v1"
-
-
-###############################################################################
 ##################### Unit Tests for the ReRankerConfig #######################
 
 
-def test_reranker_config_default_top_n(monkeypatch):
-    monkeypatch.setenv("COHERE_API_KEY", "test_cohere_password")
-    reranker_config = ReRankerConfig(
-        type="cohere", cohere=CohereReRanker(name="cohere_reranker")
-    )
+def test_reranker_config_default_top_n():
+    reranker_config = ReRankerConfig(model="cohere/rerank-english-v3.0")
     assert reranker_config.top_n == 5
+    assert reranker_config.revision is None
 
 
-def test_reranker_config_custom_top_n(monkeypatch):
-    monkeypatch.setenv("COHERE_API_KEY", "test_cohere_password")
+def test_reranker_config_custom_values():
     reranker_config = ReRankerConfig(
-        type="cohere", cohere=CohereReRanker(name="cohere_reranker"), top_n=10
+        top_n=10, model="cohere/rerank-english-v3.0", revision="12345"
     )
+
     assert reranker_config.top_n == 10
-
-
-def test_reranker_config_type_validation(monkeypatch):
-    monkeypatch.setenv("COHERE_API_KEY", "test_cohere_password")
-    # Test that the type field accepts valid literals
-    reranker_config_cohere = ReRankerConfig(
-        type="cohere", cohere=CohereReRanker(name="cohere_reranker")
-    )
-    assert reranker_config_cohere.type == "cohere"
-
-    reranker_config_hf = ReRankerConfig(
-        type="huggingface",
-        huggingface=HuggingFaceReRanker(name="hf_reranker", revision="v1"),
-    )
-    assert reranker_config_hf.type == "huggingface"
-
-    # Test that an invalid type raises a ValueError
-    with pytest.raises(ConfigException):
-        ReRankerConfig(type="invalid_type")
-
-
-def test_reranker_config_provided_model_validation(monkeypatch):
-    monkeypatch.setenv("COHERE_API_KEY", "test_cohere_password")
-    # Test that the correct reranker model is provided based on the type
-    reranker_config_cohere = ReRankerConfig(
-        type="cohere", cohere=CohereReRanker(name="cohere_reranker")
-    )
-    assert reranker_config_cohere.cohere is not None
-    assert reranker_config_cohere.huggingface is None
-
-    reranker_config_hf = ReRankerConfig(
-        type="huggingface",
-        huggingface=HuggingFaceReRanker(name="hf_reranker", revision="v1"),
-    )
-    assert reranker_config_hf.huggingface is not None
-    assert reranker_config_hf.cohere is None
+    assert reranker_config.model == "cohere/rerank-english-v3.0"
+    assert reranker_config.revision == "12345"
 
 
 def test_reranker_config_missing_model_raises_exception():
-    # Test that a missing reranker model raises a ConfigException
-    with pytest.raises(ConfigException) as exc_info:
-        ReRankerConfig(type="cohere")
-    assert "The Config data for type 'cohere' is missing." in str(exc_info.value)
-
-    with pytest.raises(ConfigException) as exc_info:
-        ReRankerConfig(type="huggingface")
-    assert "The Config data for type 'huggingface' is missing." in str(exc_info.value)
+    # Test that a missing reranker model raises a ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        ReRankerConfig()
+    assert "Field required [type=missing, input_value={}, input_type=dict]" in str(exc_info.value)
 
 
 ###################################################################################
@@ -567,9 +500,7 @@ def test_config_creation_with_all_fields(setup_env_vars):
             status_todo="To Do",
         ),
         source=Source(top_k=10),
-        reranker=ReRankerConfig(
-            type="cohere", cohere=CohereReRanker(name="cohere_reranker")
-        ),
+        reranker=ReRankerConfig(model="cohere/rerank-english-v2.0"),
         embedding={
             "type": "litellm",
             "model": "openai/ada_embedding",
