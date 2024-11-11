@@ -199,7 +199,7 @@ class ReRanker(BaseDocumentCompressor):
     top_n: int = 10
     """Number of documents to return."""
     cache_dir: str = None
-    revision: str = None
+    revision: Optional[str] = None
     provider: str = "litellm"
     _hugging_reranker: BgeRerank = PrivateAttr(default=None)
 
