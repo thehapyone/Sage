@@ -23,7 +23,7 @@ from sage.sources.source_manager import (
 from sage.utils.exceptions import SourceException
 from sage.utils.labels import generate_source_label
 from sage.utils.supports import CustomFAISS as FAISS
-from sage.utils.supports import aexecute_concurrently, asyncify
+from sage.utils.supports import ReRanker, aexecute_concurrently, asyncify
 from sage.validators.config_toml import ConfluenceModel, Files, GitlabModel, Web
 
 
@@ -240,34 +240,23 @@ class Source:
             raise SourceException("There is no valid reranker configuration found")
 
         try:
-            if ranker_config.type == "cohere":
-                from langchain_cohere import CohereRerank
+            _compressor = ReRanker(
+                top_n=ranker_config.top_n,
+                model=ranker_config.model,
+                revision=ranker_config.revision,
+                cache_dir=str(core_config.data_dir / "models"),
+            )
 
-                _compressor = CohereRerank(
-                    top_n=ranker_config.top_n,
-                    model=ranker_config.cohere.name,
-                    cohere_api_key=ranker_config.cohere.password.get_secret_value(),
-                    user_agent=core_config.user_agent,
-                )
-            elif ranker_config.type == "huggingface":
-                from sage.utils.supports import BgeRerank
+            _compression_retriever = ContextualCompressionRetriever(
+                base_compressor=_compressor, base_retriever=retriever
+            )
+        except Exception as e:
+            logger.error(
+                "An error has occurred while loading the compression retriever",
+                exc_info=True,
+            )
+            raise e
 
-                _compressor = BgeRerank(
-                    name=ranker_config.huggingface.name,
-                    top_n=ranker_config.top_n,
-                    cache_dir=str(core_config.data_dir / "models"),
-                    revision=ranker_config.huggingface.revision,
-                )
-            else:
-                raise SourceException(
-                    f"Reranker type {ranker_config.type} not supported has a valid compression retriever"
-                )
-        except Exception as error:
-            raise SourceException(str(error))
-
-        _compression_retriever = ContextualCompressionRetriever(
-            base_compressor=_compressor, base_retriever=retriever
-        )
         return _compression_retriever
 
     ## Helper to create a retriever while the data input is a list of files path

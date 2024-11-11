@@ -267,40 +267,12 @@ class EmbeddingsConfig(BaseModel):
     dimension: Optional[int] = None
 
 
-class CohereReRanker(Password):
-    """The Cohere rerank schema"""
-
-    name: str
-
-    @model_validator(mode="after")
-    def set_password(self) -> "Password":
-        if self.password is None:
-            if password_env := os.getenv("COHERE_API_KEY"):
-                self.password = SecretStr(password_env)
-            else:
-                raise ConfigException(
-                    (
-                        "The COHERE_API_KEY | config password is missing. "
-                        "Please add it via an env variable or to the config password field."
-                    )
-                )
-        return self
-
-
-class HuggingFaceReRanker(BaseModel):
-    """The HuggingFace schema"""
-
-    name: str
-    revision: str
-
-
-class ReRankerConfig(ModelValidateType):
+class ReRankerConfig(BaseModel):
     """Reranker config schema"""
 
-    cohere: Optional[CohereReRanker] = None
-    huggingface: Optional[HuggingFaceReRanker] = None
-    type: Literal["cohere", "huggingface"]
     top_n: int = 5
+    model: str
+    revision: Optional[str] = None
 
 
 class LLMConfig(BaseModel):

@@ -212,12 +212,20 @@ paths = ["/path/to/file1", "/path/to/file2"]
 The [embedding] and [llm] sections configure the embedding engines and Large Language Models (LLMs) used by Sage
 
 ```toml
+## LLM and ReRanker Configuration are based on LiteLLM providers - https://docs.litellm.ai/docs/providers/
 [llm]
 model = "gpt-4-turbo"
 
 [embedding]
 type = "huggingface"
 model = "jinaai/jina-embeddings-v2-base-en"
+
+[reranker]
+top_n = 5
+model = "cohere/rerank-english-v2.0"
+#model = "BAAI/bge-reranker-large"
+revision = "55611d7bca2a7133960a6d3b71e083071bbfc312"
+
 ```
 
 ## Environment Variables for Sensitive Credentials

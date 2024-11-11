@@ -14,8 +14,9 @@ from langchain_community.chat_models import ChatLiteLLM
 from langchain_community.docstore.base import AddableMixin
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
-from litellm import aembedding, embedding
+from litellm import aembedding, arerank, embedding, rerank
 from markdown import markdown
+from pydantic import PrivateAttr, model_validator
 from sentence_transformers import CrossEncoder
 
 from sage.validators.config_toml import Config
@@ -188,6 +189,128 @@ class BgeRerank(BaseDocumentCompressor):
         if len(documents) == 0:  # to avoid empty api call
             return []
         return self._rerank(query=query, documents=documents)
+
+
+class ReRanker(BaseDocumentCompressor):
+    """Document compressor using litellm Rerank"""
+
+    model: str = "cohere/rerank-english-v3.0"
+    """Model name to use for reranking."""
+    top_n: int = 10
+    """Number of documents to return."""
+    cache_dir: str = None
+    revision: Optional[str] = None
+    provider: str = "litellm"
+    _hugging_reranker: BgeRerank = PrivateAttr(default=None)
+
+    @model_validator(mode="after")
+    def set_provider(self) -> "ReRanker":
+        """Initialize huggingface reranker if applicable"""
+        if any(x in self.model for x in ("huggingface", "BAAI")):
+            self.provider = "huggingface"
+            self._hugging_reranker = BgeRerank(
+                name=self.model,
+                top_n=self.top_n,
+                cache_dir=self.cache_dir,
+                revision=self.revision,
+            )
+        return self
+
+    @staticmethod
+    def _parse_response(
+        response: list[dict], documents: Sequence[Document]
+    ) -> Sequence[Document]:
+        """Parse rerank response and attach scores to documents"""
+        final_results = []
+        for r in response:
+            doc = documents[r["index"]]
+            doc.metadata["relevance_score"] = r["relevance_score"]
+            final_results.append(doc)
+        return final_results
+
+    def _get_document_contents(self, documents: Sequence[Document]) -> list[str]:
+        """Extract page contents from documents"""
+        return [doc.page_content for doc in documents]
+
+    def _rerank(self, query: str, documents: Sequence[Document]) -> Sequence[Document]:
+        """Rerank the documents"""
+        if not documents:
+            return []
+
+        if self._hugging_reranker:
+            result = self._hugging_reranker.compress_documents(
+                query=query, documents=documents
+            )
+            return result
+
+        response = rerank(
+            model=self.model,
+            query=query,
+            documents=self._get_document_contents(documents),
+            top_n=self.top_n,
+            return_documents=False,
+        )
+        return self._parse_response(response.results, documents)
+
+    async def _arerank(
+        self, query: str, documents: Sequence[Document]
+    ) -> Sequence[Document]:
+        """Rerank the documents"""
+        if not documents:
+            return []
+
+        if self._hugging_reranker:
+            result = self._hugging_reranker.compress_documents(
+                query=query, documents=documents
+            )
+            return result
+
+        response = await arerank(
+            model=self.model,
+            query=query,
+            documents=self._get_document_contents(documents),
+            top_n=self.top_n,
+            return_documents=False,
+        )
+        return self._parse_response(response.results, documents)
+
+    def compress_documents(
+        self,
+        documents: Sequence[Document],
+        query: str,
+        callbacks: Optional[Callbacks] = None,
+    ) -> Sequence[Document]:
+        """
+        Compress documents.
+
+        Args:
+            documents: A sequence of documents to compress.
+            query: The query to use for compressing the documents.
+            callbacks: Callbacks to run during the compression process.
+
+        Returns:
+            A sequence of compressed documents.
+        """
+        return self._rerank(query=query, documents=documents)
+
+    async def acompress_documents(
+        self,
+        documents: Sequence[Document],
+        query: str,
+        callbacks: Optional[Callbacks] = None,
+    ) -> Sequence[Document]:
+        """
+        Compress documents.
+
+        Args:
+            documents: A sequence of documents to compress.
+            query: The query to use for compressing the documents.
+            callbacks: Callbacks to run during the compression process.
+
+        Returns:
+            A sequence of compressed documents.
+        """
+        return await self._arerank(query=query, documents=documents)
 
 
 def markdown_to_text_using_html2text(markdown_text: str) -> str:

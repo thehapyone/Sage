@@ -153,3 +153,10 @@ img[alt="logo"] {
     background-color: #0f0f0f !important;
     color: #d3e2df !important;
 }
+
+
+/* Targeting code elements within specific div class */
+.MuiBox-root.css-13s85fp code {
+    background-color: #0f0f0f !important;
+    color: white !important;
+}
