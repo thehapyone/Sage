@@ -8,17 +8,21 @@ from crewai.llm import LLM
 from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
 from langchain_core.runnables import RunnableConfig
-from pydantic import (
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import Field, field_validator, model_validator, BaseModel
 
 from sage.agent.memory import (
     CustomRAGStorage,
 )
+from sage.agent.tools_finder import discover_tools, BaseTool
 from sage.utils.exceptions import ConfigException
 from sage.validators.config_toml import Core
+
+
+class ToolsConfig(BaseModel):
+    """ToolsConfig model"""
+
+    name: str
+    args: Optional[dict[str, Any]] = None
 
 
 class TaskConfig(Task):
@@ -38,10 +42,64 @@ class AgentConfig(Agent):
     allow_delegation: bool = Field(
         default=False, description="Allow delegation of tasks to agents"
     )
-    runnable_config: Optional[RunnableConfig] = Field(
-        default=None,
-        description="A runnable configuration to be used by the AgentExecutor",
+    tools: Optional[List[ToolsConfig | BaseTool | str | dict]] = Field(
+        default_factory=list, description="Tools at agents' disposal"
     )
+
+    @field_validator("tools")
+    @classmethod
+    def validate_tools(cls, tools: list):
+        """
+        Validates and initializes tools for an agent from a list of tool configurations.
+
+        This validator performs the following:
+        1. If no tools are provided, returns empty list
+        2. Discovers available tool classes dynamically
+        3. For each tool entry (either string name or dict with name/args):
+            - Validates the tool exists in available tools
+            - Initializes the tool with provided arguments if any
+            - Adds initialized tool instance to list
+
+        Args:
+            tools (list): List of tool configurations, where each entry can be either:
+                         - String: Just the tool name
+                         - Dict: Tool name and optional arguments
+
+        Returns:
+            list: List of initialized tool instances
+
+        Raises:
+            ValueError: If tool format is invalid, tool is not available, or initialization fails
+        """
+        if not tools:
+            return tools
+
+        # Discover available tools dynamically
+        available_tool_classes: dict[str, type[BaseTool]] = discover_tools()
+
+        initialized_tools = []
+        for tool_entry in tools:
+            if isinstance(tool_entry, str):
+                tool_name = tool_entry
+                tool_args = {}
+            elif isinstance(tool_entry, dict):
+                tool_name = tool_entry.get("name")
+                tool_args = tool_entry.get("args", {})
+            else:
+                raise ValueError(f"Invalid tool format: {tool_entry}")
+
+            tool_cls = available_tool_classes.get(tool_name)
+            if not tool_cls:
+                raise ValueError(f"Tool '{tool_name}' is not available.")
+
+            try:
+                tool_instance = tool_cls(**tool_args) if tool_args else tool_cls()
+            except Exception as e:
+                raise ValueError(f"Error initializing tool '{tool_name}': {e}")
+
+            initialized_tools.append(tool_instance)
+
+        return initialized_tools
 
 
 def configure_long_term_memory(db_storage_path: str, name: str) -> LongTermMemory:
