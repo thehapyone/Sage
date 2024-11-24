@@ -7,13 +7,12 @@ from crewai import Agent, Crew, Task
 from crewai.llm import LLM
 from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
-from langchain_core.runnables import RunnableConfig
-from pydantic import Field, field_validator, model_validator, BaseModel
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from sage.agent.memory import (
     CustomRAGStorage,
 )
-from sage.agent.tools_finder import discover_tools, BaseTool
+from sage.agent.tools_finder import BaseTool, discover_tools
 from sage.utils.exceptions import ConfigException
 from sage.validators.config_toml import Core
 

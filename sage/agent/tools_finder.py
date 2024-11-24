@@ -1,10 +1,12 @@
 import importlib
-import pkgutil
 import inspect
-from typing import Dict, Type, List
-import sys
 import os
-from crewai_tools import Tool, BaseTool
+import pkgutil
+import sys
+from typing import Dict, List, Type
+
+from crewai_tools import BaseTool, Tool
+
 from sage.utils.exceptions import ToolDiscoveryException
 from sage.utils.logger import CustomLogger
 

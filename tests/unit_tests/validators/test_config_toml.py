@@ -455,7 +455,9 @@ def test_reranker_config_missing_model_raises_exception():
     # Test that a missing reranker model raises a ValidationError
     with pytest.raises(ValidationError) as exc_info:
         ReRankerConfig()
-    assert "Field required [type=missing, input_value={}, input_type=dict]" in str(exc_info.value)
+    assert "Field required [type=missing, input_value={}, input_type=dict]" in str(
+        exc_info.value
+    )
 
 
 ###################################################################################
