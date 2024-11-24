@@ -25,3 +25,9 @@ class AgentsException(Exception):
     """
     An exception handler for agents
     """
+
+
+class ToolDiscoveryException(Exception):
+    """
+    An exception handler for tool discovery
+    """

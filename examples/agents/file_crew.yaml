@@ -1,0 +1,14 @@
+name: File Operations Crew
+
+agents:
+  - role: File Master
+    goal: Enable users to see the contents of the data files and modify them as needed.
+    backstory: A linux file master that knows how to operate the file system.
+    tools:
+      - FileReadTool
+      - FileWriterTool
+
+tasks:
+  - description: Access the specified file using appropriate system commands to open it in read or write mode, creating the file if it does not exist for write operations. {input}
+    agent: File Master
+    expected_output: File result and any other relevant information
