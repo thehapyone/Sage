@@ -2,6 +2,26 @@
 
 This document provides detailed instructions on how to configure the Sage application to suit your specific needs and environment. Sage uses a TOML configuration file to manage various settings and preferences.
 
+
+## Extra Packages
+
+It is possible to tell sage to install extra packages in your environment that are not pre-installed. This could be useful for extending the application functionality.
+```extra_packages.txt
+[apt]
+libreoffice
+unzip
+
+[pip]
+python-docx
+pandas
+```
+Make you sure this extra_packages.txt file is mounted intot the container volume during runtime like below
+
+```yml
+    volumes:
+      - ${SAGE_HOME}/extra_packages.txt:/home/appuser/extra_packages.txt
+```
+
 ## Starters Configuration
 
 Configuring starters is straightforward and requires editing a YAML configuration file. Each starter consists of a user-friendly label, a pre-defined message that sets the context or action for the AI, an optional icon to visually represent the action, and an optional source identifier that specifies the context for the message.

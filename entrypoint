@@ -3,6 +3,7 @@
 # custom certificate authority path
 CA_CERTIFICATES_PATH=/home/appuser/certs/ca-bundle.crt
 LOCAL_CA_PATH="/usr/local/share/ca-certificates"
+EXTRA_PACKAGES_FILE=/home/appuser/extra_packages.txt
 
 update_ca() {
   echo "Updating CA certificates..."
@@ -20,6 +21,28 @@ update_ca() {
   update-ca-certificates --fresh >/dev/null
 }
 
+install_extra_packages() {
+  if [ -f "${EXTRA_PACKAGES_FILE}" ]; then
+    echo "Installing extra packages from ${EXTRA_PACKAGES_FILE}..."
+    
+    # Install OS packages
+    APT_PACKAGES=$(awk '/^\[apt\]/ {flag=1; next} /^\[/ {flag=0} flag && NF {print}' "${EXTRA_PACKAGES_FILE}")
+    if [ -n "${APT_PACKAGES}" ]; then
+      echo "Installing OS packages..."
+      apt-get update && apt-get install -y ${APT_PACKAGES}
+    fi
+
+    # Install Python packages
+    PIP_PACKAGES=$(awk '/^\[pip\]/ {flag=1; next} /^\[/ {flag=0} flag && NF {print}' "${EXTRA_PACKAGES_FILE}")
+    if [ -n "${PIP_PACKAGES}" ]; then
+      echo "Installing Python packages..."
+      poetry add ${PIP_PACKAGES}
+    fi
+  else
+    echo "No extra_packages.txt found. Skipping extra package installation."
+  fi
+}
+
 run_app() {
   # Check the MODE environment variable to determine which process to start
   if [ "$MODE" == "DATA_LOADER" ]; then
@@ -29,13 +52,13 @@ run_app() {
     echo "Starting the chat service..."
     exec su -s /bin/bash -c "exec chainlit run -h --host 0.0.0.0 --port=8000 /home/appuser/sage/chat.py" appuser
   fi
-
 }
 
 if [ -f "${CA_CERTIFICATES_PATH}" ]; then
   update_ca
 fi
 
+install_extra_packages
 chown -R appuser:appuser /home/appuser
 
 run_app

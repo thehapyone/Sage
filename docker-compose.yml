@@ -22,6 +22,9 @@ services:
       - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
       - sage_data:/home/appuser/data
       - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt
+      - ${SAGE_HOME}/starters.yaml:/home/appuser/sage/starters.yaml
+      - ${SAGE_HOME}/agents:/home/appuser/sage/data/agents:ro
+      - ${SAGE_HOME}/extra_packages.txt:/home/appuser/extra_packages.txt
 
   data_loader:
     image: thehapyone/codesage:latest

@@ -1,0 +1,7 @@
+[apt]
+libreoffice
+unzip
+
+[pip]
+python-docx
+pandas
