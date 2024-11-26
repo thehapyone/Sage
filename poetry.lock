@@ -1204,35 +1204,6 @@ test = ["certifi", "cryptography-vectors (==43.0.3)", "pretend", "pytest (>=6.2.
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
-name = "curl-cffi"
-version = "0.7.3"
-description = "libcurl ffi bindings for Python, with impersonation support."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "curl_cffi-0.7.3-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:890f1b0e1454977ff6bd388d29eb1eafb76bb8ef63d3c8b7539aafd4808a6cec"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:b5520bcf6284417e66c82728512e344b50bc0e9d8bd7949923b30558746b49a3"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:43367efb8d48e9997cf7591084ed7529409ad98bb67e284ae152f2a15e4ee68e"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:ec6718bc5151b3e0ecc35aaf40078a39cc239405182c63fc95933eb7bff572dd"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9a90bfd0bcc7bf0f30ef6de6f4e612ea1bdc238a48928845532109a0273f6275"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:3f9373ce27b20e65fb1e6cbea6e4411edca1f3b4440be68090b262eece728544"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:a357d3da6aa8ccd41f1e6e422b9ff09ad4cc99b23b8f6299998cbfee6e690f01"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-win32.whl", hash = "sha256:fe01be42c27667353028ee06802cc32e3936496e645a39175db4cf7bea45bb10"},
-    {file = "curl_cffi-0.7.3-cp38-abi3-win_amd64.whl", hash = "sha256:39e195a13b95bd7e4a1e8eb7804807b4504c462f6886fde01dfe4b7552fd965e"},
-    {file = "curl_cffi-0.7.3.tar.gz", hash = "sha256:901012e21af899bdf1278fd9fcee5aad6931ed56e1f5a620ffa90220c9e79f10"},
-]
-
-[package.dependencies]
-certifi = ">=2024.2.2"
-cffi = ">=1.12.0"
-typing-extensions = "*"
-
-[package.extras]
-build = ["cibuildwheel", "wheel"]
-dev = ["charset-normalizer (>=3.3.2,<4.0)", "coverage (>=6.4.1,<7.0)", "cryptography (>=42.0.5,<43.0)", "httpx (==0.23.1)", "mypy (>=1.9.0,<2.0)", "pytest (>=8.1.1,<9.0)", "pytest-asyncio (>=0.23.6,<1.0)", "pytest-trio (>=0.8.0,<1.0)", "ruff (>=0.3.5,<1.0)", "trio (>=0.25.0,<1.0)", "trustme (>=1.1.0,<2.0)", "uvicorn (>=0.29.0,<1.0)", "websockets (>=12.0,<13.0)"]
-test = ["charset-normalizer (>=3.3.2,<4.0)", "cryptography (>=42.0.5,<43.0)", "fastapi (==0.110.0)", "httpx (==0.23.1)", "proxy.py (>=2.4.3,<3.0)", "pytest (>=8.1.1,<9.0)", "pytest-asyncio (>=0.23.6,<1.0)", "pytest-trio (>=0.8.0,<1.0)", "python-multipart (>=0.0.9,<1.0)", "trio (>=0.25.0,<1.0)", "trustme (>=1.1.0,<2.0)", "uvicorn (>=0.29.0,<1.0)", "websockets (>=12.0,<13.0)"]
-
-[[package]]
 name = "cycler"
 version = "0.12.1"
 description = "Composable style cycles"
@@ -1371,22 +1342,22 @@ files = [
 
 [[package]]
 name = "duckduckgo-search"
-version = "4.1.1"
+version = "6.3.7"
 description = "Search for words, documents, images, news, maps and text translation using the DuckDuckGo.com search engine."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "duckduckgo_search-4.1.1-py3-none-any.whl", hash = "sha256:5b3b7d8dd0192510af79597bcfa267824a3a1006030615b7f8b66e1b9f4b4cb0"},
-    {file = "duckduckgo_search-4.1.1.tar.gz", hash = "sha256:3f81872fc8cc54c0acd100f1ab3f4ba6580b696000100e56e8a7131c3963e2c8"},
+    {file = "duckduckgo_search-6.3.7-py3-none-any.whl", hash = "sha256:6a831a27977751e8928222f04c99a5d069ff80e2a7c78b699c9b9ac6cb48c41b"},
+    {file = "duckduckgo_search-6.3.7.tar.gz", hash = "sha256:53d84966429a6377647e2a1ea7224b657575c7a4d506729bdb837e4ee12915ed"},
 ]
 
 [package.dependencies]
 click = ">=8.1.7"
-curl-cffi = ">=0.5.10"
-lxml = ">=4.9.3"
+primp = ">=0.8.1"
 
 [package.extras]
-dev = ["pytest (>=7.4.2)", "pytest-asyncio (>=0.21.1)", "ruff (>=0.1.6)"]
+dev = ["mypy (>=1.11.1)", "pytest (>=8.3.1)", "pytest-asyncio (>=0.23.8)", "ruff (>=0.6.1)"]
+lxml = ["lxml (>=5.2.2)"]
 
 [[package]]
 name = "durationpy"
@@ -5375,6 +5346,27 @@ sentry = ["django", "sentry-sdk"]
 test = ["coverage", "django", "flake8", "freezegun (==0.3.15)", "mock (>=2.0.0)", "pylint", "pytest", "pytest-timeout"]
 
 [[package]]
+name = "primp"
+version = "0.8.1"
+description = "HTTP client that can impersonate web browsers, mimicking their headers and `TLS/JA3/JA4/HTTP2` fingerprints"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "primp-0.8.1-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:8294db817701ad76b6a186c16e22cc49d36fac5986647a83657ad4a58ddeee42"},
+    {file = "primp-0.8.1-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:e8117531dcdb0dbcf9855fdbac73febdde5967ca0332a2c05b5961d2fbcfe749"},
+    {file = "primp-0.8.1-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:993cc4284e8c5c858254748f078e872ba250c9339d64398dc000a8f9cffadda3"},
+    {file = "primp-0.8.1-cp38-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:4a27ac642be5c616fc5f139a5ad391dcd0c5964ace56fe6cf31cbffb972a7480"},
+    {file = "primp-0.8.1-cp38-abi3-manylinux_2_34_armv7l.whl", hash = "sha256:e8483b8d9eec9fc43d77bb448555466030f29cdd99d9375eb75155e9f832e5bd"},
+    {file = "primp-0.8.1-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:92f5f8267216252cfb27f2149811e14682bb64f0c5d37f00d218d1592e02f0b9"},
+    {file = "primp-0.8.1-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:98f7f3a9481c55c56e7eff9024f29e16379a87d5b0a1b683e145dd8fcbdcc46b"},
+    {file = "primp-0.8.1-cp38-abi3-win_amd64.whl", hash = "sha256:6f0018a26be787431504e32548b296a278abbe85da43bcbaf2d4982ac3dcd332"},
+    {file = "primp-0.8.1.tar.gz", hash = "sha256:ddf05754a7b70d59df8a014a8585e418f9c04e0b69065bab6633f4a9b92bad93"},
+]
+
+[package.extras]
+dev = ["certifi", "pytest (>=8.1.1)"]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.48"
 description = "Library for building powerful interactive command lines in Python"
@@ -8679,4 +8671,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "d220a2d565c2c55d619e4c3f514116dd72ea418653c47288a9588e8e6e55b956"
+content-hash = "0c491aa407d2671b7a92b1bdf51c4a8fc33a3cf38115ef012729ed877c3db8cb"
