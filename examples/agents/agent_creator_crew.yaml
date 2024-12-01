@@ -5,6 +5,7 @@ memory: True
 agents:
   - role: Requirements Analyst
     goal: Gather and define the requirements for the new crew, with specific attention to the chosen process type.
+    llm: azure/gpt4-128k
     backstory: |
       An experienced analyst with a deep understanding of various domains and the ability to translate user needs into clear, actionable requirements.
 
@@ -80,6 +81,7 @@ agents:
 
   - role: Configuration Formatter
     goal: Format the gathered information into a complete YAML configuration file that defines the crew, ensuring compatibility with the selected process.
+    llm: azure/gpt4-128k
     backstory: |
       A detail-oriented specialist with expertise in YAML and configuration file formats.
 
