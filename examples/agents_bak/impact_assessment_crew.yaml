@@ -1,19 +1,8 @@
 name: Impact Assessment Crew
 process: hierarchical
-memory: False
-cache: True
-planning: True
-manager_agent: Orchestrator
-planning_llm: azure/gpt4-128k
-
+memory: True
 
 agents:
-  - role: MR Retriever
-    goal: Retrieve all data about the merge request for further processing from the GitLab API
-    backstory: An adept communicator with GitLab, retrieving and presenting all information efficiently.
-    tools:
-      - GitlabMergeRequestTool
-
   - role: Content Analysis Agent
     goal: Categorize the changed files (e.g., code, documentation, configuration, assets) and assign an impact score based on content type significance on a scale from 0 to 10.
     backstory: An expert in file content who can quickly identify the nature of file changes. Capable of reasoning and deduction to understand file types and their impact.
@@ -42,23 +31,7 @@ agents:
       Integrate the assessments from all other agents, applying configured weights to each score, to compute an overall impact score on a scale from 0 to 10, and provide a comprehensive impact assessment report.
     backstory: A methodical analyst who integrates various inputs to produce a comprehensive impact evaluation. Capable of reasoning to aggregate results, apply weights, and produce an overall impact score and detailed report.
 
-  - role: Orchestrator
-    goal: |
-      Facilitate seamless collaboration among specialized agents by managing the shared context, sequencing agent tasks dynamically, and preserving rich contextual information.
-      This ensures that each agent has the relevant data to perform its task and that their outputs collectively enable an accurate and comprehensive assessment of the merge request (MR). In order to ensure accurate evaluation by the agents, you always provide unsummarised MR changes diffs and summarize description to the all the agents so they get the full context of the MR to make a more reflective deciesion.
-    backstory: |
-      A resourceful and adaptable coordinator, the Orchestrator was designed to streamline complex workflows by fostering efficient communication and collaboration.
-      As a digital maestro, it ensures every agent's output is not only utilized effectively but also enriched with insights from other agents.
-      The Orchestrator values transparency, maintaining a detailed audit trail of all interactions while balancing efficiency and precision in decision-making.
-    allow_delegation: True
-
 tasks:
-  - description: |
-      Retrieve MR details using the GitLab API. User Input: {input}
-    agent: MR Retriever
-    expected_output: |
-      Obtain complete MR details, including metadata (e.g., title, author, status) and diffs. Ensure the full MR changes/diffs are included
-
   - description: Analyze the content of the changed files in the MR. Categorize them (e.g., code, documentation, configuration, assets) and assess their significance based on content type.
     agent: Content Analysis Agent
     expected_output: Categorization of file changes with an initial impact score between 0 and 10 based on content types.
@@ -70,9 +43,12 @@ tasks:
 
   - description: Assess whether the MR includes changes to test files or impacts test coverage. Determine if new tests are added or existing tests are modified, and provide recommendations if coverage is inadequate.
     agent: Test Coverage Agent
+    expected_output: Categorization of file changes with an initial impact score between 0 and 10 based on content types.
+
+  - description: Identify any potential risks introduced by the changes, such as modifications to critical files or configurations. Evaluate the severity of these risks.
+    agent: Risk Assessment Agent
     expected_output: |
-      A test coverage impact score between 0 and 10, reflecting the changes' effect on test coverage.
-      Recommendations if test coverage is inadequate.
+      A risk impact score between 0 and 10, highlighting any critical changes. Higher scores indicate higher levels of risk.
 
   - description: Identify any potential risks introduced by the changes, such as modifications to critical files or configurations. Evaluate the severity of these risks.
     agent: Risk Assessment Agent

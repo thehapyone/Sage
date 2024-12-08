@@ -1,5 +1,5 @@
 name: MR Input Processing Crew
-process: Sequential
+process: sequential
 memory: True
 
 agents:
@@ -8,121 +8,41 @@ agents:
     backstory: A meticulous gatekeeper who verifies inputs before processing begins.
 
   - role: MR Retriever
-    goal: Retrieve all necessary data about the merge request for further processing from the GitLab API
-    backstory: An adept communicator with GitLab, retrieving information efficiently.
+    goal: Retrieve all data about the merge request for further processing from the GitLab API
+    backstory: An adept communicator with GitLab, retrieving and presenting all information efficiently.
     tools:
-      - GitlabAPITool
+      - GitlabMergeRequestTool
 
   - role: Change Extractor
-    goal: Prepare structured and enriched change data of a Merge request, including detailed annotations and categorizations, for an Impact Assessment evaluation.
+    goal: Prepare structured and enriched change data of a Merge request, including detailed diffs/changes, annotations and categorizations, for a deep Impact Assessment evaluation.
     backstory: A diligent analyst who dissects changes for clarity.
 
 tasks:
-  - description: Validate the provided MR input and extract identifiers. {input}
+  - description: |
+      Validate the provided MR input and extract identifiers. User Input: {input}
     agent: Input Handler
     expected_output: Valid MR identifiers or error message.
 
-  - description: Retrieve MR details using the GitLab API.
+  - description: |
+      Retrieve MR details using the GitLab API.
     agent: MR Retriever
     expected_output: |
-      MR details including metadata and diffs..
-
-      Suggestion on expected output:
-      {  
-          'mr': {  
-              'id': <int>,  # MR ID  
-              'iid': <int>,  # MR internal ID within the project  
-              'project_id': <int>,  
-              'title': <str>,  
-              'description': <str>,  
-              'state': <str>,  
-              'created_at': <str>,  # ISO 8601 timestamp  
-              'updated_at': <str>,  # ISO 8601 timestamp  
-              'author': {  
-                  'id': <int>,  
-                  'username': <str>,  
-                  'name': <str>,  
-                  'email': <str>,  # May require additional API call  
-              },  
-              'assignees': [  
-                  {  
-                      'id': <int>,  
-                      'username': <str>,  
-                      'name': <str>,  
-                      'email': <str>,  # May require additional API call  
-                  },  
-                  # ... more assignees  
-              ],  
-              'source_branch': <str>,  
-              'target_branch': <str>,  
-              'labels': [<str>, <str>, ...],  
-              'web_url': <str>,  
-              'merge_status': <str>,  
-              'pipeline_status': <str>,  # Custom field added after fetching pipeline info  
-              'approvals_required': <int>,  
-              'approvals_received': <int>,  
-              'discussion_unresolved_count': <int>,  # Optional  
-          },  
-          'changes': [  
-              {  
-                  'old_path': <str>,  
-                  'new_path': <str>,  
-                  'a_mode': <str>,  # File mode before change  
-                  'b_mode': <str>,  # File mode after change  
-                  'new_file': <bool>,  
-                  'renamed_file': <bool>,  
-                  'deleted_file': <bool>,  
-                  'diff': <str>,  # Diff content in unified diff format  
-                  'lines_added': <int>,  
-                  'lines_removed': <int>,  
-              },  
-              # ... more file changes  
-          ],  
-          'stats': {  
-              'total_files_changed': <int>,  
-              'total_lines_added': <int>,  
-              'total_lines_removed': <int>,  
-          },  
-      }
+      Obtain complete MR details, including metadata (e.g., title, author, status) and diffs. Ensure the full MR changes/diffs are included
 
   - description: |
-      Extract change information from the MR diffs and preprocess it.  
+      Extract change information from the MR diffs and preprocess it. User Input: {input}
       For each file change:  
         - Determine the file type (code, documentation, configuration, etc.) based on file extension and path.  
         - Detect the programming language or file format.  
         - Classify the change type (added, modified, deleted, renamed).  
-        - Identify critical files by comparing file paths with a predefined list.  
+        - Identify critical files.  
         - Detect test files based on naming conventions and directory structure.  
         - Parse the diff content to extract meaningful information and structure it for further analysis.  
         - Calculate preliminary code complexity metrics where applicable.  
         - Compile all extracted and enriched data into a structured format as per the expected output.  
         - Provide an enriched response that is finally used for an Impact Assessment of the overall MR change.
 
-      Suggestion on expected ouput:
-      [  
-        {  
-            'file_path': <str>,  
-            'file_type': <str>,  # 'code', 'documentation', 'configuration', 'test', 'asset', etc.  
-            'language': <str>,   # 'Python', 'JavaScript', 'Markdown', etc.  
-            'change_type': <str>,  # 'added', 'modified', 'deleted', 'renamed'  
-            'is_critical': <bool>,  # True if in critical files list  
-            'is_test_file': <bool>,  # True if identified as a test file  
-            'lines_added': <int>,  
-            'lines_removed': <int>,  
-            'complexity_metrics': {  
-                # Language-specific metrics  
-                'functions_added': <int>,  
-                'functions_removed': <int>,  
-                'classes_added': <int>,  
-                'classes_removed': <int>,  
-                # Additional metrics if available  
-            },  
-            'diff_parsed': {  
-                # Structured representation of the diff, e.g., list of hunks  
-                # Could include added/removed lines with line numbers  
-            }  
-        },  
-        # ... more file change entries  
-      ]
+      Remember to include any further information about the MR that could be important for a deep-down impact assessment
+
     agent: Change Extractor
     expected_output: Structured change data ready for impact assessment.
