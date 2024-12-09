@@ -12,7 +12,9 @@ agents:
     goal: Retrieve all data about the merge request for further processing from the GitLab API
     backstory: An adept communicator with GitLab, retrieving and presenting all information efficiently.
     tools:
-      - GitlabMergeRequestTool
+      - name: GitlabMergeRequestTool
+        args: 
+          result_as_answer: true
 
   - role: Content Analysis Agent
     goal: Categorize the changed files (e.g., code, documentation, configuration, assets) and assign an impact score based on content type significance on a scale from 0 to 10.

@@ -21,7 +21,7 @@ class ToolsConfig(BaseModel):
     """ToolsConfig model"""
 
     name: str
-    args: Optional[dict[str, Any]] = None
+    args: dict[str, Any] = {}
 
 
 class TaskConfig(Task):
@@ -34,7 +34,7 @@ class AgentConfig(Agent):
     allow_delegation: bool = Field(
         default=False, description="Allow delegation of tasks to agents"
     )
-    tools: Optional[List[ToolsConfig | BaseTool | str | dict]] = Field(
+    tools: Optional[List[ToolsConfig | BaseTool | str ]] = Field(
         default_factory=list, description="Tools at agents' disposal"
     )
 
@@ -76,9 +76,9 @@ class AgentConfig(Agent):
             if isinstance(tool_entry, str):
                 tool_name = tool_entry
                 tool_args = {}
-            elif isinstance(tool_entry, dict):
-                tool_name = tool_entry.get("name")
-                tool_args = tool_entry.get("args", {})
+            elif isinstance(tool_entry, ToolsConfig):
+                tool_name = tool_entry.name
+                tool_args = tool_entry.args
             else:
                 raise ValueError(f"Invalid tool format: {tool_entry}")
 
