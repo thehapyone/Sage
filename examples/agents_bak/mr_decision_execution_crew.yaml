@@ -1,6 +1,5 @@
 name: MR Decision and Execution Crew
 process: sequential
-memory: True
 
 agents:
   - role: Commenter Agent

@@ -218,7 +218,7 @@ class GitLabAPIWrapperExtra(GitLabAPIWrapper):
         """
         try:
             mr = self.gitlab_repo_instance.mergerequests.get(mr_iid)
-            mr.notes.create({"body": comment})
+            mr.notes.create({"body": comment.strip()})
             return f"Successfully posted comment to Merge Request {mr_iid}."
         except Exception as e:
             return f"Failed to post comment to Merge Request {mr_iid}: {str(e)}"
@@ -277,7 +277,26 @@ class GitLabAPIWrapperExtra(GitLabAPIWrapper):
                 }
             ]
 
-    def run(self, mode: str, query: str) -> str:
+    def approve_merge_request(self, mr_iid: int) -> str:
+        """
+        Approves a merge request.
+
+        Parameters:
+            mr_iid (int): The internal ID (iid) of the merge request.
+
+        Returns:
+            str: Success or failure message.
+        """
+        try:
+            # Retrieve the merge request
+            mr = self.gitlab_repo_instance.mergerequests.get(mr_iid)
+            # Approve the merge request
+            mr.approve()
+            return f"Successfully approved Merge Request {mr_iid}."
+        except Exception as e:
+            return f"Failed to approve Merge Request {mr_iid}: {str(e)}"
+
+    def run(self, mode: str, query: str = "", body: dict = {}) -> str:
         # Parent class handling
         original_modes = {
             "get_issues",
@@ -302,12 +321,14 @@ class GitLabAPIWrapperExtra(GitLabAPIWrapper):
                 return "Invalid input. Please provide the Merge Request number as an integer."
         elif mode == "post_merge_request_comment":
             try:
-                mr_iid, comment = query.split("\n\n", 1)
-                mr_iid = int(mr_iid.strip())
-                comment = comment.strip()
-                return self.post_merge_request_comment(mr_iid, comment)
+                return self.post_merge_request_comment(**body)
             except ValueError:
                 return "Invalid input format. Expected:\n<mr_iid>\n\n<comment>"
+        elif mode == "approve_merge_request":
+            try:
+                return self.approve_merge_request(**body)
+            except ValueError:
+                return "Invalid input format."
         elif mode == "post_merge_request_thread_comment":
             try:
                 parts = query.split("\n\n", 2)
@@ -332,10 +353,6 @@ class GitLabAPIWrapperExtra(GitLabAPIWrapper):
 
 # prompt.py (continued)
 
-LIST_MERGE_REQUESTS_PROMPT = """
-This tool will fetch a list of the repository's merge requests. It will return basic details such as MR number, title, state, creation date, and author. It takes an optional input to filter by state (opened, closed, merged, all). If no input is provided, it defaults to 'all'.
-Example input: "opened"
-"""
 
 GET_MERGE_REQUEST_PROMPT = """
 This tool will fetch the complete details of a specific merge request.
@@ -343,17 +360,21 @@ Example input: {\"merge_request_iid\": \"10\"}
 """
 
 POST_MERGE_REQUEST_COMMENT_PROMPT = """
-This tool is useful when you need to post a comment to a merge request in the GitLab repository. **VERY IMPORTANT**: Your input to this tool MUST strictly follow these rules:
+This tool is useful when you need to post a comment to a merge request in the GitLab repository.
     
-- First, you must specify the merge request number (IID) as an integer.
-- Then, you must place two newlines.
-- Then, you must specify your comment.
+For example, to post a comment "Looks good to me!" to merge request number 10:
+
+Example input: {\"merge_request_iid\": \"10\", \"comment\": \"Looks good to me!\"}
+
+"""
+
+APPROVE_MERGE_REQUEST_PROMPT = """
+This tool is useful when you need to approve a merge request in a GitLab repository.
     
-For example, to post a comment "Looks good to me!" to merge request number 10, you would pass in the following string:
+For example, to approve a merge request number 10:
 
-10
+Example input: {\"merge_request_iid\": \"10\"}
 
-Looks good to me!
 """
 
 POST_MERGE_REQUEST_THREAD_COMMENT_PROMPT = """
@@ -372,11 +393,6 @@ For example, to reply "I agree with your assessment." to comment ID 5 in merge r
 5
 
 I agree with your assessment.
-"""
-
-GET_MERGE_REQUEST_COMMENTS_PROMPT = """
-This tool will fetch all comments for a specific merge request. **VERY IMPORTANT**: You must specify the merge request number (IID) as an integer.
-Example input: "10"
 """
 
 
@@ -412,7 +428,72 @@ class GitlabMergeRequestTool(BaseTool):
         return self.api_wrapper.run(self.mode, str(mr_iid))
 
 
-# Example usage
+class GitlabCommentToolSchema(BaseModel):
+    """Input for GitlabTools."""
+
+    merge_request_iid: str = Field(
+        ..., description="The project level ID of the merge request"
+    )
+    comment: str = Field(
+        ..., description="The merge request comment to be posted to the MR"
+    )
+
+
+class GitlabMergeCommentTool(BaseTool):
+    """Tool for posting merge comments using the Gitlab API."""
+
+    mode: str = "post_merge_request_comment"
+    name: str = "Post Merge Requests Comment"
+    description: str = POST_MERGE_REQUEST_COMMENT_PROMPT
+    args_schema: Type[BaseModel] = GitlabCommentToolSchema
+    api_wrapper: GitLabAPIWrapperExtra = GitLabAPIWrapperExtra(
+        gitlab_branch="main",
+    )
+
+    def _run(
+        self,
+        **kwargs: Any,
+    ) -> str:
+        """Use the GitLab API to run an operation."""
+        mr_iid = kwargs.get("merge_request_iid")
+        mr_comment = kwargs.get("comment")
+
+        if not (mr_iid or mr_comment):
+            return "The Merge Request IID and message are required."
+
+        return self.api_wrapper.run(
+            self.mode, body={"mr_iid": mr_iid, "comment": mr_comment}
+        )
+
+
+class GitlabMergeApprovalTool(BaseTool):
+    """Tool for approving Gitlab merge requests."""
+
+    mode: str = "approve_merge_request"
+    name: str = "Approve Merge Requests Comment"
+    description: str = APPROVE_MERGE_REQUEST_PROMPT
+    args_schema: Type[BaseModel] = GitlabToolSchema
+    api_wrapper: GitLabAPIWrapperExtra = GitLabAPIWrapperExtra(
+        gitlab_branch="main",
+    )
+
+    def _run(
+        self,
+        **kwargs: Any,
+    ) -> str:
+        """Use the GitLab API to run an operation."""
+        mr_iid = kwargs.get("merge_request_iid")
+
+        if not mr_iid:
+            return "The Merge Request IID are required."
+
+        return self.api_wrapper.run(self.mode, body={"mr_iid": int(mr_iid)})
+
+
+# # Example usage
 # if __name__ == "__main__":
-#     mr_iid = 50  # Replace with your MR IID
-#     print(analyze_merge_request(mr_iid))
+#     mr_iid = 51  # Replace with your MR IID
+#     api_wrapper = GitLabAPIWrapperExtra(
+#         gitlab_branch="main",
+#     )
+#     print(api_wrapper.approve_merge_request(mr_iid))

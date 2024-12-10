@@ -1076,30 +1076,31 @@ toml = ["tomli"]
 
 [[package]]
 name = "crewai"
-version = "0.79.4"
+version = "0.86.0"
 description = "Cutting-edge framework for orchestrating role-playing, autonomous AI agents. By fostering collaborative intelligence, CrewAI empowers agents to work together seamlessly, tackling complex tasks."
 optional = false
 python-versions = "<=3.13,>=3.10"
 files = [
-    {file = "crewai-0.79.4-py3-none-any.whl", hash = "sha256:2236e471a17a3712005f7b590e6f5b627652153d0b16104ffc4747f45e8f6a48"},
-    {file = "crewai-0.79.4.tar.gz", hash = "sha256:9ffc32f68ec3ff31e72f971d21b220946debb5d52c890afd19dddf09ad632f13"},
+    {file = "crewai-0.86.0-py3-none-any.whl", hash = "sha256:ef1ff4b3df85a72eda2d64ea6fcd7f53461271e13822ff4937d0fa41055ef025"},
+    {file = "crewai-0.86.0.tar.gz", hash = "sha256:30c8a1f185ea47c552e3aa4b4ef128c0cd5ca5e93c4b1454830b517c7bde55ed"},
 ]
 
 [package.dependencies]
 appdirs = ">=1.4.4"
 auth0-python = ">=4.7.1"
-chromadb = ">=0.4.24"
+chromadb = ">=0.5.18"
 click = ">=8.1.7"
-crewai-tools = ">=0.14.0"
+crewai-tools = ">=0.17.0"
 instructor = ">=1.3.3"
 json-repair = ">=0.25.2"
 jsonref = ">=1.1.0"
-langchain = ">=0.2.16"
 litellm = ">=1.44.22"
 openai = ">=1.13.3"
+openpyxl = ">=3.1.5"
 opentelemetry-api = ">=1.22.0"
 opentelemetry-exporter-otlp-proto-http = ">=1.22.0"
 opentelemetry-sdk = ">=1.22.0"
+pdfplumber = ">=0.11.4"
 pydantic = ">=2.4.2"
 python-dotenv = ">=1.0.0"
 pyvis = ">=0.3.2"
@@ -1110,17 +1111,22 @@ uv = ">=0.4.25"
 
 [package.extras]
 agentops = ["agentops (>=0.3.0)"]
+fastembed = ["fastembed (>=0.4.1)"]
+mem0 = ["mem0ai (>=0.1.29)"]
+openpyxl = ["openpyxl (>=3.1.5)"]
+pandas = ["pandas (>=2.2.3)"]
+pdfplumber = ["pdfplumber (>=0.11.4)"]
 tools = ["crewai-tools (>=0.14.0)"]
 
 [[package]]
 name = "crewai-tools"
-version = "0.14.0"
+version = "0.17.0"
 description = "Set of tools for the crewAI framework"
 optional = false
 python-versions = "<=3.13,>=3.10"
 files = [
-    {file = "crewai_tools-0.14.0-py3-none-any.whl", hash = "sha256:0a804a828c29869c3af3253f4fc4c3967a3f80f06dab22e9bbe9526608a31564"},
-    {file = "crewai_tools-0.14.0.tar.gz", hash = "sha256:510f3a194bcda4fdae4314bd775521964b5f229ddbe451e5d9e0216cae57f4e3"},
+    {file = "crewai_tools-0.17.0-py3-none-any.whl", hash = "sha256:85cf15286684ecad579b5a497888c6bf8a079ca443f7dd63a52bf1709655e4a3"},
+    {file = "crewai_tools-0.17.0.tar.gz", hash = "sha256:2a2986000775c76bad45b9f3a2be857d293cf5daffe5f316abc052e630b1e5ce"},
 ]
 
 [package.dependencies]
@@ -1130,7 +1136,6 @@ docker = ">=7.1.0"
 docx2txt = ">=0.8"
 embedchain = ">=0.1.114"
 lancedb = ">=0.5.4"
-langchain = ">=0.3.1"
 openai = ">=1.12.0"
 pydantic = ">=2.6.1"
 pyright = ">=1.1.350"
@@ -8679,4 +8684,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "8e1f54edbf0309254f610567146d9360cee4f686d1c37d7cd8b4b2c49924a068"
+content-hash = "6a5f1560609e6bdee9d7168e0c5930b20d29acaa6a1d5033fe3c2447edaa67f4"

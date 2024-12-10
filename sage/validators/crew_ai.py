@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 import yaml
 from crewai import Agent, Crew, Task
 from crewai.llm import LLM
-from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
+from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory, UserMemory
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -34,7 +34,7 @@ class AgentConfig(Agent):
     allow_delegation: bool = Field(
         default=False, description="Allow delegation of tasks to agents"
     )
-    tools: Optional[List[ToolsConfig | BaseTool | str ]] = Field(
+    tools: Optional[List[ToolsConfig | BaseTool | str]] = Field(
         default_factory=list, description="Tools at agents' disposal"
     )
 
@@ -170,6 +170,12 @@ class CrewConfig(Crew):
                     dimension=self.embedder["dimension"],
                 ),
             )
+            if hasattr(self, "memory_config") and self.memory_config is not None:
+                self._user_memory = (
+                    self.user_memory if self.user_memory else UserMemory(crew=self)
+                )
+            else:
+                self._user_memory = None
         return self
 
     @field_validator("agents")

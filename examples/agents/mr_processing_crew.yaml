@@ -1,6 +1,7 @@
 name: MR Input Processing Crew
 process: sequential
-memory: True
+memory: False
+cache: True
 
 agents:
   - role: Input Handler
@@ -11,38 +12,21 @@ agents:
     goal: Retrieve all data about the merge request for further processing from the GitLab API
     backstory: An adept communicator with GitLab, retrieving and presenting all information efficiently.
     tools:
-      - GitlabMergeRequestTool
-
-  - role: Change Extractor
-    goal: Prepare structured and enriched change data of a Merge request, including detailed diffs/changes, annotations and categorizations, for a deep Impact Assessment evaluation.
-    backstory: A diligent analyst who dissects changes for clarity.
+      - name: GitlabMergeRequestTool
+        args:
+          result_as_answer: true
 
 tasks:
   - description: |
       Validate the provided MR input and extract identifiers. User Input: {input}
     agent: Input Handler
-    expected_output: Valid MR identifiers or error message.
+    expected_output: |
+      A structured object containing:
+        - mr_id: The ID of the merge request.
+        - project_name: The name of the project associated with the MR.
 
   - description: |
       Retrieve MR details using the GitLab API.
     agent: MR Retriever
     expected_output: |
       Obtain complete MR details, including metadata (e.g., title, author, status) and diffs. Ensure the full MR changes/diffs are included
-
-  - description: |
-      Extract change information from the MR diffs and preprocess it. User Input: {input}
-      For each file change:  
-        - Determine the file type (code, documentation, configuration, etc.) based on file extension and path.  
-        - Detect the programming language or file format.  
-        - Classify the change type (added, modified, deleted, renamed).  
-        - Identify critical files.  
-        - Detect test files based on naming conventions and directory structure.  
-        - Parse the diff content to extract meaningful information and structure it for further analysis.  
-        - Calculate preliminary code complexity metrics where applicable.  
-        - Compile all extracted and enriched data into a structured format as per the expected output.  
-        - Provide an enriched response that is finally used for an Impact Assessment of the overall MR change.
-
-      Remember to include any further information about the MR that could be important for a deep-down impact assessment
-
-    agent: Change Extractor
-    expected_output: Structured change data ready for impact assessment.
