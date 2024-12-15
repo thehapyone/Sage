@@ -16,6 +16,14 @@ agents:
         args:
           result_as_answer: true
 
+  - role: Pipeline Retriever
+    goal: Retrieve all data about the merge request pipeline from the GitLab API for further processing.
+    backstory: A skilled communicator with GitLab, adept at retrieving and presenting pipeline information efficiently.
+    tools:
+      - name: GitlabPipelineTool
+        args:
+          result_as_answer: true
+
 tasks:
   - description: |
       Validate the provided MR input and extract identifiers. User Input: {input}

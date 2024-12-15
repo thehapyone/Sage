@@ -26,7 +26,7 @@ mr_decision_crew: Crew = all_instances.get("MR Publication Crew")
 
 
 # Sample Input
-bot_input = "MR https://gitlab.its.getingecloud.net/dts/lestrade/aide-recorder/-/merge_requests/40"
+bot_input = "MR https://gitlab.its.getingecloud.net/dts/lestrade/aide-recorder/-/merge_requests/53"
 
 
 def extract_merge_request_id(output_string):
