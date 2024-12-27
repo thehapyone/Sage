@@ -238,11 +238,11 @@ class CrewConfig(Crew):
 
         for task in values.get("tasks", []):
             task_agent = task["agent"]
+            task_description = task["description"]
             if task_agent == manager_agent_role:
                 raise ConfigException(
                     f"The manager agent '{manager_agent_role}' can not be assigned to a task like other agents. Assigned to task '{task_description}'."
                 )
-            task_description = task["description"]
             matched_agent = agents_dict.get(task_agent)
             if not matched_agent:
                 raise ConfigException(

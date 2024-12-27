@@ -8,7 +8,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.11,<3.13"
 anyio = "^3.7.1"
 asyncer = "^0.0.7"
 duckduckgo-search = "4.1.1"
@@ -27,7 +27,7 @@ requests = "2.32.3"
 sentence-transformers = "^2.7.0"
 toml = "0.10.2"
 transformers = "^4.45.2"
-unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.12.5" }
+unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.16.11" }
 xlsxwriter = "3.1.9"
 python-gitlab = "4.3.0"
 markdown = "^3.5.2"
