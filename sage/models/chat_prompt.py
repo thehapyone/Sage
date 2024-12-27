@@ -43,7 +43,7 @@ class ChatPrompt:
     Standalone question::
     """
 
-    query_generator_prompt: str = """
+    query_generator_template: str = """
     You are a search query generator for a vector database.
     Based on the user's input and conversation history, generate up to 5 concise and unique search queries optimized for retrieving relevant context.
 
@@ -78,6 +78,17 @@ class ChatPrompt:
         Chat History: "What causes global warming?"
     Output:
     { "queries": ["Greenhouse effect causes global warming", "Greenhouse gases and global warming connection"] }
+
+    ---
+    
+    <user_input>
+    {question}
+    </user_input>
+
+    <chat_history>
+    {chat_history}
+    </chat_history>
+
     """
 
     qa_system_prompt_new = """
@@ -139,6 +150,9 @@ class ChatPrompt:
 
     # The prompt template for the condense question chain
     condense_prompt = PromptTemplate.from_template(condensed_template)
+
+    # The prompt template for the query_generator chain
+    query_generator_prompt = PromptTemplate.from_template(query_generator_prompt)
 
     """The prompt template for the chat complete chain"""
 
