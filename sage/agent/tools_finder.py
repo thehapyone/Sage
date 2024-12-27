@@ -5,6 +5,7 @@ import pkgutil
 import sys
 from typing import Dict, List, Type
 
+from langchain_core.tools import BaseTool as LangChainBaseTool
 from crewai_tools import BaseTool, Tool
 
 from sage.utils.exceptions import ToolDiscoveryException
@@ -46,8 +47,12 @@ def discover_tools(additional_paths: List[str] = None) -> Dict[str, Type[Tool]]:
                 attribute = getattr(module, attribute_name)
                 if (
                     inspect.isclass(attribute)
-                    and attribute not in (Tool, BaseTool)
-                    and (issubclass(attribute, Tool) or issubclass(attribute, BaseTool))
+                    and attribute not in (Tool, BaseTool, LangChainBaseTool)
+                    and (
+                        issubclass(attribute, Tool)
+                        or issubclass(attribute, BaseTool)
+                        or issubclass(attribute, LangChainBaseTool)
+                    )
                 ):
                     tool_name = attribute.__name__
                     tools[tool_name] = attribute
@@ -74,10 +79,11 @@ def discover_tools(additional_paths: List[str] = None) -> Dict[str, Type[Tool]]:
                     attribute = getattr(module, attribute_name)
                     if (
                         inspect.isclass(attribute)
-                        and attribute not in (Tool, BaseTool)
+                        and attribute not in (Tool, BaseTool, LangChainBaseTool)
                         and (
                             issubclass(attribute, Tool)
                             or issubclass(attribute, BaseTool)
+                            or issubclass(attribute, LangChainBaseTool)
                         )
                     ):
                         tool_name = attribute.__name__

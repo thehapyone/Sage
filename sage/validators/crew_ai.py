@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 import yaml
 from crewai import Agent, Crew, Task
 from crewai.llm import LLM
-from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
+from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory, UserMemory
 from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -21,7 +21,7 @@ class ToolsConfig(BaseModel):
     """ToolsConfig model"""
 
     name: str
-    args: Optional[dict[str, Any]] = None
+    args: dict[str, Any] = {}
 
 
 class TaskConfig(Task):
@@ -29,19 +29,12 @@ class TaskConfig(Task):
         description="Agent responsible for execution the task.", default=None
     )
 
-    @field_validator("description")
-    @classmethod
-    def task_description_should_include_input(cls, v: str) -> str:
-        if "{input}" not in v:
-            raise ValueError("Task description must include '{input}' placeholder.")
-        return v
-
 
 class AgentConfig(Agent):
     allow_delegation: bool = Field(
         default=False, description="Allow delegation of tasks to agents"
     )
-    tools: Optional[List[ToolsConfig | BaseTool | str | dict]] = Field(
+    tools: Optional[List[ToolsConfig | BaseTool | str]] = Field(
         default_factory=list, description="Tools at agents' disposal"
     )
 
@@ -74,16 +67,18 @@ class AgentConfig(Agent):
             return tools
 
         # Discover available tools dynamically
-        available_tool_classes: dict[str, type[BaseTool]] = discover_tools()
+        available_tool_classes: dict[str, type[BaseTool]] = discover_tools(
+            additional_paths=["sage/tools"]
+        )
 
         initialized_tools = []
         for tool_entry in tools:
             if isinstance(tool_entry, str):
                 tool_name = tool_entry
                 tool_args = {}
-            elif isinstance(tool_entry, dict):
-                tool_name = tool_entry.get("name")
-                tool_args = tool_entry.get("args", {})
+            elif isinstance(tool_entry, ToolsConfig):
+                tool_name = tool_entry.name
+                tool_args = tool_entry.args
             else:
                 raise ValueError(f"Invalid tool format: {tool_entry}")
 
@@ -136,6 +131,16 @@ class CrewConfig(Crew):
     )
 
     @model_validator(mode="after")
+    def task_description_should_include_input(self) -> "Crew":
+        """Validates that the first task description must include an input placeholder"""
+        task = self.tasks[0]
+        if "{input}" not in task.description:
+            raise ValueError(
+                "Crew's first task description must include '{input}' placeholder."
+            )
+        return self
+
+    @model_validator(mode="after")
     def create_crew_memory(self) -> "Crew":
         """Set private attributes."""
         if self.memory:
@@ -165,6 +170,12 @@ class CrewConfig(Crew):
                     dimension=self.embedder["dimension"],
                 ),
             )
+            if hasattr(self, "memory_config") and self.memory_config is not None:
+                self._user_memory = (
+                    self.user_memory if self.user_memory else UserMemory(crew=self)
+                )
+            else:
+                self._user_memory = None
         return self
 
     @field_validator("agents")
@@ -180,6 +191,7 @@ class CrewConfig(Crew):
     def validate_and_assign_agents_to_task(cls, values) -> dict:
         """
         Validates and assigns agents to their respective tasks within a crew configuration.
+        Also validates the manager agent is available and assigned if configured
 
         This method performs the following actions:
         1. Checks if all agents provided in the configuration are properly instantiated.
@@ -203,31 +215,34 @@ class CrewConfig(Crew):
         agents = values.get("agents", [])
 
         # Ensure agents are properly instantiated
-        if all(isinstance(agent, dict) for agent in agents):
-            agents = [
-                (
-                    AgentConfig(
-                        **{
-                            **agent,
-                            "llm": (
-                                agent.get("llm")
-                                if agent.get("llm")
-                                else values.get("manager_llm")
-                            ),
-                        }
-                    )
-                    if isinstance(agent, dict)
-                    else agent
-                )
-                for agent in agents
-            ]
+        for i, agent in enumerate(agents):
+            if isinstance(agent, dict):
+                agent_llm = agent.get("llm") or values.get("manager_llm")
+                agents[i] = AgentConfig(**{**agent, "llm": agent_llm})
             values["agents"] = agents
 
         agents_dict = {agent.role: agent for agent in agents}
 
+        # Validates and assign manager agent if specified
+        manager_agent_role = values.get("manager_agent", None)
+        if manager_agent_role:
+            manager = agents_dict.get(manager_agent_role)
+            if not manager:
+                raise ConfigException(
+                    f"Agent '{manager_agent_role}' assigned as the Manager Agent does not exist."
+                )
+            # Remove the manager agent from the list of agents used in tasks
+            agents = [agent for agent in agents if agent.role != manager_agent_role]
+            values["agents"] = agents
+            values["manager_agent"] = manager
+
         for task in values.get("tasks", []):
             task_agent = task["agent"]
             task_description = task["description"]
+            if task_agent == manager_agent_role:
+                raise ConfigException(
+                    f"The manager agent '{manager_agent_role}' can not be assigned to a task like other agents. Assigned to task '{task_description}'."
+                )
             matched_agent = agents_dict.get(task_agent)
             if not matched_agent:
                 raise ConfigException(

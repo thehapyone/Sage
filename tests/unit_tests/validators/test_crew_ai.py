@@ -111,17 +111,6 @@ def test_task_config_valid(mock_standard_agent):
     assert task.description == "Task description: {input}"
 
 
-def test_task_config_description_missing_input(mock_standard_agent):
-    with pytest.raises(
-        ValueError, match="Task description must include '{input}' placeholder."
-    ):
-        TaskConfig(
-            description="Task description",
-            agent=mock_standard_agent,
-            expected_output="Sample text",
-        )
-
-
 # Tests for AgentConfig
 def test_agent_config_valid():
     data = {
@@ -212,7 +201,7 @@ def test_load_and_validate_agents_yaml_validation_error(
                 mock_config, mock_llm, embedding_model, test_dimension
             )
         assert "Validation error in agent YAML:" in str(excinfo.value)
-        assert "Task description must include '{input}' placeholder." in str(
+        assert "Crew's first task description must include '{input}' placeholder." in str(
             excinfo.value
         )
 

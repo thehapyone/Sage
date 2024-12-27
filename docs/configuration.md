@@ -15,7 +15,7 @@ unzip
 python-docx
 pandas
 ```
-Make you sure this extra_packages.txt file is mounted intot the container volume during runtime like below
+Make you sure this extra_packages.txt file is mounted into the container volume during runtime like below
 
 ```yml
     volumes:
