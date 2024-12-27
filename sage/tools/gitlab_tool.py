@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Type
 import json
 
 from langchain_community.utilities.gitlab import GitLabAPIWrapper
@@ -720,16 +720,3 @@ class GitlabMergeApprovalTool(BaseTool):
             return "The Merge Request IID are required."
 
         return self.api_wrapper.run(self.mode, body={"mr_iid": int(mr_iid)})
-
-
-# # Example usage
-if __name__ == "__main__":
-    mr_iid = 51  # Replace with your MR IID
-    api_wrapper = GitLabAPIWrapperExtra(
-        gitlab_branch="main",
-    )
-    # print(api_wrapper.approve_merge_request(mr_iid))
-    # Replace '12345' with your actual pipeline ID
-    pipeline_tool = GitlabPipelineTool()
-    result = pipeline_tool._run(pipeline_id="110292")
-    print(result)
