@@ -145,14 +145,14 @@ class ChatPrompt:
     Here is the current chat history - use if relevant:
     <chat_history>
     {chat_history}
-    <chat_history/>
+    </chat_history>
     """
 
     # The prompt template for the condense question chain
     condense_prompt = PromptTemplate.from_template(condensed_template)
 
     # The prompt template for the query_generator chain
-    query_generator_prompt = PromptTemplate.from_template(query_generator_prompt)
+    query_generator_prompt = PromptTemplate.from_template(query_generator_template)
 
     """The prompt template for the chat complete chain"""
 

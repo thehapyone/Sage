@@ -81,7 +81,7 @@ class RunnableBase:
                 return x.get("question")
             if not x.get("chat_history"):
                 return x.get("question")
-            return _standalone_chain
+            return _search_generator_chain
 
         if runnable:
             (
@@ -99,21 +99,28 @@ class RunnableBase:
             ChatPrompt().condense_prompt | self.base_model | StrOutputParser()
         )
 
+        # Search Query Generator Chain
+        _search_generator_chain = (
+            ChatPrompt().query_generator_prompt | self.base_model | StrOutputParser()
+        )
+
+        # Constructs the Chain Inputs
         _inputs = RunnableMap(
-            standalone={
+            question=itemgetter("question"),
+            search_queries={
                 "question": lambda x: x["question"],
                 "chat_history": chat_history_loader,
             }
-            | RunnableLambda(standalone_chain_router).with_config(run_name="Condenser"),
+            | RunnableLambda(standalone_chain_router).with_config(run_name="QueryGenerator"),
             image_data=itemgetter("image_data"),
         )
 
         # retrieve the documents
         _retrieved_docs = RunnableMap(
-            docs=itemgetter("standalone") | retriever,
-            question=itemgetter("standalone"),
+            docs=itemgetter("search_queries") | retriever,
+            question=itemgetter("question"),
             image_data=itemgetter("image_data"),
-        ).with_config(run_name="Source Retriever")
+        ).with_config(run_name="SourceRetriever")
 
         # rconstruct the context inputs
         _context = RunnableMap(
