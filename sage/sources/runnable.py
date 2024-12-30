@@ -3,6 +3,7 @@ from typing import Sequence
 
 from chainlit.user_session import UserSession, user_session
 from langchain.schema.output_parser import StrOutputParser
+from langchain_core.output_parsers import JsonOutputParser
 from langchain.schema.runnable import (
     RunnableLambda,
     RunnableMap,
@@ -22,6 +23,15 @@ from sage.utils.exceptions import SourceException
 from sage.utils.supports import ChatLiteLLM
 from sage.validators.crew_ai import CrewConfig
 
+
+class SearchQueryGeneratorParser(JsonOutputParser):
+    """Output parser for the search query to return a list of strings."""
+
+    def parse(self, text: str) -> list[str]:
+        """Output is like this - { "queries": [] } """
+        result : dict[list[str]] = super().parse(text)
+        queries = result["queries"]
+        return queries
 
 class RunnableBase:
     def __init__(
@@ -101,7 +111,7 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_prompt | self.base_model | StrOutputParser()
+            ChatPrompt().query_generator_prompt | self.base_model | SearchQueryGeneratorParser()
         )
 
         # Constructs the Chain Inputs
