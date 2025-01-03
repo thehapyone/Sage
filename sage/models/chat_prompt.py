@@ -52,33 +52,32 @@ class ChatPrompt:
     - Ensure all queries are distinct and avoid redundancy.
     - Focus on identifying the user's intent (factual, exploratory, conversational) to shape query generation.
     - Maintain continuity for multi-turn contexts while filtering irrelevant parts of the history.
-    - Always format the output in JSON.
-    - Return only the output queries and nothing else
+    - Always return a formatted output as shown in the examples and nothing else. NO EXPLANATION
 
     Examples:
     Input:
         User Input: "Tell me about the Eiffel Tower."
         Chat History: ""
     Output:
-    {{ "queries": ["Eiffel Tower history", "Eiffel Tower construction details", "Eiffel Tower cultural significance"] }}
+    ["Eiffel Tower history", "Eiffel Tower construction details", "Eiffel Tower cultural significance"]
 
     Input:
         User Input: "What other landmarks are nearby?"
         Chat History: "Tell me about the Eiffel Tower."
     Output:
-    {{ "queries": ["Landmarks near Eiffel Tower", "Paris tourist attractions near Eiffel Tower"] }}
+    ["Landmarks near Eiffel Tower", "Paris tourist attractions near Eiffel Tower"]
 
     Input:
         User Input: "Hello, how are you?"
         Chat History: ""
     Output:
-    {{ "queries": [] }}
+    []
 
     Input:
         User Input: "Explain the greenhouse effect."
         Chat History: "What causes global warming?"
     Output:
-    {{ "queries": ["Greenhouse effect causes global warming", "Greenhouse gases and global warming connection"] }}
+    ["Greenhouse effect causes global warming", "Greenhouse gases and global warming connection"]
 
     ---
     

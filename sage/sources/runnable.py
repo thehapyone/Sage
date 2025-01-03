@@ -111,7 +111,7 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_prompt | self.base_model | SearchQueryGeneratorParser()
+            ChatPrompt().query_generator_prompt | self.base_model | JsonOutputParser()
         )
 
         # Constructs the Chain Inputs
