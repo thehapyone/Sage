@@ -1,15 +1,16 @@
 from operator import itemgetter
 from typing import Sequence
-
+from ast import literal_eval
 from chainlit.user_session import UserSession, user_session
 from langchain.schema.output_parser import StrOutputParser
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import BaseOutputParser
 from langchain.schema.runnable import (
     RunnableLambda,
     RunnableMap,
     RunnableSequence,
 )
 from langchain.schema.vectorstore import VectorStoreRetriever
+from langchain_core.messages import AIMessage
 
 from sage.agent.crew import CrewAIRunnable
 from sage.models.chat_prompt import ChatPrompt
@@ -24,14 +25,10 @@ from sage.utils.supports import ChatLiteLLM
 from sage.validators.crew_ai import CrewConfig
 
 
-class SearchQueryGeneratorParser(JsonOutputParser):
-    """Output parser for the search query to return a list of strings."""
-
-    def parse(self, text: str) -> list[str]:
-        """Output is like this - { "queries": [] } """
-        result : dict[list[str]] = super().parse(text)
-        queries = result["queries"]
-        return queries
+def query_parser(ai_message: AIMessage) -> str:
+    """Parse the AI message into a list of messages"""
+    result = literal_eval(ai_message.content.strip())
+    return result
 
 class RunnableBase:
     def __init__(
@@ -111,7 +108,7 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_prompt | self.base_model | JsonOutputParser()
+            ChatPrompt().query_generator_prompt | self.base_model | RunnableLambda(query_parser)
         )
 
         # Constructs the Chain Inputs
