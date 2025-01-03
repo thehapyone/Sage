@@ -1,7 +1,10 @@
 import asyncio
+from typing import Sequence
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 
+def _unique_documents(documents: Sequence[Document]) -> list[Document]:
+    return [doc for i, doc in enumerate(documents) if doc not in documents[:i]]
 
 class MultiSearchQueryRetriever(BaseRetriever):
     """A retriever instance that allows running muiltple queries towards a retriever instance"""
@@ -22,6 +25,8 @@ class MultiSearchQueryRetriever(BaseRetriever):
         Returns:
             Unique union of relevant documents from all generated queries
         """
+        print("#############################")
+        print(query)
         queries = query if isinstance(query, list) else [query]
         documents = await self.aretrieve_documents(queries, run_manager)
         return documents
@@ -45,7 +50,8 @@ class MultiSearchQueryRetriever(BaseRetriever):
                 for query in queries
             )
         )
-        return list({doc for docs in document_lists for doc in docs})
+        flatten_docs = [doc for docs in document_lists for doc in docs]
+        return _unique_documents(flatten_docs)
 
     def _get_relevant_documents(
         self,
@@ -76,11 +82,12 @@ class MultiSearchQueryRetriever(BaseRetriever):
         Returns:
             List of retrieved Documents
         """
-        documents = set()
+        document_lists = []
         for query in queries:
             docs = self.retriever.invoke(
                 query, config={"callbacks": run_manager.get_child()}
             )
-            documents.update(docs)
+            document_lists.append(docs)
 
-        return list(documents)
+        flatten_docs = [doc for docs in document_lists for doc in docs]
+        return _unique_documents(flatten_docs)

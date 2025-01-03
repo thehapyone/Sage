@@ -40,6 +40,7 @@ data
 Dockerfile
 .dockerignore
 docker-compose.yml
+extra_packages.txt
 
 # Ignore local environment configuration
 .env
