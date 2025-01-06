@@ -5,8 +5,6 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 
 from sage.sources.retrievers import MultiSearchQueryRetriever, _unique_documents
-from tests.unit_tests.extras import create_mock
-
 
 @pytest.fixture
 def mock_retriever():
