@@ -7,6 +7,7 @@ from langchain_core.retrievers import BaseRetriever
 from sage.sources.retrievers import MultiSearchQueryRetriever, _unique_documents
 from tests.unit_tests.extras import create_mock
 
+
 @pytest.fixture
 def mock_retriever():
     retriever = MagicMock(spec=BaseRetriever)
@@ -71,7 +72,9 @@ def test_get_relevant_documents(multi_search_query_retriever, mock_retriever):
     query = "query1"
     mock_retriever.invoke.return_value = [Document(page_content="doc1")]
 
-    documents = multi_search_query_retriever._get_relevant_documents(query, run_manager=MagicMock())
+    documents = multi_search_query_retriever._get_relevant_documents(
+        query, run_manager=MagicMock()
+    )
 
     assert len(documents) == 1
     assert documents[0].page_content == "doc1"
