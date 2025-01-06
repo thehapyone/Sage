@@ -263,7 +263,7 @@ class Source:
     ## Helper to create a retriever while the data input is a list of files path
     async def load_files_retriever(
         self, files: List[AskFileResponse]
-    ) -> ContextualCompressionRetriever | VectorStoreRetriever:
+    ) -> MultiSearchQueryRetriever:
         """
         Asynchronously creates a retriever from a list of files provided by the Chainlit interface.
 
@@ -281,7 +281,7 @@ class Source:
             files: A list of AskFileResponse objects representing the files to be processed.
 
         Returns:
-            A retriever instance that is either a ContextualCompressionRetriever or a
+            A MultiSearchQueryRetriever instance that is either a ContextualCompressionRetriever or a
             VectorStoreRetriever, depending on whether contextual compression is enabled in
             the application's configuration.
 
@@ -333,11 +333,13 @@ class Source:
 
         await cleanup_files(files)
 
-        return (
+        final_retriever = (
             retriever
             if not validated_config.reranker
             else self._compression_retriever(retriever)
         )
+
+        return MultiSearchQueryRetriever(retriever=final_retriever)
 
     def _load_retriever(
         self, indexes: List[str], source_hash: str = "all"

@@ -25,8 +25,6 @@ class MultiSearchQueryRetriever(BaseRetriever):
         Returns:
             Unique union of relevant documents from all generated queries
         """
-        print("#############################")
-        print(query)
         queries = query if isinstance(query, list) else [query]
         documents = await self.aretrieve_documents(queries, run_manager)
         return documents

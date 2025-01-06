@@ -101,11 +101,6 @@ class RunnableBase:
         # Loads the chat history
         chat_history_loader = load_chat_history(self.mode, self._user_session)
 
-        # Condense Question Chain
-        _standalone_chain = (
-            ChatPrompt().condense_prompt | self.base_model | StrOutputParser()
-        )
-
         # Search Query Generator Chain
         _search_generator_chain = (
             ChatPrompt().query_generator_prompt | self.base_model | RunnableLambda(query_parser)
