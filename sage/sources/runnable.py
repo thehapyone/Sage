@@ -1,3 +1,4 @@
+from ast import literal_eval
 from operator import itemgetter
 from typing import Sequence
 
@@ -9,6 +10,7 @@ from langchain.schema.runnable import (
     RunnableSequence,
 )
 from langchain.schema.vectorstore import VectorStoreRetriever
+from langchain_core.messages import AIMessage
 
 from sage.agent.crew import CrewAIRunnable
 from sage.models.chat_prompt import ChatPrompt
@@ -21,6 +23,12 @@ from sage.sources.utils import (
 from sage.utils.exceptions import SourceException
 from sage.utils.supports import ChatLiteLLM
 from sage.validators.crew_ai import CrewConfig
+
+
+def query_parser(ai_message: AIMessage) -> str:
+    """Parse the AI message into a list of messages"""
+    result = literal_eval(ai_message.content.strip())
+    return result
 
 
 class RunnableBase:
@@ -81,7 +89,7 @@ class RunnableBase:
                 return x.get("question")
             if not x.get("chat_history"):
                 return x.get("question")
-            return _standalone_chain
+            return _search_generator_chain
 
         if runnable:
             (
@@ -94,26 +102,32 @@ class RunnableBase:
         # Loads the chat history
         chat_history_loader = load_chat_history(self.mode, self._user_session)
 
-        # Condense Question Chain
-        _standalone_chain = (
-            ChatPrompt().condense_prompt | self.base_model | StrOutputParser()
+        # Search Query Generator Chain
+        _search_generator_chain = (
+            ChatPrompt().query_generator_prompt
+            | self.base_model
+            | RunnableLambda(query_parser)
         )
 
+        # Constructs the Chain Inputs
         _inputs = RunnableMap(
-            standalone={
+            question=itemgetter("question"),
+            search_queries={
                 "question": lambda x: x["question"],
                 "chat_history": chat_history_loader,
             }
-            | RunnableLambda(standalone_chain_router).with_config(run_name="Condenser"),
+            | RunnableLambda(standalone_chain_router).with_config(
+                run_name="QueryGenerator"
+            ),
             image_data=itemgetter("image_data"),
         )
 
         # retrieve the documents
         _retrieved_docs = RunnableMap(
-            docs=itemgetter("standalone") | retriever,
-            question=itemgetter("standalone"),
+            docs=itemgetter("search_queries") | retriever,
+            question=itemgetter("question"),
             image_data=itemgetter("image_data"),
-        ).with_config(run_name="Source Retriever")
+        ).with_config(run_name="SourceRetriever")
 
         # rconstruct the context inputs
         _context = RunnableMap(

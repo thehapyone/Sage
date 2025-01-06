@@ -1,9 +1,9 @@
+import json
 import re
 from typing import Any, Dict, List, Type
-import json
 
-from langchain_community.utilities.gitlab import GitLabAPIWrapper
 from crewai_tools import BaseTool
+from langchain_community.utilities.gitlab import GitLabAPIWrapper
 from pydantic import BaseModel, Field
 
 
@@ -216,7 +216,6 @@ class GitLabAPIWrapperExtra(GitLabAPIWrapper):
         return additions, deletions
 
     def pretty_print_merge_request(self, mr_details: dict):
-
         # Prepare MR Metadata string
         mr_metadata = [
             "Merge Request Details:",

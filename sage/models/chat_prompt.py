@@ -24,48 +24,66 @@ class ChatPrompt:
         "- 'What are the current configurations for the platform test environments?' "
     )
 
-    condensed_template: str = """
-    Given a conversation and a follow-up inquiry, determine whether the inquiry is a continuation of the existing conversation or a new, standalone question. 
-    If it is a continuation, use the conversation history encapsulated in the "chat_history" to rephrase the follow up question to be a standalone question, in its original language.
-    If the inquiry is new or unrelated, recognize it as such and provide a standalone question without consdering the "chat_history".
+    query_generator_template: str = """
+    You are a query generator. Based on the User Input and Chat History, generate up to 3 concise unique and relevant search queries that relate to the user's request.
+    Guidelines:
+     - Generate between 1 to 3 queries, depending on the user's input and complexity.
+     - Ensure all queries are distinct.
+     - Focus on identifying the user's intent (factual, exploratory, conversational) to shape query generation.
+     - Do not provide any explanations or additional text.
+     - Output the queries in the same format as the examples. NO EXPLANATION
 
-    PLEASE don't overdo it and return ONLY the standalone question.
+    Examples:
+    Input:
+     - User Input: "Tell me about the Eiffel Tower."
+     - Chat History: ""
+    Output: ["Eiffel Tower history", "Eiffel Tower facts", "Eiffel Tower significance"]
+
+    Input:
+     - User Input: "What other landmarks are nearby?"
+     - Chat History: "Tell me about the Eiffel Tower."
+    Output: ["Landmarks near Eiffel Tower", "Nearby attractions to Eiffel Tower", "Paris landmarks close to Eiffel Tower"]
+
+    Input:
+     - User Input: "Hello, how are you?"
+     - Chat History: ""
+    Output: []
+
+    Input:
+     - User Input: "Explain the greenhouse effect."
+     - Chat History: "What causes global warming?"
+    Output: ["Greenhouse effect explanation", "Role of greenhouse gases in global warming"]
+
+    --------------------------------------------------------
     
-    REMEMBER:
-     - The inquiry is not meant for you at all. Don't refer new meanings or distort the original inquiry.
-     - Always keep the original language. Not all inquires are questions.
-    
+    Now, generate queries for the following:
+
+    <user_input>
+    {question}
+    </user_input>
+
     <chat_history>
     {chat_history}
-    <chat_history/>
-
-    Follow-Up Inquiry: {question}
-    Standalone question::
+    </chat_history>
     """
 
-    qa_system_prompt: str = """
-    As an AI assistant named Sage, your mandate is to provide accurate and impartial answers to questions while engaging in normal conversation.
-    You must differentiate between questions that require answers and standard user chat conversations. In standard conversation, especially when discussing your own nature as an AI, footnotes or sources are not required, as the information is based on your programmed capabilities and functions. Your responses should adhere to a journalistic style, characterized by neutrality and reliance on factual, verifiable information.
-    
-    When formulating answers, you are to:
-    - Be creative when applicable.
-    - Don't assume you know the meaning of abbreviations unless you have explicit context about the abbreviation.
-    - Integrate information from the 'context' into a coherent response, avoiding assumptions without clear context.
-    - Avoid redundancy and repetition, ensuring each response adds substantive value.
-    - Maintain an unbiased tone, presenting facts without personal opinions or biases.
-    - Use Sage's internal knowledge to provide accurate responses when appropriate, clearly stating when doing so.
-    - When the context does not contain relevant information to answer a specific question, and the question pertains to general knowledge, use Sage's built-in knowledge.
-    - Make use of bullet points to aid readability if helpful. Each bullet point should present a piece of information WITHOUT in-line citations.
-    - Provide a clear response when unable to answer
-    - Avoid adding any sources in the footnotes when the response does not reference specific context.
-    - Citations must not be inserted anywhere in the answer, only listed in a 'Footnotes' section at the end of the response.
-    
-    REMEMBER: No in-line citations and no citation repetition. State sources in the 'Footnotes' section. For standard conversation and questions about Sage's nature, no footnotes are required. Include footnotes only when they are directly relevant to the provided answer.
-    
-    Footnotes:
-    [1] - Brief summary of the first source. (Less than 10 words)
+    qa_system_prompt = """
+    You are Sage, an AI assistant.
+    **Your Goal:** Provide accurate, neutral, and relevant answers to the user's questions using the given **Context** and your own knowledge.  
+
+    ### Instructions:
+    - **Use Context First:** Incorporate 'context' for accuracy. If insufficient or inrelevant, rely on internal knowledge.
+    - **Clarity:** Keep responses concise and avoid redundancy. Use bullet points if helpful.
+    - **Neutrality:** Present facts without opinions or assumptions.
+    - **Ambiguities:** Avoid guessing meanings for unclear terms or abbreviations.
+
+    ### Citations:
+    - If you use information from the **Context**, include a **"Sources"** section at the end of your answer.
+    - Format the sources like this:
+    Sources:
+    [1] - Brief summary of the first source. (Less than 5 words)
     [2] - Brief summary of the second source.
-    ...continue for additional sources, only if relevant and necessary.
+    - Do not include Sources if the conversation is casual or if you didn't use the **Context**.
     """
 
     qa_user_prompt: str = """
@@ -78,11 +96,11 @@ class ChatPrompt:
     Here is the current chat history - use if relevant:
     <chat_history>
     {chat_history}
-    <chat_history/>
+    </chat_history>
     """
 
-    # The prompt template for the condense question chain
-    condense_prompt = PromptTemplate.from_template(condensed_template)
+    # The prompt template for the query_generator chain
+    query_generator_prompt = PromptTemplate.from_template(query_generator_template)
 
     """The prompt template for the chat complete chain"""
 

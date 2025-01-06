@@ -5,8 +5,8 @@ import pkgutil
 import sys
 from typing import Dict, List, Type
 
-from langchain_core.tools import BaseTool as LangChainBaseTool
 from crewai_tools import BaseTool, Tool
+from langchain_core.tools import BaseTool as LangChainBaseTool
 
 from sage.utils.exceptions import ToolDiscoveryException
 from sage.utils.logger import CustomLogger

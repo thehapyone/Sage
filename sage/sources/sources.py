@@ -15,6 +15,7 @@ from sage.constants import (
     sources_config,
     validated_config,
 )
+from sage.sources.retrievers import MultiSearchQueryRetriever
 from sage.sources.source_manager import (
     SourceManager,
     convert_sources_to_string,
@@ -262,7 +263,7 @@ class Source:
     ## Helper to create a retriever while the data input is a list of files path
     async def load_files_retriever(
         self, files: List[AskFileResponse]
-    ) -> ContextualCompressionRetriever | VectorStoreRetriever:
+    ) -> MultiSearchQueryRetriever:
         """
         Asynchronously creates a retriever from a list of files provided by the Chainlit interface.
 
@@ -280,7 +281,7 @@ class Source:
             files: A list of AskFileResponse objects representing the files to be processed.
 
         Returns:
-            A retriever instance that is either a ContextualCompressionRetriever or a
+            A MultiSearchQueryRetriever instance that is either a ContextualCompressionRetriever or a
             VectorStoreRetriever, depending on whether contextual compression is enabled in
             the application's configuration.
 
@@ -332,11 +333,13 @@ class Source:
 
         await cleanup_files(files)
 
-        return (
+        final_retriever = (
             retriever
             if not validated_config.reranker
             else self._compression_retriever(retriever)
         )
+
+        return MultiSearchQueryRetriever(retriever=final_retriever)
 
     def _load_retriever(
         self, indexes: List[str], source_hash: str = "all"
@@ -357,7 +360,8 @@ class Source:
                 embeddings=EMBEDDING_MODEL,
                 allow_dangerous_deserialization=True,
             )
-            return db.as_retriever(search_kwargs=self._retriever_args)
+            retriever = db.as_retriever(search_kwargs=self._retriever_args)
+            return retriever
 
         dbs: List[FAISS] = []
 
@@ -372,11 +376,12 @@ class Source:
 
         faiss_db = self._combine_dbs(dbs)
 
-        return faiss_db.as_retriever(search_kwargs=self._retriever_args)
+        retriever = faiss_db.as_retriever(search_kwargs=self._retriever_args)
+        return retriever
 
     async def load(
         self, source_hash: str = "none"
-    ) -> Optional[VectorStoreRetriever | ContextualCompressionRetriever]:
+    ) -> Optional[MultiSearchQueryRetriever]:
         """
         Returns either a retriever model from the FAISS vector indexes or compression based retriever model.
         Supports creating a retriever for a selected source hash.
@@ -388,11 +393,13 @@ class Source:
         if retriever is None:
             return RunnableLambda(lambda x: [])
 
-        return (
+        final_retriever = (
             retriever
             if not validated_config.reranker
             else self._compression_retriever(retriever)
         )
+
+        return MultiSearchQueryRetriever(retriever=final_retriever)
 
     async def get_labels_and_hash(self) -> dict:
         """Returns a tuple containing any available source hash and their corresponding labels"""

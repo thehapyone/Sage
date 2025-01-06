@@ -201,8 +201,9 @@ def test_load_and_validate_agents_yaml_validation_error(
                 mock_config, mock_llm, embedding_model, test_dimension
             )
         assert "Validation error in agent YAML:" in str(excinfo.value)
-        assert "Crew's first task description must include '{input}' placeholder." in str(
-            excinfo.value
+        assert (
+            "Crew's first task description must include '{input}' placeholder."
+            in str(excinfo.value)
         )
 
 
