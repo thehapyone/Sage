@@ -1,9 +1,9 @@
+from ast import literal_eval
 from operator import itemgetter
 from typing import Sequence
-from ast import literal_eval
+
 from chainlit.user_session import UserSession, user_session
 from langchain.schema.output_parser import StrOutputParser
-from langchain_core.output_parsers import BaseOutputParser
 from langchain.schema.runnable import (
     RunnableLambda,
     RunnableMap,
@@ -29,6 +29,7 @@ def query_parser(ai_message: AIMessage) -> str:
     """Parse the AI message into a list of messages"""
     result = literal_eval(ai_message.content.strip())
     return result
+
 
 class RunnableBase:
     def __init__(
@@ -103,7 +104,9 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_prompt | self.base_model | RunnableLambda(query_parser)
+            ChatPrompt().query_generator_prompt
+            | self.base_model
+            | RunnableLambda(query_parser)
         )
 
         # Constructs the Chain Inputs
@@ -113,7 +116,9 @@ class RunnableBase:
                 "question": lambda x: x["question"],
                 "chat_history": chat_history_loader,
             }
-            | RunnableLambda(standalone_chain_router).with_config(run_name="QueryGenerator"),
+            | RunnableLambda(standalone_chain_router).with_config(
+                run_name="QueryGenerator"
+            ),
             image_data=itemgetter("image_data"),
         )
 

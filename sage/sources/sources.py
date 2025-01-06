@@ -3,9 +3,9 @@ from typing import Any, List, Optional
 
 from anyio import Path
 from chainlit.types import AskFileResponse
-from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.schema.runnable import RunnableLambda
+from langchain.schema.vectorstore import VectorStoreRetriever
 
 from sage.constants import (
     EMBED_DIMENSION,
@@ -15,12 +15,12 @@ from sage.constants import (
     sources_config,
     validated_config,
 )
+from sage.sources.retrievers import MultiSearchQueryRetriever
 from sage.sources.source_manager import (
     SourceManager,
     convert_sources_to_string,
     get_faiss_indexes,
 )
-from sage.sources.retrievers import MultiSearchQueryRetriever
 from sage.utils.exceptions import SourceException
 from sage.utils.labels import generate_source_label
 from sage.utils.supports import CustomFAISS as FAISS
@@ -392,7 +392,6 @@ class Source:
 
         if retriever is None:
             return RunnableLambda(lambda x: [])
-        
 
         final_retriever = (
             retriever

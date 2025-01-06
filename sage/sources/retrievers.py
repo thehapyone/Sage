@@ -1,10 +1,13 @@
 import asyncio
 from typing import Sequence
-from langchain_core.retrievers import BaseRetriever
+
 from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
+
 
 def _unique_documents(documents: Sequence[Document]) -> list[Document]:
     return [doc for i, doc in enumerate(documents) if doc not in documents[:i]]
+
 
 class MultiSearchQueryRetriever(BaseRetriever):
     """A retriever instance that allows running muiltple queries towards a retriever instance"""
