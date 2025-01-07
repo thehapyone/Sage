@@ -87,8 +87,6 @@ class RunnableBase:
             """Helper for routing to the standalone chain"""
             if isinstance(retriever, RunnableLambda):
                 return x.get("question")
-            if not x.get("chat_history"):
-                return x.get("question")
             return _search_generator_chain
 
         if runnable:
