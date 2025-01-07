@@ -1,7 +1,7 @@
 import base64
 from dataclasses import dataclass
 
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain.prompts import ChatPromptTemplate
 
 
 @dataclass

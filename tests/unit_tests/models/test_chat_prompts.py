@@ -1,7 +1,6 @@
 import base64
 from unittest.mock import mock_open, patch
 
-import pytest
 from langchain.prompts import ChatPromptTemplate
 
 from sage.models.chat_prompt import ChatPrompt
