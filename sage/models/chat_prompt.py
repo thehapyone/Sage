@@ -45,11 +45,6 @@ class ChatPrompt:
     Output: ["Landmarks near Eiffel Tower", "Nearby attractions to Eiffel Tower", "Paris landmarks close to Eiffel Tower"]
 
     Input:
-     - User Input: "Hello, how are you?"
-     - Chat History: ""
-    Output: []
-
-    Input:
      - User Input: "Explain the greenhouse effect."
      - Chat History: "What causes global warming?"
     Output: ["Greenhouse effect explanation", "Role of greenhouse gases in global warming"]
@@ -233,7 +228,7 @@ class ChatPrompt:
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": f"data:{image['mime']};base64,{self.encode_image(image['path'])}"
+                    "url": f"data:{image.mime};base64,{self.encode_image(image.path)}"
                 },
             }
             for image in images
