@@ -61,7 +61,7 @@ class RunnableBase:
         # construct the question and answer model
         qa_answer = RunnableMap(
             answer=_context
-            | RunnableLambda(ChatPrompt().modality_prompt_router).with_config(
+            | RunnableLambda(ChatPrompt().qa_complete_prompt).with_config(
                 run_name="Modality-Router"
             )
             | self.base_model
@@ -102,7 +102,7 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_prompt
+            ChatPrompt().query_generator_complete_prompt
             | self.base_model
             | RunnableLambda(query_parser)
         )
@@ -112,6 +112,7 @@ class RunnableBase:
             question=itemgetter("question"),
             search_queries={
                 "question": lambda x: x["question"],
+                "image_data": lambda x: x["image_data"],
                 "chat_history": chat_history_loader,
             }
             | RunnableLambda(standalone_chain_router).with_config(
