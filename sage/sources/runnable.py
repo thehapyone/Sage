@@ -102,7 +102,7 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_complete_prompt
+            RunnableLambda(ChatPrompt().query_generator_complete_prompt)
             | self.base_model
             | RunnableLambda(query_parser)
         )
