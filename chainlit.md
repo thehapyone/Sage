@@ -57,7 +57,7 @@ The architecture of Sage Chat is depicted below:
            |           |           |
            v           v           v
       +----+--------+-------------+-------------+
-      | Retreiver 1 | Retreiver 2 | Retreiver 3 |
+      | Retriever 1 | Retriever 2 | Retriever 3 |
       +----+--------+-------------+-------------+
            |           |           |
            v           v           v
