@@ -6,6 +6,7 @@ from langchain_core.retrievers import BaseRetriever
 
 from sage.sources.retrievers import MultiSearchQueryRetriever, _unique_documents
 
+
 @pytest.fixture
 def mock_retriever():
     retriever = MagicMock(spec=BaseRetriever)

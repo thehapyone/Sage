@@ -1,7 +1,7 @@
 import base64
 from dataclasses import dataclass
 
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain.prompts import ChatPromptTemplate
 
 
 @dataclass
@@ -24,7 +24,7 @@ class ChatPrompt:
         "- 'What are the current configurations for the platform test environments?' "
     )
 
-    query_generator_template: str = """
+    query_generator_system_prompt: str = """
     You are a query generator. Based on the User Input and Chat History, generate up to 3 concise unique and relevant search queries that relate to the user's request.
     Guidelines:
      - Generate between 1 to 3 queries, depending on the user's input and complexity.
@@ -45,22 +45,15 @@ class ChatPrompt:
     Output: ["Landmarks near Eiffel Tower", "Nearby attractions to Eiffel Tower", "Paris landmarks close to Eiffel Tower"]
 
     Input:
-     - User Input: "Hello, how are you?"
-     - Chat History: ""
-    Output: []
-
-    Input:
      - User Input: "Explain the greenhouse effect."
      - Chat History: "What causes global warming?"
     Output: ["Greenhouse effect explanation", "Role of greenhouse gases in global warming"]
-
     --------------------------------------------------------
-    
     Now, generate queries for the following:
+    """
 
-    <user_input>
-    {question}
-    </user_input>
+    query_generator_user_prompt: str = """
+    User Input: {question}
 
     <chat_history>
     {chat_history}
@@ -98,9 +91,6 @@ class ChatPrompt:
     {chat_history}
     </chat_history>
     """
-
-    # The prompt template for the query_generator chain
-    query_generator_prompt = PromptTemplate.from_template(query_generator_template)
 
     """The prompt template for the chat complete chain"""
 
@@ -180,11 +170,11 @@ class ChatPrompt:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
 
-    def create_qa_prompt(
+    def create_chat_prompt(
         self, system_prompt, user_prompt, additional_user_prompts: list = None
     ):
         """
-        Creates a structured QA prompt template for the chat system.
+        Creates a structured chat prompt template for the chat system.
 
         This method returns a `ChatPromptTemplate` object by combining the
         provided system-level prompt and user-level prompt messages. Additionally,
@@ -211,26 +201,28 @@ class ChatPrompt:
             ]
         )
 
-    def modality_prompt_router(self, x: dict) -> ChatPromptTemplate:
+    def _create_prompt_with_images(
+        self, x: dict, system_prompt: str, user_prompt: str
+    ) -> ChatPromptTemplate:
         """
-        Routes to the appropriate QA prompt template based on the presence of image data.
+        Helper function to create a prompt template based on the presence of image data.
 
-        This function checks if the provided dictionary `x` contains image data and returns
-        the corresponding QA prompt template. If no image data is present, it returns the
-        standard QA prompt (`qa_prompt`). If image data is present, it processes each image
-        by encoding it to base64 and appending it to the additional user prompts, then
-        creates a new QA prompt (`qa_prompt_modality`) with the included image information.
         Args:
             x (dict): A dictionary that may contain image data with keys as follows:
-                      - "image_data": A list of dictionaries, each containing:
-                          - "mime": The MIME type of the image (e.g., 'image/jpeg').
-                          - "path": The file path to the image to be encoded.
+                    - "image_data": A list of dictionaries, each containing:
+                        - "mime": The MIME type of the image (e.g., 'image/jpeg').
+                        - "path": The file path to the image to be encoded.
+            system_prompt (str): The system prompt template.
+            user_prompt (str): The user prompt template.
+
+        Returns:
+            ChatPromptTemplate: The created prompt template.
         """
         images = x.get("image_data")
 
         if not images:
             # Standard Prompt Template
-            return self.create_qa_prompt(self.qa_system_prompt, self.qa_user_prompt)
+            return self.create_chat_prompt(system_prompt, user_prompt)
 
         images_content = [
             {
@@ -243,8 +235,36 @@ class ChatPrompt:
         ]
 
         # Prompt Template for Multi-Modality (Includes Image Data)
-        return self.create_qa_prompt(
-            system_prompt=self.qa_system_prompt,
-            user_prompt=self.qa_user_prompt,
+        return self.create_chat_prompt(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             additional_user_prompts=images_content,
+        )
+
+    def query_generator_complete_prompt(self, x: dict) -> ChatPromptTemplate:
+        """
+        Routes to the appropriate prompt template based on the presence of image data for the query generator.
+
+        Args:
+            x (dict): A dictionary that may contain image data with keys as follows:
+                    - "image_data": A list of dictionaries, each containing:
+                        - "mime": The MIME type of the image (e.g., 'image/jpeg').
+                        - "path": The file path to the image to be encoded.
+        """
+        return self._create_prompt_with_images(
+            x, self.query_generator_system_prompt, self.query_generator_user_prompt
+        )
+
+    def qa_complete_prompt(self, x: dict) -> ChatPromptTemplate:
+        """
+        Routes to the appropriate QA prompt template based on the presence of image data.
+
+        Args:
+            x (dict): A dictionary that may contain image data with keys as follows:
+                    - "image_data": A list of dictionaries, each containing:
+                        - "mime": The MIME type of the image (e.g., 'image/jpeg').
+                        - "path": The file path to the image to be encoded.
+        """
+        return self._create_prompt_with_images(
+            x, self.qa_system_prompt, self.qa_user_prompt
         )

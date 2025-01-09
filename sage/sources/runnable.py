@@ -61,7 +61,7 @@ class RunnableBase:
         # construct the question and answer model
         qa_answer = RunnableMap(
             answer=_context
-            | RunnableLambda(ChatPrompt().modality_prompt_router).with_config(
+            | RunnableLambda(ChatPrompt().qa_complete_prompt).with_config(
                 run_name="Modality-Router"
             )
             | self.base_model
@@ -87,8 +87,6 @@ class RunnableBase:
             """Helper for routing to the standalone chain"""
             if isinstance(retriever, RunnableLambda):
                 return x.get("question")
-            if not x.get("chat_history"):
-                return x.get("question")
             return _search_generator_chain
 
         if runnable:
@@ -104,7 +102,7 @@ class RunnableBase:
 
         # Search Query Generator Chain
         _search_generator_chain = (
-            ChatPrompt().query_generator_prompt
+            RunnableLambda(ChatPrompt().query_generator_complete_prompt)
             | self.base_model
             | RunnableLambda(query_parser)
         )
@@ -114,6 +112,7 @@ class RunnableBase:
             question=itemgetter("question"),
             search_queries={
                 "question": lambda x: x["question"],
+                "image_data": lambda x: x["image_data"],
                 "chat_history": chat_history_loader,
             }
             | RunnableLambda(standalone_chain_router).with_config(
