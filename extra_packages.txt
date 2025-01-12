@@ -3,5 +3,5 @@ libreoffice
 unzip
 
 [pip]
-python-docx
-pandas
+datasets
+einops
