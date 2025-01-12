@@ -444,7 +444,7 @@ class SourceManager:
         if source_type == "gitlab":
             gitlab_kwargs = {
                 "hash": hash,
-                "source": data,
+                "data": data,
                 "cleanup": cleanup,
             }
             if identifier_type == "groups":
