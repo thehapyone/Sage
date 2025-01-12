@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sage"
-version = "0.0.15"
+version = "0.0.16"
 description = "Sage: A conversational AI assistant simplifying data interactions with intuitive ease"
 authors = ["Ayo Ayibiowu <charles.ayibiowu@hotmail.com>"]
 license = "Apache-2.0 license"

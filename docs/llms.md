@@ -48,8 +48,9 @@ Sage's embedding capabilities are enhanced by the LiteLLM embeddings API and the
 ```toml
 [embedding]
 type = "huggingface"
-model = "jinaai/jina-embeddings-v2-base-en"
-dimension = 768
+model = "nvidia/NV-Embed-v2"
+#model = "jinaai/jina-embeddings-v2-base-en"
+#dimension = 768
 ```
 
 Explore all compatible Hugging Face embedding models: [Hugging Face Models](https://huggingface.co/models?pipeline_tag=feature-extraction)
