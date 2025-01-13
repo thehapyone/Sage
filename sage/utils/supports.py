@@ -134,7 +134,7 @@ class BgeRerank(BaseDocumentCompressor):
     top_n: int = 10
     """Number of documents to return."""
     cache_dir: str = None
-    revision: str = None
+    revision: str | None = None
     model_args: dict = {"cache_dir": cache_dir}
     model: Optional[CrossEncoder] = None
     """CrossEncoder instance to use for reranking."""
@@ -152,8 +152,7 @@ class BgeRerank(BaseDocumentCompressor):
             self.model = CrossEncoder(
                 self.name,
                 revision=self.revision,
-                tokenizer_args=self.model_args,
-                automodel_args=self.model_args,
+                cache_dir=self.cache_dir
             )
         _scores = self.model.predict(_inputs)
         results: List[Tuple[int, float]] = sorted(
