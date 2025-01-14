@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
@@ -37,45 +38,39 @@ class LiteLLMEmbeddings(Embeddings):
         self.model = model
         self.timeout = timeout
         self.dimensions = dimensions
+        self.api_base = os.getenv("EMBEDDING_API_BASE")
+        self.api_key = os.getenv("EMBEDDING_API_KEY")
+        self.api_type = os.getenv("EMBEDDING_API_TYPE")
+        self.api_version = os.getenv("EMBEDDING_API_VERSION")
+
+        self.embedding_args = {
+            "model": self.model,
+            "timeout": self.timeout,
+            "dimensions": self.dimensions,
+            "api_base": self.api_base,
+            "api_key": self.api_key,
+            "api_type": self.api_type,
+            "api_version": self.api_version,
+        }
 
     def embed_query(self, text: str) -> List[float]:
         # Synchronous embedding of a single query
-        response = embedding(
-            model=self.model,
-            input=[text],
-            timeout=self.timeout,
-            dimensions=self.dimensions,
-        )
+        response = embedding(input=[text], **self.embedding_args)
         return response["data"][0]["embedding"]
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         # Synchronous embedding of multiple documents
-        response = embedding(
-            model=self.model,
-            input=texts,
-            timeout=self.timeout,
-            dimensions=self.dimensions,
-        )
+        response = embedding(input=texts, **self.embedding_args)
         return [item["embedding"] for item in response["data"]]
 
     async def aembed_documents(self, texts: List[str]) -> List[List[float]]:
         # Asynchronous embedding of multiple documents
-        response = await aembedding(
-            model=self.model,
-            input=texts,
-            timeout=self.timeout,
-            dimensions=self.dimensions,
-        )
+        response = await aembedding(input=texts, **self.embedding_args)
         return [item["embedding"] for item in response["data"]]
 
     async def aembed_query(self, text: str) -> List[float]:
         # Asynchronous embedding of a single query
-        response = await aembedding(
-            model=self.model,
-            input=[text],
-            timeout=self.timeout,
-            dimensions=self.dimensions,
-        )
+        response = await aembedding(input=[text], **self.embedding_args)
         return response["data"][0]["embedding"]
 
 
@@ -150,9 +145,7 @@ class BgeRerank(BaseDocumentCompressor):
         _inputs = [[query, doc.page_content] for doc in documents]
         if self.model is None:
             self.model = CrossEncoder(
-                self.name,
-                revision=self.revision,
-                cache_dir=self.cache_dir
+                self.name, revision=self.revision, cache_dir=self.cache_dir
             )
         _scores = self.model.predict(_inputs)
         results: List[Tuple[int, float]] = sorted(

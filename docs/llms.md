@@ -65,6 +65,21 @@ model = "text-embedding-ada-002"
 
 Discover all supported embedding models: [Supported Embeddings](https://litellm.vercel.app/docs/embedding/supported_embedding)
 
+
+### Configuration
+
+To configure embedding models, specify them in your `config.toml` file and manage API keys and credentials securely through your `.env` file. This separation of configuration details from sensitive information enhances security and flexibility, allowing credentials to be updated without altering your main configuration files.
+
+If you use LiteLLM for both LLMs and embeddings, you can define environment variables specifically for embeddings, as demonstrated below:
+Example configuration in `.env` file:
+
+```.env
+EMBEDDING_API_KEY=<your_api_key>
+EMBEDDING_API_BASE=<your_api_base>
+EMBEDDING_API_TYPE=<your_api_type>
+EMBEDDING_API_VERSION=<your_api_version>
+```
+
 ## Best Practices
 
 - Ensure your queries contain sufficient context for the most accurate responses.
