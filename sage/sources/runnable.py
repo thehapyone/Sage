@@ -12,6 +12,8 @@ from langchain.schema.runnable import (
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain_core.messages import AIMessage
 
+from sage.constants import sage_chat_crew
+
 from sage.agent.crew import CrewAIRunnable
 from sage.models.chat_prompt import ChatPrompt
 from sage.sources.utils import (
@@ -68,6 +70,24 @@ class RunnableBase:
             | StrOutputParser(),
             sources=lambda x: format_sources(x["docs"]),
         ).with_config(run_name="Sage Assistant")
+
+        # create the complete chain
+        _runnable = _inputs | _retrieved_docs | qa_answer
+        return _runnable
+
+    def _create_chat_runnable_crew(
+        self, _inputs, _retrieved_docs, _context
+    ) -> RunnableSequence:
+        """Implementation for creating chat runnable"""
+
+        crews_metadata = self.create_crew_runnable(sage_chat_crew)
+        _chat_crew = next(iter(crews_metadata.values()))
+
+        # construct the question and answer model
+        qa_answer = RunnableMap(
+            answer=_context | _chat_crew | itemgetter("answer"),
+            sources=lambda x: format_sources(x["docs"]),
+        )
 
         # create the complete chain
         _runnable = _inputs | _retrieved_docs | qa_answer
@@ -135,7 +155,7 @@ class RunnableBase:
             question=itemgetter("question"),
             image_data=itemgetter("image_data"),
         )
-        _runnable = self._create_chat_runnable(_inputs, _retrieved_docs, _context)
+        _runnable = self._create_chat_runnable_crew(_inputs, _retrieved_docs, _context)
 
         (
             self._user_session.set("runnable", _runnable)

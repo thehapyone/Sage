@@ -112,7 +112,7 @@ class ChatModeHandlers:
         """
         Handles initialization for 'Agent Only' mode, where users select a crew to chat with.
 
-        Returns a tuple containing a black retriever instance and an optional instance for the crew
+        Returns a tuple containing a blank retriever instance and an optional instance for the crew
         """
         # Get the crew names that will be used to create the source actions
         crews_metadata = self._runnable_handler.create_crew_runnable(agents_crew)

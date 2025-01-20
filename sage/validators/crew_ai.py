@@ -1,5 +1,6 @@
 ## Validator for the CrewAI framework interface
 from pathlib import Path
+import re
 from typing import Any, List, Optional
 
 import yaml
@@ -131,12 +132,16 @@ class CrewConfig(Crew):
     )
 
     @model_validator(mode="after")
-    def task_description_should_include_input(self) -> "Crew":
-        """Validates that the first task description must include an input placeholder"""
+    def task_description_should_include_placeholder(self) -> "Crew":
+        """Validates that the first task description includes at least one placeholder"""
         task = self.tasks[0]
-        if "{input}" not in task.description:
+
+        # Regular expression to match any placeholder inside curly braces
+        placeholder_pattern = re.compile(r"{[^}]+}")
+
+        if not placeholder_pattern.search(task.description):
             raise ValueError(
-                "Crew's first task description must include '{input}' placeholder."
+                "Crew's first task description must include at least one placeholder like '{input}', '{question}', etc."
             )
         return self
 
@@ -255,31 +260,45 @@ class CrewConfig(Crew):
 
 
 def load_and_validate_agents_yaml(
-    config: Core, llm_model: Any, embedding_model: Any, dimension: int
+    config: Core,
+    llm_model: Any,
+    embedding_model: Any,
+    dimension: int,
+    yaml_file_path: str = None,
 ) -> list:
-    """Validates and loads all available agents configuration files."""
-    agent_dir = config.agents_dir
-    if agent_dir is None:
-        return []
+    """Validates and loads agents configuration from directory or single YAML file."""
+    yaml_files = []
 
-    dir_path = Path(agent_dir)
+    if yaml_file_path:
+        # If a specific file path is provided, use it
+        file_path = Path(yaml_file_path)
+        if not file_path.exists():
+            raise ConfigException(f"The YAML file '{yaml_file_path}' does not exist")
+        if not file_path.is_file():
+            raise ConfigException(f"The path '{yaml_file_path}' is not a file")
+        yaml_files.append(file_path)
+    else:
+        # Otherwise, fall back to using the directory from config
+        agent_dir = config.agents_dir
+        if agent_dir is None:
+            return []
 
-    if not dir_path.exists():
-        raise ConfigException(f"The agents dir '{agent_dir}' does not exist")
+        dir_path = Path(agent_dir)
 
-    if not dir_path.is_dir():
-        raise ConfigException(f"The agents dir '{agent_dir}' is not a directory")
+        if not dir_path.exists():
+            raise ConfigException(f"The agents dir '{agent_dir}' does not exist")
 
-    # Check if the directory contains any .yaml or .yml files
-    yaml_files = list(dir_path.glob("*.yaml")) + list(dir_path.glob("*.yml"))
-    if not yaml_files:
-        raise ConfigException(
-            f"The agents dir '{agent_dir}' does not contain any YAML files"
-        )
+        if not dir_path.is_dir():
+            raise ConfigException(f"The agents dir '{agent_dir}' is not a directory")
+
+        # Check if the directory contains any .yaml or .yml files
+        yaml_files = list(dir_path.glob("*.yaml")) + list(dir_path.glob("*.yml"))
+        if not yaml_files:
+            raise ConfigException(
+                f"The agents dir '{agent_dir}' does not contain any YAML files"
+            )
 
     crew_storage_path = config.data_dir / "crewai"
-    crew_llm = LLM(model=llm_model.model_name)
-    # Load respective agent files
     crew_list = []
     try:
         for file_path in yaml_files:
@@ -294,7 +313,7 @@ def load_and_validate_agents_yaml(
                         "manager_llm": (
                             data.get("manager_llm")
                             if data.get("manager_llm")
-                            else crew_llm
+                            else LLM(model=llm_model.model_name)
                         ),
                         "embedder": {"model": embedding_model, "dimension": dimension},
                         "db_storage_path": str(crew_storage_path),

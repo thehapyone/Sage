@@ -181,7 +181,10 @@ class SourceQAService:
         async for chunk in runnable.astream(
             query,
             config=RunnableConfig(
-                metadata={"run_name": run_name},
+                metadata={
+                    "run_name": run_name,
+                    "chat_profile": cl.user_session.get("chat_profile"),
+                },
                 run_name=run_name,
                 callbacks=[
                     cl.AsyncLangchainCallbackHandler(

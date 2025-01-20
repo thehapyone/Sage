@@ -6,6 +6,7 @@ import sys
 import nltk
 import toml
 from pydantic import ValidationError
+from pathlib import Path
 
 from sage.utils.exceptions import ConfigException
 from sage.utils.logger import CustomLogger
@@ -82,3 +83,20 @@ try:
 except (ValidationError, ConfigException) as error:
     logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
     sys.exit(3)
+
+# Load the Sage CrewAI Model
+current_script_path = Path(__file__).resolve().parent
+relative_yaml_path = current_script_path / "models/sage_crew.yaml"
+try:
+    sage_chat_crew = load_and_validate_agents_yaml(
+        core_config,
+        LLM_MODEL,
+        embedding_model=EMBEDDING_MODEL,
+        dimension=EMBED_DIMENSION,
+        yaml_file_path=relative_yaml_path,
+    )
+except (ValidationError, ConfigException) as error:
+    logger.error(f"The configuration file is not valid - {str(error)}", exc_info=False)
+    sys.exit(3)
+
+print(sage_chat_crew)
