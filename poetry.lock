@@ -6462,22 +6462,23 @@ docs = ["sphinx"]
 
 [[package]]
 name = "python-gitlab"
-version = "4.3.0"
-description = "A python wrapper for the GitLab API"
+version = "6.4.0"
+description = "The python wrapper for the GitLab REST and GraphQL APIs."
 optional = false
-python-versions = ">=3.8.0"
+python-versions = ">=3.9.0"
 groups = ["main"]
 files = [
-    {file = "python-gitlab-4.3.0.tar.gz", hash = "sha256:eb31d1f2bfd8653f74996f9d0bf84ce7afb0843f9122a257c9a93b0e027d1df0"},
-    {file = "python_gitlab-4.3.0-py3-none-any.whl", hash = "sha256:cc1dc49c562c02ffbad3656e668234c45ea6210688ade59865b284313f45000d"},
+    {file = "python_gitlab-6.4.0-py3-none-any.whl", hash = "sha256:2f264162b552463885871295ec4754441c4aa936746f333faa362de422aad4c8"},
+    {file = "python_gitlab-6.4.0.tar.gz", hash = "sha256:55ed94fb47932124b7f9df8e72b29352d3d0ee01ecf44f081dd070f4bad8700d"},
 ]
 
 [package.dependencies]
-requests = ">=2.25.0"
-requests-toolbelt = ">=0.10.1"
+requests = ">=2.32.0"
+requests-toolbelt = ">=1.0.0"
 
 [package.extras]
 autocompletion = ["argcomplete (>=1.10.0,<3)"]
+graphql = ["gql[httpx] (>=3.5.0,<4)"]
 yaml = ["PyYaml (>=6.0.1)"]
 
 [[package]]
@@ -9094,4 +9095,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "bb37e661b8d67329ccdda2941e5909193fbd95dabd9e3a705582611d72bff5b4"
+content-hash = "cd60059893c32aab81530e01c06231ac8661d942ac762e16eaf22ed9588634d1"
