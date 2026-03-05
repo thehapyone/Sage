@@ -27,7 +27,7 @@ requests = "2.32.3"
 sentence-transformers = "^3.3.1"
 toml = "0.10.2"
 transformers = "^4.45.2"
-unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.16.11" }
+unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.18.32" }
 xlsxwriter = "3.1.9"
 python-gitlab = "4.3.0"
 markdown = "^3.5.2"
