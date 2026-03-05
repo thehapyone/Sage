@@ -357,14 +357,14 @@ anyio = ">=3.4.0,<5.0"
 
 [[package]]
 name = "atlassian-python-api"
-version = "3.41.16"
+version = "4.0.7"
 description = "Python Atlassian REST API Wrapper"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "atlassian_python_api-3.41.16-py3-none-any.whl", hash = "sha256:99e5587233a96d22c45a61b19523dd98e8266c620ba2d289f23e4ea35c9cf316"},
-    {file = "atlassian_python_api-3.41.16.tar.gz", hash = "sha256:dc0144ff8b8884562bb2af650586292524ad25f120cd21940df80f0d2ac64411"},
+    {file = "atlassian_python_api-4.0.7-py3-none-any.whl", hash = "sha256:46a70cb29eaab87c0a1697fccd3e25df1aa477e6aa4fb9ba936a9d46b425933c"},
+    {file = "atlassian_python_api-4.0.7.tar.gz", hash = "sha256:8d9cc6068b1d2a48eb434e22e57f6bbd918a47fac9e46b95b7a3cefb00fceacb"},
 ]
 
 [package.dependencies]
@@ -373,8 +373,8 @@ deprecated = "*"
 jmespath = "*"
 oauthlib = "*"
 requests = "*"
-requests-oauthlib = "*"
-six = "*"
+requests_oauthlib = "*"
+typing-extensions = "*"
 
 [package.extras]
 kerberos = ["requests-kerberos"]
@@ -9134,4 +9134,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "0580940d14c1dfd7a8ed8d180732a3999c9e7cd549ee4e3f8af3e5136e9eca81"
+content-hash = "f4763105554c5a5954c0022859daff767ee0c776f9c70e06f2c3aed1e49e0743"
