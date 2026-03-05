@@ -26,7 +26,7 @@ pyyaml = "6.0.1"
 requests = "2.32.3"
 sentence-transformers = "^3.3.1"
 toml = "0.10.2"
-transformers = "^4.45.2"
+transformers = "^4.50.3"
 unstructured = { extras = ["docx", "pdf", "xlsx"], version = "^0.16.11" }
 xlsxwriter = "3.1.9"
 python-gitlab = "4.3.0"
