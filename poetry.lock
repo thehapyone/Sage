@@ -3006,31 +3006,30 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "jira"
-version = "3.8.0"
+version = "3.10.5"
 description = "Python library for interacting with JIRA via REST APIs."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "jira-3.8.0-py3-none-any.whl", hash = "sha256:12190dc84dad00b8a6c0341f7e8a254b0f38785afdec022bd5941e1184a5a3fb"},
-    {file = "jira-3.8.0.tar.gz", hash = "sha256:63719c529a570aaa01c3373dbb5a104dab70381c5be447f6c27f997302fa335a"},
+    {file = "jira-3.10.5-py3-none-any.whl", hash = "sha256:d4da1385c924ee693d6cc9838e56a34e31d74f0d6899934ef35bbd0d2d33997f"},
+    {file = "jira-3.10.5.tar.gz", hash = "sha256:2d09ae3bf4741a2787dd889dfea5926a5d509aac3b28ab3b98c098709e6ee72d"},
 ]
 
 [package.dependencies]
 defusedxml = "*"
 packaging = "*"
-Pillow = ">=2.1.0"
 requests = ">=2.10.0"
 requests-oauthlib = ">=1.1.0"
-requests-toolbelt = "*"
-typing-extensions = ">=3.7.4.2"
+requests_toolbelt = "*"
+typing_extensions = ">=3.7.4.2"
 
 [package.extras]
 async = ["requests-futures (>=0.9.7)"]
 cli = ["ipython (>=4.0.0)", "keyring"]
 docs = ["furo", "sphinx (>=5.0.0)", "sphinx-copybutton"]
-opt = ["PyJWT", "filemagic (>=1.6)", "requests-jwt", "requests-kerberos"]
-test = ["MarkupSafe (>=0.23)", "PyYAML (>=5.1)", "docutils (>=0.12)", "flaky", "oauthlib", "parameterized (>=0.8.1)", "pytest (>=6.0.0)", "pytest-cache", "pytest-cov", "pytest-instafail", "pytest-sugar", "pytest-timeout (>=1.3.1)", "pytest-xdist (>=2.2)", "requests-mock", "requires.io", "tenacity", "wheel (>=0.24.0)", "yanc (>=0.3.3)"]
+opt = ["PyJWT", "filemagic (>=1.6)", "requests_jwt", "requests_kerberos"]
+test = ["MarkupSafe (>=0.23)", "PyYAML (>=5.1)", "docutils (>=0.21.2)", "flaky", "oauthlib", "parameterized (>=0.8.1)", "parameterized (>=0.8.1)", "pip", "pytest (>=6.0.0)", "pytest-cache", "pytest-cov", "pytest-instafail", "pytest-sugar", "pytest-timeout (>=1.3.1)", "pytest-xdist (>=2.2)", "requests_mock", "requires.io", "tenacity", "wheel (>=0.24.0)", "yanc (>=0.3.3)"]
 
 [[package]]
 name = "jiter"
@@ -9134,4 +9133,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "0580940d14c1dfd7a8ed8d180732a3999c9e7cd549ee4e3f8af3e5136e9eca81"
+content-hash = "dded0e719a910657b6e6209edd55d19d85f8e09da43c45256576f2e0fc8f150d"
