@@ -1,0 +1,69 @@
+[core]
+data_dir = "/path/to/data/directory"
+logging_level = "INFO"
+user_agent = "codesage.ai"
+starters_path = "/path/to/starters.yaml"
+
+[upload]
+max_size_mb = 10
+max_files = 5
+timeout = 300
+
+[jira]
+url = "https://yourcompany.atlassian.net/"
+username = "your_jira_username"
+password = "your_jira_password"
+polling_interval = 300
+project = "YOURPROJECT"
+status_todo = "To Do"
+
+[azure]
+endpoint = "https://your_azure_endpoint"
+password = "your_azure_password"
+revision = "your_azure_api_version"
+
+[openai]
+password = "your_openai_token"
+organization = "your_organization"
+
+[source]
+top_k = 20
+# Schedule in cron format: minute, hour, day (month), month, day (week)  
+# Example: "0 * * * *" means every hour at the 0th minute  
+refresh_schedule = "1 0 * * SUN" # Every Sunday at midnight  
+
+[source.confluence]
+username = "your_confluence_username"
+password = "your_confluence_password"
+server = "https://yourcompany.atlassian.net/wiki"
+spaces = ["SPACE1", "SPACE2"]
+
+[source.gitlab]
+username = "your_gitlab_username"
+password = "your_gitlab_password"
+server = "https://gitlab.com"
+groups = ["group1", "group2"]
+projects = ["project1", "project2"]
+
+[source.web]
+links = ["https://example.com", "https://anotherexample.com"]
+nested = true
+ssl_verify = true
+username = "your_web_username"
+password = "your_web_password"
+
+[source.files]
+paths = ["/path/to/file1", "/path/to/file2"]
+
+[reranker]
+top_n = 5
+model = "cohere/rerank-english-v2.0"
+#model = "BAAI/bge-reranker-large"
+revision = "55611d7bca2a7133960a6d3b71e083071bbfc312"
+
+[embedding]
+type = "huggingface"
+model = "jinaai/jina-embeddings-v2-base-en"
+
+[llm]
+model = "azure/my_azure_deplpoyment_name"

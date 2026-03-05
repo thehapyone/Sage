@@ -1,0 +1,19 @@
+sandbox
+.venv
+__pycache__
+.env
+*.env
+docker/
+.files
+translations
+.coverage
+coverage.xml
+
+## Chainlit deps
+.langchain.db
+
+## Sage data dir
+data
+
+## Python Deps
+*_cache

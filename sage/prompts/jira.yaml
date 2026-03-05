@@ -1,0 +1,8 @@
+---
+summary_prompt: >
+  Please provide a comprehensive summary and analysis of the Jira issue,
+  taking into account all relevant details, comments, and context.
+  This summary will be used by the agent assigned to work on the issue for a more efficient resolution.
+  The summary should be concise and to the point, highlighting the key information and issues related to the task.
+
+

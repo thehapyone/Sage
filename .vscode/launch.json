@@ -1,0 +1,40 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Chainlit",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "chainlit",
+            "justMyCode": true,
+            "args": "run -w ${workspaceFolder}/sage/chat.py",
+            "envFile": "${workspaceFolder}/sandbox/sage.env"
+        },
+        {
+            "name": "Chainlit - Others",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "chainlit",
+            "justMyCode": false,
+            "args": "run -w ${workspaceFolder}/sandbox/demo1.py",
+            "envFile": "${workspaceFolder}/sandbox/sage.env"
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "envFile": "${workspaceFolder}/sandbox/sage.env"
+        },
+        {
+            "name": "Pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "justMyCode": false,
+            "args": "-vv -v ${file}",
+        },
+    ]
+}

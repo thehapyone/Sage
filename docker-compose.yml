@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  chat:
+    image: thehapyone/codesage:latest
+    container_name: sage_chat
+    ports:
+      - "8080:8000"
+    environment:
+      - MODE=CHAT
+      - SAGE_CONFIG_PATH=/home/appuser/sage/config.toml
+      - JIRA_PASSWORD
+      - AZURE_API_KEY
+      - AZURE_API_BASE
+      - AZURE_API_VERSION
+      - GITLAB_PASSWORD
+      - CHAINLIT_AUTH_SECRET
+      - COHERE_API_KEY
+      - HF_HOME=/home/appuser/data/huggingface
+      - HF_TOKEN
+    volumes:
+      - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
+      - sage_data:/home/appuser/data
+      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt
+      - ${SAGE_HOME}/starters.yaml:/home/appuser/sage/starters.yaml
+      - ${SAGE_HOME}/agents:/home/appuser/sage/data/agents:ro
+      - ${SAGE_HOME}/extra_packages.txt:/home/appuser/extra_packages.txt
+
+  data_loader:
+    image: thehapyone/codesage:latest
+    container_name: data_loader
+    environment:
+      - MODE=DATA_LOADER
+      - SAGE_CONFIG_PATH=/home/appuser/sage/config.toml
+      - JIRA_PASSWORD
+      - AZURE_API_KEY
+      - AZURE_API_BASE
+      - AZURE_API_VERSION
+      - GITLAB_PASSWORD
+      - COHERE_API_KEY
+      - HF_HOME=/home/appuser/data/huggingface
+      - HF_TOKEN
+    volumes:
+      - ${SAGE_HOME}/config.toml:/home/appuser/sage/config.toml
+      - sage_data:/home/appuser/data
+      - ${SAGE_HOME}/ca.crt:/home/appuser/certs/ca-bundle.crt
+
+volumes:
+  sage_data:

@@ -1,0 +1,162 @@
+/* Set the logo height */
+img[alt="logo"] {
+    max-height: 50px !important;
+}
+
+/* Text color for the welcome message - Readme page */
+#welcome-screen {
+    color: #d3e2df;
+}
+
+/* Text color for the welcome message - Readme page header */
+#instructions-dialog {
+    color: white;
+}
+
+/* Text color for the default text fields */
+.css-9vo64t {
+    color: #d3e2df !important;
+}
+
+/* Margin for the welcome message */
+.markdown-body :first-child {
+    margin-top: 10px !important;
+}
+
+/* Background color for the sidebar popup */
+.css-1dnvejm {
+    background-color: #54b58f !important;
+}
+
+/* Background color for the sidebar popup contd */
+.css-1q3qpzg {
+    background-color: #54b58f !important;
+}
+
+/* Background color for the sidebar background */
+.css-7eygjx {
+    background-color: #101010 !important;
+}
+
+/* Background color for the sidebar elements background */
+.MuiDrawer-paper {
+    background-color: #101010 !important;
+}
+
+/* Color for the new chat button icon */
+#new-chat-button {
+    color: #54b58f !important;
+}
+
+/* Color for the chat profile selector mui-component-select-chat-profile-selector */
+#mui-component-select-chat-profile-selector {
+    color: black !important;
+    background-color: white !important;
+}
+
+/* Color for the chat profile selector mui-component-select-chat-profile-selector:hover */
+#mui-component-select-chat-profile-selector:hover {
+    background-color: #54b58f !important;
+    color: white !important;
+}
+
+/* Change dropdown button text color to pale white - Chat selector */
+#menu-chat-profile-selector .MuiMenuItem-root span {
+    color: #d3e2df;
+}
+
+/* Change dropdown button hover color to black - Chat Selector */
+#menu-chat-profile-selector .MuiMenuItem-root:hover span {
+    color: black;
+}
+
+/* Set the chat popup description text color */
+.css-1v84xce {
+    color: white !important;
+}
+
+/* Text color for the settings  button text */
+.css-2jrx9s {
+    color: #ffffff !important;
+}
+
+/* Text color for the readme button text */
+.css-fxwsz {
+    color: #ffffff !important;
+}
+
+/* Text color for the settings menu header message text */
+.css-5xgbr {
+    color: #d3e2df !important;
+}
+
+/* Background color for the sidebar popup color */
+.css-xhgxhy {
+    background-color: #0f0f0f !important;
+}
+
+/* Text color for the text in the sidebar */
+.css-1f46uet .MuiDrawer-paper {
+    color: #fefefe !important;
+}
+
+/* Change the backgroup for the steps UI */
+.css-5kjw2l {
+    background: #000000 !important;
+}
+
+/* Header text color for new chat */
+.css-1rglye3 {
+    color: #54b58f !important;
+}
+
+/* Caption text colors */
+.MuiTypography-caption {
+    color: #d3e2df !important;
+}
+
+
+/* Text color in the show history */
+.css-lzolpx {
+    color: #d3e2df !important;
+}
+
+
+/* Color chat profile description */
+.css-1x11djl {
+    color: #54b58f !important;
+}
+
+/* File mode upload description message */
+.css-1di2gs3 {
+    color: #54b58f !important;
+}
+
+/* Input text placeholder */
+.css-10oer18 {
+    /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: #d3e2df !important;
+}
+
+/* Input text background */
+.css-njpsko {
+    background-color: #151515 !important;
+}
+
+/* SVG logo color*/
+.MuiSvgIcon-root {
+    color: white !important;
+}
+
+/* Color for the highlights in the AI text code language header */
+.css-1ltnmms {
+    background-color: #0f0f0f !important;
+    color: #d3e2df !important;
+}
+
+
+/* Targeting code elements within specific div class */
+.MuiBox-root.css-13s85fp code {
+    background-color: #0f0f0f !important;
+    color: white !important;
+}

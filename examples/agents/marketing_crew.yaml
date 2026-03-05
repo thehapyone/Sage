@@ -1,0 +1,35 @@
+name: ProductLaunchCrew
+
+agents:
+  - role: Marketing Strategist
+    goal: Develop and execute a comprehensive marketing strategy
+    backstory: Seasoned marketing strategist with a proven track record in launching successful products across various industries.
+
+  - role: Content Creator
+    goal: Produce engaging content for marketing campaigns
+    backstory: Creative content specialist with expertise in writing, video production, and graphic design.
+
+  - role: Social Media Manager
+    goal: Manage social media channels and engage with the audience
+    backstory: Expert in social media marketing with experience in growing brand presence and engaging followers.
+
+  - role: SEO Specialist
+    goal: Optimize digital content for search engines
+    backstory: SEO expert with a deep understanding of search engine algorithms and proven strategies for improving search rankings.
+
+tasks:
+  - description: "Develop a detailed marketing strategy for the product launch. Input data: {input}"
+    agent: Marketing Strategist
+    expected_output: A comprehensive marketing strategy document outlining target audience, channels, key messages, and timelines.
+
+  - description: "Create engaging content for the campaign, including blog posts, videos, and graphics. Input data: {input}"
+    agent: Content Creator
+    expected_output: A collection of high-quality content pieces ready for distribution across various marketing channels.
+
+  - description: "Plan and execute social media campaigns to build anticipation and engagement. Input data: {input}"
+    agent: Social Media Manager
+    expected_output: A series of social media posts and campaigns with metrics for engagement and reach.
+
+  - description: "Optimize the campaign content for search engines to increase organic traffic. Input data: {input}"
+    agent: SEO Specialist
+    expected_output: An SEO report detailing keyword optimizations, on-page SEO improvements, and backlinks strategy.

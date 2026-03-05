@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# custom certificate authority path
+CA_CERTIFICATES_PATH=/home/appuser/certs/ca-bundle.crt
+LOCAL_CA_PATH="/usr/local/share/ca-certificates"
+EXTRA_PACKAGES_FILE=/home/appuser/extra_packages.txt
+
+update_ca() {
+  echo "Updating CA certificates..."
+  mkdir -p "${LOCAL_CA_PATH}"
+  # Split the CA bundle into individual files
+  csplit -sz "${CA_CERTIFICATES_PATH}" '/-----BEGIN CERTIFICATE-----/' '{*}' >/dev/null 2>&1
+  # Move and rename the split files
+  COUNT=1
+  for CERT in xx*; do
+    mv "$CERT" "${LOCAL_CA_PATH}/ca_${COUNT}.crt"
+    COUNT=$((COUNT + 1))
+  done
+
+  # Update the CA certificates
+  update-ca-certificates --fresh >/dev/null
+}
+
+install_extra_packages() {
+  if [ -f "${EXTRA_PACKAGES_FILE}" ]; then
+    echo "Installing extra packages from ${EXTRA_PACKAGES_FILE}..."
+    
+    # Install OS packages
+    APT_PACKAGES=$(awk '/^\[apt\]/ {flag=1; next} /^\[/ {flag=0} flag && NF {print}' "${EXTRA_PACKAGES_FILE}")
+    if [ -n "${APT_PACKAGES}" ]; then
+      echo "Installing OS packages..."
+      apt-get update && apt-get install -y ${APT_PACKAGES}
+    fi
+
+    # Install Python packages
+    PIP_PACKAGES=$(awk '/^\[pip\]/ {flag=1; next} /^\[/ {flag=0} flag && NF {print}' "${EXTRA_PACKAGES_FILE}")
+    if [ -n "${PIP_PACKAGES}" ]; then
+      echo "Installing Python packages..."
+      poetry add ${PIP_PACKAGES}
+    fi
+  else
+    echo "No extra_packages.txt found. Skipping extra package installation."
+  fi
+}
+
+run_app() {
+  # Check the MODE environment variable to determine which process to start
+  if [ "$MODE" == "DATA_LOADER" ]; then
+    echo "Starting the data loader..."
+    exec su -s /bin/bash -c "exec python /home/appuser/sage/data_loader.py" appuser
+  else
+    echo "Starting the chat service..."
+    exec su -s /bin/bash -c "exec chainlit run -h --host 0.0.0.0 --port=8000 /home/appuser/sage/chat.py" appuser
+  fi
+}
+
+if [ -f "${CA_CERTIFICATES_PATH}" ]; then
+  update_ca
+fi
+
+install_extra_packages
+chown -R appuser:appuser /home/appuser
+
+run_app

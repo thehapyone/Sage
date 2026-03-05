@@ -1,0 +1,34 @@
+name: Specialized Python Testing Team
+process: hierarchical
+memory: True
+agents:
+  - role: Python Unit-Test Expert
+    goal: Write unit tests for functions, classes, and their methods based on Pytest Framework
+    backstory: Seasoned Python developer with dual specialization in reviewing both Python functions and class interactions, enabling comprehensive unit test creation.
+  - role: Python Integration-Test Expert
+    goal: Write integration tests for the codebase based on Pytest Framework
+    backstory: Seasoned Python developer that is well-versed in system integration and end-to-end testing, ensuring seamless interaction between different codebase components.
+  - role: Python Reviewer Expert
+    goal: Review and validate unit and integration tests written by other agents.
+    backstory: Detail-oriented Python developer who brings rigorous standards to the review process, ensuring all test cases are meticulously checked and validated.
+    allow_delegation: True
+tasks:
+  - description: |
+      Review the provided Python functions and class structures. Identify potential edge cases, state changes, method interactions, and typical usage scenarios.
+      Develop unit tests ensuring 100% coverage for each function and class method while following best practices for unit testing with pytest.
+      Ensure the test cases comply with coding and testing standards.
+      User input: {input}
+    agent: Python Unit-Test Expert
+    expected_output: A comprehensive set of unit tests covering all functional aspects of the targeted Python functions and classes.
+  - description: |
+      Understand the codebase's integration points. Develop tests validating the behavior of integrated components.
+      Ensure system-wide functionality through these integration tests. Adhere to pytest standards for integration testing.
+      User input: {input}
+    agent: Python Integration-Test Expert
+    expected_output: A set of integration tests validating the correct functioning of the integrated parts of the system.
+  - description: |
+      Perform detailed reviews of the written unit and integration tests. Verify completeness, accuracy, and compliance with requirements.
+      Validate that the tests meet the coverage needs. Provide constructive feedback and request modifications where necessary.
+      User input: {input}
+    agent: Python Reviewer Expert
+    expected_output: The complete validated and corrected unit and integration tests ready for execution, ensuring high-quality standards and coverage.

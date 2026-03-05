@@ -1,0 +1,15 @@
+# Default Mergebot configuration
+# See https://github.com/thehapyone/mergebot for documentation
+repository:
+  type: "github"
+  github:
+    base_branch: "main"
+approval_policy:
+  threshold: 3.0
+  weights:
+    CodeAnalysis: 0.4
+    ComplexityAnalysis: 0.2
+    TestAnalysis: 0.2
+    RiskAnalysis: 0.2
+analysis:
+  max_mrs: 10
